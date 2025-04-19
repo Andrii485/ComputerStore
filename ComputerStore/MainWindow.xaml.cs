@@ -7,11 +7,37 @@ namespace ElmirClone
 {
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        private bool isProfilePanelOpen = false;
+        private UserProfile userProfile; // Данные пользователя
+
+        public MainWindow(UserProfile userProfile)
         {
             InitializeComponent();
+            this.userProfile = userProfile ?? new UserProfile(); // Инициализация профиля, если null, создаем пустой
             LoadAdditionalProducts();
             LoadPopularProducts();
+            LoadUserProfile(); // Загружаем данные пользователя в поля
+        }
+
+        // Загрузка данных пользователя в поля профиля
+        private void LoadUserProfile()
+        {
+            FirstNameTextBox.Text = userProfile.FirstName;
+            BindingTextBlock.Text = ""; // Пример привязки, можно заменить на реальную логику
+            MiddleNameTextBox.Text = userProfile.MiddleName;
+            PhoneTextBox.Text = userProfile.Phone;
+            EmailTextBox.Text = userProfile.Email;
+        }
+
+        // Сохранение изменений профиля
+        private void SaveProfileButton_Click(object sender, RoutedEventArgs e)
+        {
+            userProfile.FirstName = FirstNameTextBox.Text;
+            userProfile.MiddleName = MiddleNameTextBox.Text;
+            userProfile.Phone = PhoneTextBox.Text;
+            userProfile.Email = EmailTextBox.Text;
+
+            MessageBox.Show("Профіль успішно збережено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // Очистка поля поиска
@@ -19,14 +45,16 @@ namespace ElmirClone
         {
             TextBox textBox = sender as TextBox;
             if (textBox.Text == "Поиск...")
+            {
                 textBox.Text = "";
+                textBox.Foreground = System.Windows.Media.Brushes.White;
+            }
         }
 
         // Обработчик клика по логотипу
         private void Logo_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("Добро пожаловать в ElitePC Store! Нажмите, чтобы вернуться на главную.", "ElitePC", MessageBoxButton.OK, MessageBoxImage.Information);
-            // Здесь можно добавить логику перехода на главную страницу или другое действие
         }
 
         // Обработчик клика по категориям
@@ -36,7 +64,6 @@ namespace ElmirClone
             if (button != null)
             {
                 MessageBox.Show($"Выбрана категория: {button.Content}", "Категория", MessageBoxButton.OK, MessageBoxImage.Information);
-                // Здесь можно добавить логику фильтрации товаров
             }
         }
 
@@ -49,13 +76,22 @@ namespace ElmirClone
         // Обработчик кнопки Профиль
         private void ProfileButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Переход в профиль.", "Профиль", MessageBoxButton.OK, MessageBoxImage.Information);
+            isProfilePanelOpen = !isProfilePanelOpen;
+            ProfilePanel.Visibility = isProfilePanelOpen ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // Обработчик кнопки Корзина
         private void CartButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Переход в корзину.", "Корзина", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Корзина пока в разработке.", "Корзина", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        // Обработчик кнопки Выход
+        private void LogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            LoginWindow loginWindow = new LoginWindow();
+            loginWindow.Show();
+            this.Close();
         }
 
         // Вторая сетка товаров
@@ -92,7 +128,7 @@ namespace ElmirClone
                 new Product { Name = "Графічні планшети (дигитайзеры)", ImageUrl = "https://via.placeholder.com/180x120?text=Графічні+планшети" },
                 new Product { Name = "Оптичні приводи", ImageUrl = "https://via.placeholder.com/180x120?text=Оптичні+приводи" },
                 new Product { Name = "Диски", ImageUrl = "https://via.placeholder.com/180x120?text=Диски" },
-                new Product { Name = "Пристрої відеозахвату", ImageUrl = "https://via.placeholder.com/180x120?text=Пристрої+відеозахвату" }
+                new Product { Name = "Пристрої відеозахвату", ImageUrl = "https://via.placeholder.com/180x120?text= format Пристрої+відеозахвату" }
             };
             AdditionalProductsGrid.ItemsSource = additionalProducts;
         }
@@ -102,23 +138,23 @@ namespace ElmirClone
         {
             var popularProducts = new List<Product>
             {
-                new Product { Name = "SSD-накопитель 2.5 M.2 1TB Kingston NV2 (SNV2S/1000G)", Price = "2 859 грн", Rating = "5.0", Reviews = "50", ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Kingston" },
-                new Product { Name = "Процессор AMD Ryzen 7 5700X3D (AM4, 4.1GHz, 8MB)", Price = "10 999 грн", Rating = "4.9", Reviews = "13", ImageUrl = "https://via.placeholder.com/180x120?text=Процессор+AMD" },
-                new Product { Name = "Роутер TP-Link Archer C64", Price = "1 299 грн", Rating = "4.9", Reviews = "41", ImageUrl = "https://via.placeholder.com/180x120?text=Роутер+TP-Link" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Kingston Canvas Select Plus A1 (SNV2S/1000G)", Price = "1 999 грн", Rating = "4.8", Reviews = "8", ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Kingston" },
-                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DC", Price = "15 769 грн", Rating = "4.7", Reviews = "4", ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
-                new Product { Name = "Видеокарта MSI GeForce RTX 3060 16GB DDR6", Price = "8 999 грн", Rating = "4.8", Reviews = "12", ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+MSI" },
-                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DDR6 PRIME", Price = "32 999 грн", Rating = "4.9", Reviews = "44", ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
-                new Product { Name = "Процессор AMD Ryzen 9 7950X3D (AM5, 5.7GHz, 128MB)", Price = "30 999 грн", Rating = "4.9", Reviews = "10", ImageUrl = "https://via.placeholder.com/180x120?text=Процессор+AMD" },
-                new Product { Name = "Компьютер Artline Gaming X43", Price = "0 грн", Rating = "4.5", Reviews = "5", ImageUrl = "https://via.placeholder.com/180x120?text=Компьютер+Artline" },
-                new Product { Name = "Мышь Bloody R72 Ultra Renegade Sunset", Price = "1 889 грн", Rating = "4.6", Reviews = "3", ImageUrl = "https://via.placeholder.com/180x120?text=Мышь+Bloody" },
-                new Product { Name = "Кабель HDMI -> Optical 2.1 Cab", Price = "4 499 грн", Rating = "4.7", Reviews = "2", ImageUrl = "https://via.placeholder.com/180x120?text=Кабель+HDMI" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Goodram CX400 Gen.2 (SSDPR)", Price = "2 685 грн", Rating = "4.8", Reviews = "6", ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Goodram" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Samsung 870 EVO MZ", Price = "2 519 грн", Rating = "4.9", Reviews = "29", ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Samsung" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 256GB Patriot P220", Price = "709 грн", Rating = "4.8", Reviews = "7", ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Patriot" },
-                new Product { Name = "Роутер TP-Link Archer C80", Price = "1 699 грн", Rating = "4.9", Reviews = "30", ImageUrl = "https://via.placeholder.com/180x120?text=Роутер+TP-Link" },
-                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DDR6 (DUAL)", Price = "15 769 грн", Rating = "4.7", Reviews = "4", ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
-                new Product { Name = "Модуль памяти DDR4 16GB 2x8", Price = "1 599 грн", Rating = "4.8", Reviews = "2", ImageUrl = "https://via.placeholder.com/180x120?text=Модуль+памяти" }
+                new Product { Name = "SSD-накопитель 2.5 M.2 1TB Kingston NV2 (SNV2S/1000G)", Price = "2 859 грн", Rating = 5.0, Reviews = 50, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Kingston" },
+                new Product { Name = "Процессор AMD Ryzen 7 5700X3D (AM4, 4.1GHz, 8MB)", Price = "10 999 грн", Rating = 4.9, Reviews = 13, ImageUrl = "https://via.placeholder.com/180x120?text=Процессор+AMD" },
+                new Product { Name = "Роутер TP-Link Archer C64", Price = "1 299 грн", Rating = 4.9, Reviews = 41, ImageUrl = "https://via.placeholder.com/180x120?text=Роутер+TP-Link" },
+                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Kingston Canvas Select Plus A1 (SNV2S/1000G)", Price = "1 999 грн", Rating = 4.8, Reviews = 8, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Kingston" },
+                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DC", Price = "15 769 грн", Rating = 4.7, Reviews = 4, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
+                new Product { Name = "Видеокарта MSI GeForce RTX 3060 16GB DDR6", Price = "8 999 грн", Rating = 4.8, Reviews = 12, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+MSI" },
+                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DDR6 PRIME", Price = "32 999 грн", Rating = 4.9, Reviews = 44, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
+                new Product { Name = "Процессор AMD Ryzen 9 7950X3D (AM5, 5.7GHz, 128MB)", Price = "30 999 грн", Rating = 4.9, Reviews = 10, ImageUrl = "https://via.placeholder.com/180x120?text=Процессор+AMD" },
+                new Product { Name = "Компьютер Artline Gaming X43", Price = "0 грн", Rating = 4.5, Reviews = 5, ImageUrl = "https://via.placeholder.com/180x120?text=Компьютер+Artline" },
+                new Product { Name = "Мышь Bloody R72 Ultra Renegade Sunset", Price = "1 889 грн", Rating = 4.6, Reviews = 3, ImageUrl = "https://via.placeholder.com/180x120?text=Мышь+Bloody" },
+                new Product { Name = "Кабель HDMI -> Optical 2.1 Cab", Price = "4 499 грн", Rating = 4.7, Reviews = 2, ImageUrl = "https://via.placeholder.com/180x120?text=Кабель+HDMI" },
+                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Goodram CX400 Gen.2 (SSDPR)", Price = "2 685 грн", Rating = 4.8, Reviews = 6, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Goodram" },
+                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Samsung 870 EVO MZ", Price = "2 519 грн", Rating = 4.9, Reviews = 29, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Samsung" },
+                new Product { Name = "SSD-накопитель 2.5 SATA 256GB Patriot P220", Price = "709 грн", Rating = 4.8, Reviews = 7, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Patriot" },
+                new Product { Name = "Роутер TP-Link Archer C80", Price = "1 699 грн", Rating = 4.9, Reviews = 30, ImageUrl = "https://via.placeholder.com/180x120?text=Роутер+TP-Link" },
+                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DDR6 (DUAL)", Price = "15 769 грн", Rating = 4.7, Reviews = 4, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
+                new Product { Name = "Модуль памяти DDR4 16GB 2x8", Price = "1 599 грн", Rating = 4.8, Reviews = 2, ImageUrl = "https://via.placeholder.com/180x120?text=Модуль+памяти" }
             };
             PopularProductsGrid.ItemsSource = popularProducts;
         }
@@ -131,7 +167,17 @@ namespace ElmirClone
         public string Category { get; set; }
         public string ImageUrl { get; set; }
         public string Price { get; set; }
-        public string Rating { get; set; }
-        public string Reviews { get; set; }
+        public double Rating { get; set; }
+        public int Reviews { get; set; }
+    }
+
+    // Модель профиля пользователя
+    public class UserProfile
+    {
+        public string FirstName { get; set; } = "Наталія"; // Данные по умолчанию из скриншота
+        public string Binding { get; set; } = "";
+        public string MiddleName { get; set; } = "Не вказане";
+        public string Phone { get; set; } = "+38 (050) 256 75 49";
+        public string Email { get; set; } = "andrey53bondarenko@gmail.com";
     }
 }

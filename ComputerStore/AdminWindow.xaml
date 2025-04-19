@@ -1,0 +1,245 @@
+﻿<Window x:Class="ElmirClone.AdminWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Админ-панель ElitePC" Height="700" Width="1200" Background="#F5F5F5">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#444444">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#555555"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#666666"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="LogoutButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FF5722"/>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Шапка -->
+        <Border Grid.Row="0" Background="#2C2F33">
+            <TextBlock Text="Админ-панель ElitePC" FontSize="22" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" Margin="15"/>
+        </Border>
+
+        <!-- Основной контент -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Боковая панель -->
+            <StackPanel Grid.Column="0" Background="#E0E0E0" Margin="5">
+                <Button Content="Управление пользователями" Click="ShowUsersPanel_Click"/>
+                <Button Content="Управление каталогом" Click="ShowCatalogPanel_Click"/>
+                <Button Content="Финансовые настройки" Click="ShowFinancePanel_Click"/>
+                <Button Content="Логистика и доставка" Click="ShowLogisticsPanel_Click"/>
+                <Button Content="Выйти" Style="{StaticResource LogoutButtonStyle}" Click="Logout_Click" Margin="5,20,5,5"/>
+            </StackPanel>
+
+            <!-- Панель управления -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20">
+                    <!-- Панель управления пользователями -->
+                    <StackPanel x:Name="UsersPanel" Visibility="Visible">
+                        <TextBlock Text="Управление пользователями" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBox x:Name="NewUserUsername" Width="150" Margin="0,0,5,0" Text="Имя пользователя"/>
+                            <TextBox x:Name="NewUserEmail" Width="200" Margin="0,0,5,0" Text="Email"/>
+                            <PasswordBox x:Name="NewUserPassword" Width="150" Margin="0,0,5,0" Password="Пароль"/>
+                            <ComboBox x:Name="NewUserRole" Width="100" Margin="0,0,5,0">
+                                <ComboBoxItem Content="Buyer" IsSelected="True"/>
+                                <ComboBoxItem Content="Seller"/>
+                            </ComboBox>
+                            <Button Content="Зарегистрировать" Click="RegisterUser_Click"/>
+                        </StackPanel>
+                        <ItemsControl x:Name="UsersList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding Username}" Width="150"/>
+                                        <TextBlock Text="{Binding Email}" Width="200"/>
+                                        <TextBlock Text="{Binding Role}" Width="100"/>
+                                        <Button Content="Заблокировать" Click="BlockUser_Click" Tag="{Binding UserId}" Margin="5,0"/>
+                                        <Button Content="Удалить" Click="DeleteUser_Click" Tag="{Binding UserId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Панель управления каталогом -->
+                    <StackPanel x:Name="CatalogPanel" Visibility="Collapsed">
+                        <TextBlock Text="Управление каталогом" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                        <!-- Управление категориями -->
+                        <TextBlock Text="Категории" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBox x:Name="NewCategoryName" Width="200" Margin="0,0,5,0" Text="Название категории"/>
+                            <ComboBox x:Name="ParentCategory" Width="150" Margin="0,0,5,0"/>
+                            <Button Content="Добавить категорию" Click="AddCategory_Click"/>
+                        </StackPanel>
+                        <ItemsControl x:Name="CategoriesList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding Name}" Width="200"/>
+                                        <TextBlock Text="{Binding ParentCategoryName}" Width="150"/>
+                                        <Button Content="Удалить" Click="DeleteCategory_Click" Tag="{Binding CategoryId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Управление товарами -->
+                        <TextBlock Text="Товары" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBox x:Name="NewProductName" Width="200" Margin="0,0,5,0" Text="Название товара"/>
+                            <TextBox x:Name="NewProductPrice" Width="100" Margin="0,0,5,0" Text="Цена"/>
+                            <TextBox x:Name="NewProductBrand" Width="150" Margin="0,0,5,0" Text="Бренд"/>
+                            <ComboBox x:Name="ProductCategory" Width="150" Margin="0,0,5,0"/>
+                            <Button Content="Добавить товар" Click="AddProduct_Click"/>
+                        </StackPanel>
+                        <ItemsControl x:Name="ProductsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding Name}" Width="200"/>
+                                        <TextBlock Text="{Binding Price}" Width="100"/>
+                                        <TextBlock Text="{Binding Brand}" Width="150"/>
+                                        <TextBlock Text="{Binding CategoryName}" Width="150"/>
+                                        <Button Content="Скрыть" Click="HideProduct_Click" Tag="{Binding ProductId}"/>
+                                        <Button Content="Удалить" Click="DeleteProduct_Click" Tag="{Binding ProductId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Панель финансовых настроек -->
+                    <StackPanel x:Name="FinancePanel" Visibility="Collapsed">
+                        <TextBlock Text="Финансовые настройки" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                        <!-- Комиссии продавцов -->
+                        <TextBlock Text="Комиссии продавцов" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <ItemsControl x:Name="SellerFeesList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding Username}" Width="150"/>
+                                        <TextBlock Text="{Binding FeeType}" Width="100"/>
+                                        <TextBlock Text="{Binding FeeValue}" Width="100"/>
+                                        <ComboBox x:Name="FeeTypeCombo" Width="100" Margin="5,0" SelectedItem="{Binding FeeType}">
+                                            <ComboBoxItem Content="Percentage"/>
+                                            <ComboBoxItem Content="Fixed"/>
+                                        </ComboBox>
+                                        <TextBox Text="{Binding FeeValue}" Width="100" Margin="5,0"/>
+                                        <Button Content="Сохранить" Click="UpdateSellerFee_Click" Tag="{Binding SellerId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Способы оплаты -->
+                        <TextBlock Text="Способы оплаты" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
+                        <ItemsControl x:Name="PaymentMethodsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding Name}" Width="200"/>
+                                        <CheckBox IsChecked="{Binding IsActive}" Content="Активен" Margin="5,0"/>
+                                        <Button Content="Сохранить" Click="UpdatePaymentMethod_Click" Tag="{Binding MethodId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Возвраты и споры -->
+                        <TextBlock Text="Возвраты и споры" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
+                        <ItemsControl x:Name="ReturnsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding ReturnId}" Width="100"/>
+                                        <TextBlock Text="{Binding Reason}" Width="200"/>
+                                        <TextBlock Text="{Binding Status}" Width="100"/>
+                                        <ComboBox x:Name="ReturnStatusCombo" Width="100" Margin="5,0" SelectedItem="{Binding Status}">
+                                            <ComboBoxItem Content="Pending"/>
+                                            <ComboBoxItem Content="Approved"/>
+                                            <ComboBoxItem Content="Rejected"/>
+                                        </ComboBox>
+                                        <Button Content="Обновить" Click="UpdateReturnStatus_Click" Tag="{Binding ReturnId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Панель логистики и доставки -->
+                    <StackPanel x:Name="LogisticsPanel" Visibility="Collapsed">
+                        <TextBlock Text="Логистика и доставка" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                        <!-- Курьерские службы -->
+                        <TextBlock Text="Курьерские службы" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBox x:Name="NewCourierService" Width="200" Margin="0,0,5,0" Text="Название службы"/>
+                            <Button Content="Добавить" Click="AddCourierService_Click"/>
+                        </StackPanel>
+                        <ItemsControl x:Name="CourierServicesList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding Name}" Width="200"/>
+                                        <CheckBox IsChecked="{Binding IsActive}" Content="Активна" Margin="5,0"/>
+                                        <Button Content="Сохранить" Click="UpdateCourierService_Click" Tag="{Binding ServiceId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Пункты самовывоза -->
+                        <TextBlock Text="Пункты самовывоза" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBox x:Name="NewPickupPointName" Width="150" Margin="0,0,5,0" Text="Название"/>
+                            <TextBox x:Name="NewPickupPointAddress" Width="200" Margin="0,0,5,0" Text="Адрес"/>
+                            <TextBox x:Name="NewPickupPointRegion" Width="150" Margin="0,0,5,0" Text="Область"/>
+                            <Button Content="Добавить" Click="AddPickupPoint_Click"/>
+                        </StackPanel>
+                        <ItemsControl x:Name="PickupPointsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding Name}" Width="150"/>
+                                        <TextBlock Text="{Binding Address}" Width="200"/>
+                                        <TextBlock Text="{Binding Region}" Width="150"/>
+                                        <CheckBox IsChecked="{Binding IsActive}" Content="Активен" Margin="5,0"/>
+                                        <Button Content="Сохранить" Click="UpdatePickupPoint_Click" Tag="{Binding PointId}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
