@@ -1,35 +1,263 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Npgsql;
+using System.Configuration;
+using ElmirClone.Models;
 
 namespace ElmirClone
 {
     public partial class MainWindow : Window
     {
-        private bool isProfilePanelOpen = false;
-        private UserProfile userProfile; // Данные пользователя
+        private UserProfile userProfile;
+        private string connectionString;
+        private List<DbProduct> cartItems;
 
-        public MainWindow(UserProfile userProfile)
+        internal MainWindow(UserProfile userProfile)
         {
             InitializeComponent();
-            this.userProfile = userProfile ?? new UserProfile(); // Инициализация профиля, если null, создаем пустой
-            LoadAdditionalProducts();
-            LoadPopularProducts();
-            LoadUserProfile(); // Загружаем данные пользователя в поля
+            this.userProfile = userProfile;
+            cartItems = new List<DbProduct>();
+            connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                MessageBox.Show("Строка подключения к базе данных не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                Close();
+                return;
+            }
+
+            DataContext = userProfile;
+            LoadProducts();
         }
 
-        // Загрузка данных пользователя в поля профиля
-        private void LoadUserProfile()
+        public void LoadProducts(string category = null)
         {
-            FirstNameTextBox.Text = userProfile.FirstName;
-            BindingTextBlock.Text = ""; // Пример привязки, можно заменить на реальную логику
-            MiddleNameTextBox.Text = userProfile.MiddleName;
-            PhoneTextBox.Text = userProfile.Phone;
-            EmailTextBox.Text = userProfile.Email;
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // Загрузка дополнительных товаров (без фильтра по категории)
+                    using (var command = new NpgsqlCommand("SELECT ProductId, Name, Price, ImageUrl FROM Products LIMIT 5", connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            var additionalProducts = new List<DbProduct>();
+                            while (reader.Read())
+                            {
+                                additionalProducts.Add(new DbProduct
+                                {
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Price = reader.GetDecimal(2),
+                                    ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3)
+                                });
+                            }
+                            AdditionalProductsGrid.ItemsSource = additionalProducts;
+                        }
+                    }
+
+                    // Загрузка популярных товаров (с фильтром по категории, если указана)
+                    string query = "SELECT p.ProductId, p.Name, p.Price, p.ImageUrl, p.Rating, p.Reviews FROM Products p";
+                    if (!string.IsNullOrEmpty(category))
+                    {
+                        query += " JOIN Categories c ON p.CategoryId = c.CategoryId WHERE c.Name = @category";
+                    }
+                    query += " LIMIT 5";
+
+                    using (var command = new NpgsqlCommand(query, connection))
+                    {
+                        if (!string.IsNullOrEmpty(category))
+                        {
+                            command.Parameters.AddWithValue("category", category);
+                        }
+                        using (var reader = command.ExecuteReader())
+                        {
+                            var popularProducts = new List<DbProduct>();
+                            while (reader.Read())
+                            {
+                                popularProducts.Add(new DbProduct
+                                {
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Price = reader.GetDecimal(2),
+                                    ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3),
+                                    Rating = reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
+                                    Reviews = reader.IsDBNull(5) ? 0 : reader.GetInt32(5)
+                                });
+                            }
+                            PopularProductsGrid.ItemsSource = popularProducts;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при загрузке товаров: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        // Сохранение изменений профиля
+        private void Logo_Click(object sender, RoutedEventArgs e)
+        {
+            LoadProducts();
+        }
+
+        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            TextBox searchBox = sender as TextBox;
+            if (searchBox.Text == "Поиск...")
+            {
+                searchBox.Text = "";
+                searchBox.Foreground = System.Windows.Media.Brushes.White;
+            }
+        }
+
+        private void CategoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            string category = button.Content.ToString();
+            LoadProducts(category);
+        }
+
+        private void ViewProduct_Click(object sender, RoutedEventArgs e)
+        {
+            int productId = (int)((Button)sender).Tag;
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT p.ProductId, p.Name, p.Description, p.Price, p.Brand, p.Discount, c.Name AS CategoryName, p.ImageUrl FROM Products p JOIN Categories c ON p.CategoryId = c.CategoryId WHERE p.ProductId = @productId", connection))
+                    {
+                        command.Parameters.AddWithValue("productId", productId);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                var product = new DbProduct
+                                {
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price = reader.GetDecimal(3),
+                                    Brand = reader.GetString(4),
+                                    Discount = reader.GetDecimal(5),
+                                    CategoryName = reader.GetString(6),
+                                    ImageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7)
+                                };
+
+                                Window productWindow = new Window
+                                {
+                                    Title = product.Name,
+                                    Width = 400,
+                                    Height = 600,
+                                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                                };
+
+                                StackPanel panel = new StackPanel { Margin = new Thickness(10) };
+                                panel.Children.Add(new Image { Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl)), Width = 200, Height = 200, Margin = new Thickness(0, 0, 0, 10) });
+                                panel.Children.Add(new TextBlock { Text = $"Название: {product.Name}", FontWeight = System.Windows.FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
+                                panel.Children.Add(new TextBlock { Text = $"Категория: {product.CategoryName}", Margin = new Thickness(0, 0, 0, 5) });
+                                panel.Children.Add(new TextBlock { Text = $"Бренд: {product.Brand}", Margin = new Thickness(0, 0, 0, 5) });
+                                panel.Children.Add(new TextBlock { Text = $"Цена: {product.Price:F2} грн", Margin = new Thickness(0, 0, 0, 5) });
+                                panel.Children.Add(new TextBlock { Text = $"Скидка: {product.Discount:F2}%", Margin = new Thickness(0, 0, 0, 5) });
+                                panel.Children.Add(new TextBlock { Text = $"Описание: {product.Description}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
+
+                                Button closeButton = new Button { Content = "Закрыть", Width = 100 };
+                                closeButton.Click += (s, ev) => productWindow.Close();
+                                panel.Children.Add(closeButton);
+
+                                productWindow.Content = panel;
+                                productWindow.ShowDialog();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при загрузке деталей товара: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void AddToCart_Click(object sender, RoutedEventArgs e)
+        {
+            int productId = (int)((Button)sender).Tag;
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT ProductId, Name, Price, ImageUrl FROM Products WHERE ProductId = @productId", connection))
+                    {
+                        command.Parameters.AddWithValue("productId", productId);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                var product = new DbProduct
+                                {
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Price = reader.GetDecimal(2),
+                                    ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3)
+                                };
+
+                                if (!cartItems.Any(p => p.ProductId == product.ProductId))
+                                {
+                                    cartItems.Add(product);
+                                    MessageBox.Show($"{product.Name} добавлен в корзину!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                else
+                                {
+                                    MessageBox.Show($"{product.Name} уже находится в корзине.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при добавлении товара в корзину: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (cartItems == null || !cartItems.Any())
+            {
+                MessageBox.Show("Корзина пуста. Добавьте товары в корзину перед оформлением заказа.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (userProfile == null)
+            {
+                MessageBox.Show("Пожалуйста, войдите в аккаунт, чтобы оформить заказ.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            OrderWindow orderWindow = new OrderWindow(cartItems, userProfile);
+            orderWindow.ShowDialog();
+
+            // После оформления заказа очищаем корзину
+            cartItems.Clear();
+        }
+
+        private void ProfileButton_Click(object sender, RoutedEventArgs e)
+        {
+            ProfilePanel.Visibility = ProfilePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void CartButton_Click(object sender, RoutedEventArgs e)
+        {
+            CartWindow cartWindow = new CartWindow(cartItems, userProfile);
+            cartWindow.ShowDialog();
+        }
+
         private void SaveProfileButton_Click(object sender, RoutedEventArgs e)
         {
             userProfile.FirstName = FirstNameTextBox.Text;
@@ -37,147 +265,33 @@ namespace ElmirClone
             userProfile.Phone = PhoneTextBox.Text;
             userProfile.Email = EmailTextBox.Text;
 
-            MessageBox.Show("Профіль успішно збережено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        // Очистка поля поиска
-        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
-        {
-            TextBox textBox = sender as TextBox;
-            if (textBox.Text == "Поиск...")
+            try
             {
-                textBox.Text = "";
-                textBox.Foreground = System.Windows.Media.Brushes.White;
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("UPDATE UserDetails SET FirstName = @firstName, MiddleName = @middleName, Phone = @phone, Email = @email WHERE UserId = (SELECT UserId FROM UserCredentials WHERE Email = @email)", connection))
+                    {
+                        command.Parameters.AddWithValue("firstName", userProfile.FirstName);
+                        command.Parameters.AddWithValue("middleName", string.IsNullOrWhiteSpace(userProfile.MiddleName) ? (object)DBNull.Value : userProfile.MiddleName);
+                        command.Parameters.AddWithValue("phone", string.IsNullOrWhiteSpace(userProfile.Phone) ? (object)DBNull.Value : userProfile.Phone);
+                        command.Parameters.AddWithValue("email", userProfile.Email);
+                        command.ExecuteNonQuery();
+                    }
+                }
+                MessageBox.Show("Профиль обновлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при обновлении профиля: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        // Обработчик клика по логотипу
-        private void Logo_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Добро пожаловать в ElitePC Store! Нажмите, чтобы вернуться на главную.", "ElitePC", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        // Обработчик клика по категориям
-        private void CategoryButton_Click(object sender, RoutedEventArgs e)
-        {
-            Button button = sender as Button;
-            if (button != null)
-            {
-                MessageBox.Show($"Выбрана категория: {button.Content}", "Категория", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-
-        // Обработчик кнопки Заказать
-        private void OrderButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Функция заказа пока в разработке.", "Заказ", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        // Обработчик кнопки Профиль
-        private void ProfileButton_Click(object sender, RoutedEventArgs e)
-        {
-            isProfilePanelOpen = !isProfilePanelOpen;
-            ProfilePanel.Visibility = isProfilePanelOpen ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        // Обработчик кнопки Корзина
-        private void CartButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Корзина пока в разработке.", "Корзина", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        // Обработчик кнопки Выход
         private void LogoutButton_Click(object sender, RoutedEventArgs e)
         {
             LoginWindow loginWindow = new LoginWindow();
             loginWindow.Show();
             this.Close();
         }
-
-        // Вторая сетка товаров
-        private void LoadAdditionalProducts()
-        {
-            var additionalProducts = new List<Product>
-            {
-                new Product { Name = "Клавиатуры", ImageUrl = "https://content1.rozetka.com.ua/goods/images/big/462458947.jpg" },
-                new Product { Name = "Мыши", ImageUrl = "https://content1.rozetka.com.ua/goods/images/big/497934730.jpg" },
-                new Product { Name = "Комплект (клавиатура + мышь)", ImageUrl = "https://b.428.ua/img/4092769/600/600/klaviatura_+_mysh_cougar_combat~1258~393.jpg" },
-                new Product { Name = "Килимки для мыши", ImageUrl = "https://content2.rozetka.com.ua/goods/images/big/531537999.jpg" },
-                new Product { Name = "Звуковые карты", ImageUrl = "https://via.placeholder.com/180x120?text=Звуковые+карты" },
-                new Product { Name = "Акустические системы", ImageUrl = "https://via.placeholder.com/180x120?text=Акустика" },
-                new Product { Name = "Наушники и гарнитура", ImageUrl = "https://via.placeholder.com/180x120?text=Наушники" },
-                new Product { Name = "Аксессуары для наушников", ImageUrl = "https://via.placeholder.com/180x120?text=Аксессуары+наушников" },
-                new Product { Name = "Микрофоны", ImageUrl = "https://via.placeholder.com/180x120?text=Микрофоны" },
-                new Product { Name = "Кабели, переходники, контроллеры", ImageUrl = "https://via.placeholder.com/180x120?text=Кабели" },
-                new Product { Name = "Программное обеспечение", ImageUrl = "https://via.placeholder.com/180x120?text=Программное+обеспечение" },
-                new Product { Name = "Флеш память", ImageUrl = "https://via.placeholder.com/180x120?text=Флеш+память" },
-                new Product { Name = "Зовнішні жорсткі диски", ImageUrl = "https://via.placeholder.com/180x120?text=Зовнішні+диски" },
-                new Product { Name = "Зовнішні SSD", ImageUrl = "https://via.placeholder.com/180x120?text=Зовнішні+SSD" },
-                new Product { Name = "Мережеве обладнання", ImageUrl = "https://via.placeholder.com/180x120?text=Мережеве+обладнання" },
-                new Product { Name = "Чохли для жорстких дисків", ImageUrl = "https://via.placeholder.com/180x120?text=Чохли" },
-                new Product { Name = "Серверне обладнання", ImageUrl = "https://via.placeholder.com/180x120?text=Серверне+обладнання" },
-                new Product { Name = "Мережеві диски та подовжувачі (ДБЖ)", ImageUrl = "https://via.placeholder.com/180x120?text=Мережеві+диски" },
-                new Product { Name = "Джерела безперебійного живлення (ДБЖ)", ImageUrl = "https://via.placeholder.com/180x120?text=ДБЖ" },
-                new Product { Name = "Стабилизаторы напряжения", ImageUrl = "https://via.placeholder.com/180x120?text=Стабилизаторы" },
-                new Product { Name = "Зарядные станции", ImageUrl = "https://via.placeholder.com/180x120?text=Зарядные+станции" },
-                new Product { Name = "Допоміжне обладнання до ДБЖ", ImageUrl = "https://via.placeholder.com/180x120?text=Допоміжне+до+ДБЖ" },
-                new Product { Name = "Приставки смарт-телестоловая", ImageUrl = "https://via.placeholder.com/180x120?text=Приставки" },
-                new Product { Name = "Инверторы", ImageUrl = "https://via.placeholder.com/180x120?text=Инверторы" },
-                new Product { Name = "Web-камеры", ImageUrl = "https://via.placeholder.com/180x120?text=Web-камеры" },
-                new Product { Name = "Картриджы", ImageUrl = "https://via.placeholder.com/180x120?text=Картриджы" },
-                new Product { Name = "Графічні планшети (дигитайзеры)", ImageUrl = "https://via.placeholder.com/180x120?text=Графічні+планшети" },
-                new Product { Name = "Оптичні приводи", ImageUrl = "https://via.placeholder.com/180x120?text=Оптичні+приводи" },
-                new Product { Name = "Диски", ImageUrl = "https://via.placeholder.com/180x120?text=Диски" },
-                new Product { Name = "Пристрої відеозахвату", ImageUrl = "https://via.placeholder.com/180x120?text= format Пристрої+відеозахвату" }
-            };
-            AdditionalProductsGrid.ItemsSource = additionalProducts;
-        }
-
-        // Третья сетка товаров (популярные товары)
-        private void LoadPopularProducts()
-        {
-            var popularProducts = new List<Product>
-            {
-                new Product { Name = "SSD-накопитель 2.5 M.2 1TB Kingston NV2 (SNV2S/1000G)", Price = "2 859 грн", Rating = 5.0, Reviews = 50, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Kingston" },
-                new Product { Name = "Процессор AMD Ryzen 7 5700X3D (AM4, 4.1GHz, 8MB)", Price = "10 999 грн", Rating = 4.9, Reviews = 13, ImageUrl = "https://via.placeholder.com/180x120?text=Процессор+AMD" },
-                new Product { Name = "Роутер TP-Link Archer C64", Price = "1 299 грн", Rating = 4.9, Reviews = 41, ImageUrl = "https://via.placeholder.com/180x120?text=Роутер+TP-Link" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Kingston Canvas Select Plus A1 (SNV2S/1000G)", Price = "1 999 грн", Rating = 4.8, Reviews = 8, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Kingston" },
-                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DC", Price = "15 769 грн", Rating = 4.7, Reviews = 4, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
-                new Product { Name = "Видеокарта MSI GeForce RTX 3060 16GB DDR6", Price = "8 999 грн", Rating = 4.8, Reviews = 12, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+MSI" },
-                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DDR6 PRIME", Price = "32 999 грн", Rating = 4.9, Reviews = 44, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
-                new Product { Name = "Процессор AMD Ryzen 9 7950X3D (AM5, 5.7GHz, 128MB)", Price = "30 999 грн", Rating = 4.9, Reviews = 10, ImageUrl = "https://via.placeholder.com/180x120?text=Процессор+AMD" },
-                new Product { Name = "Компьютер Artline Gaming X43", Price = "0 грн", Rating = 4.5, Reviews = 5, ImageUrl = "https://via.placeholder.com/180x120?text=Компьютер+Artline" },
-                new Product { Name = "Мышь Bloody R72 Ultra Renegade Sunset", Price = "1 889 грн", Rating = 4.6, Reviews = 3, ImageUrl = "https://via.placeholder.com/180x120?text=Мышь+Bloody" },
-                new Product { Name = "Кабель HDMI -> Optical 2.1 Cab", Price = "4 499 грн", Rating = 4.7, Reviews = 2, ImageUrl = "https://via.placeholder.com/180x120?text=Кабель+HDMI" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Goodram CX400 Gen.2 (SSDPR)", Price = "2 685 грн", Rating = 4.8, Reviews = 6, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Goodram" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 1TB Samsung 870 EVO MZ", Price = "2 519 грн", Rating = 4.9, Reviews = 29, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Samsung" },
-                new Product { Name = "SSD-накопитель 2.5 SATA 256GB Patriot P220", Price = "709 грн", Rating = 4.8, Reviews = 7, ImageUrl = "https://via.placeholder.com/180x120?text=SSD+Patriot" },
-                new Product { Name = "Роутер TP-Link Archer C80", Price = "1 699 грн", Rating = 4.9, Reviews = 30, ImageUrl = "https://via.placeholder.com/180x120?text=Роутер+TP-Link" },
-                new Product { Name = "Видеокарта Asus RX 6700 XT 8GB DDR6 (DUAL)", Price = "15 769 грн", Rating = 4.7, Reviews = 4, ImageUrl = "https://via.placeholder.com/180x120?text=Видеокарта+Asus" },
-                new Product { Name = "Модуль памяти DDR4 16GB 2x8", Price = "1 599 грн", Rating = 4.8, Reviews = 2, ImageUrl = "https://via.placeholder.com/180x120?text=Модуль+памяти" }
-            };
-            PopularProductsGrid.ItemsSource = popularProducts;
-        }
-    }
-
-    // Модель товара
-    public class Product
-    {
-        public string Name { get; set; }
-        public string Category { get; set; }
-        public string ImageUrl { get; set; }
-        public string Price { get; set; }
-        public double Rating { get; set; }
-        public int Reviews { get; set; }
-    }
-
-    // Модель профиля пользователя
-    public class UserProfile
-    {
-        public string FirstName { get; set; } = "Наталія"; // Данные по умолчанию из скриншота
-        public string Binding { get; set; } = "";
-        public string MiddleName { get; set; } = "Не вказане";
-        public string Phone { get; set; } = "+38 (050) 256 75 49";
-        public string Email { get; set; } = "andrey53bondarenko@gmail.com";
     }
 }

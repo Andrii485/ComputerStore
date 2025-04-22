@@ -1,0 +1,7 @@
+﻿[*.cs]
+
+# CS8618: Поле, не допускающее значения NULL, должно содержать значение, отличное от NULL, при выходе из конструктора. Рассмотрите возможность добавления модификатора "required" или объявления значения, допускающего значение NULL.
+dotnet_diagnostic.CS8618.severity = silent
+
+# IDE0058: Значение выражения никогда не используется
+csharp_style_unused_value_expression_statement_preference = unused_local_variable

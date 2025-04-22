@@ -903,6 +903,9 @@ namespace ElmirClone
         public decimal Discount { get; set; }
         public string CategoryName { get; set; }
         public bool IsHidden { get; set; }
+        public string ImageUrl { get; internal set; }
+        public double Rating { get; internal set; }
+        public int Reviews { get; internal set; }
     }
 
     public class SellerFee
@@ -915,9 +918,16 @@ namespace ElmirClone
 
     public class PaymentMethod
     {
+        internal int PaymentMethodId;
+        internal int Id;
+
         public int MethodId { get; set; }
         public string Name { get; set; }
         public bool IsActive { get; set; }
+
+        internal class Items
+        {
+        }
     }
 
     public class Return
@@ -937,6 +947,8 @@ namespace ElmirClone
 
     public class PickupPoint
     {
+        internal int PickupPointId;
+
         public int PointId { get; set; }
         public string Name { get; set; }
         public string Address { get; set; }

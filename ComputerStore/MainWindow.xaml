@@ -41,6 +41,13 @@
         <Style x:Key="LogoutButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#FF5722"/>
         </Style>
+        <!-- Стиль для кнопки "Добавить в корзину" -->
+        <Style x:Key="AddToCartButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#00C853"/>
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -98,8 +105,8 @@
                         <Button Content="Дисковод" Click="CategoryButton_Click"/>
                     </StackPanel>
 
-                    <!-- Кнопка Заказать -->
-                    <Button Content="Заказать" Background="#00C853" Margin="5,20,5,10" Click="OrderButton_Click"/>
+                    <!-- Кнопка Заказать (удалён атрибут Click) -->
+                    <Button Content="Заказать" Background="#00C853" Margin="5,20,5,10"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>
@@ -164,6 +171,7 @@
                                     <StackPanel Background="White">
                                         <Image Source="{Binding ImageUrl}" Height="140" Stretch="Uniform" Margin="5"/>
                                         <TextBlock Text="{Binding Name}" FontSize="15" Margin="5" TextAlignment="Center" FontWeight="Medium"/>
+                                        <Button Content="Добавить в корзину" Style="{StaticResource AddToCartButtonStyle}" Click="AddToCart_Click" Tag="{Binding ProductId}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -192,6 +200,7 @@
                                             <TextBlock Text=" отз.)" Foreground="#757575"/>
                                         </StackPanel>
                                         <TextBlock Text="{Binding Price}" FontSize="16" FontWeight="Bold" Margin="5" Foreground="#D32F2F" TextAlignment="Center"/>
+                                        <Button Content="Добавить в корзину" Style="{StaticResource AddToCartButtonStyle}" Click="AddToCart_Click" Tag="{Binding ProductId}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
