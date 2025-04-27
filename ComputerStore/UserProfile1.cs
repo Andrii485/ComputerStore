@@ -1,6 +1,7 @@
 ﻿internal class UserProfile
 {
     internal string Binding;
+    internal int UserId;
 
     public string FirstName { get; set; }
     public string MiddleName { get; set; }
