@@ -1,28 +1,37 @@
 ﻿using System;
 using System.Globalization;
-using System.Windows;
 using System.Windows.Data;
 
 namespace ElmirClone
 {
-    public class NullToVisibilityConverter : IValueConverter
+    public class ImagePathConverter : IMultiValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            bool isNull = value == null;
-            bool inverse = parameter as string == "Inverse";
-
-            if (inverse)
+            if (values == null || values.Length != 2)
             {
-                return isNull ? Visibility.Visible : Visibility.Collapsed;
+                return null;
             }
-            else
+
+            string imagePath = values[0] as string;
+            string fallbackUrl = values[1] as string;
+
+            if (string.IsNullOrWhiteSpace(imagePath))
             {
-                return isNull ? Visibility.Collapsed : Visibility.Visible;
+                return new Uri(fallbackUrl, UriKind.Absolute);
+            }
+
+            try
+            {
+                return new Uri(imagePath, UriKind.Absolute);
+            }
+            catch (UriFormatException)
+            {
+                return new Uri(fallbackUrl, UriKind.Absolute);
             }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

@@ -66,26 +66,27 @@
                     <StackPanel x:Name="ProductsPanel" Visibility="Visible">
                         <TextBlock Text="Управление товарами" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBox x:Name="NewProductName" Width="200" Margin="0,0,5,0" Text="Название товара"/>
-                            <TextBox x:Name="NewProductDescription" Width="200" Margin="0,0,5,0" Text="Описание"/>
-                            <TextBox x:Name="NewProductPrice" Width="100" Margin="0,0,5,0" Text="Цена"/>
-                            <TextBox x:Name="NewProductBrand" Width="150" Margin="0,0,5,0" Text="Бренд"/>
-                            <TextBox x:Name="NewProductDiscount" Width="100" Margin="0,0,5,0" Text="Скидка (%)"/>
-                            <ComboBox x:Name="ProductCategory" Width="150" Margin="0,0,5,0"/>
-                            <Button Content="Добавить товар" Click="AddProduct_Click"/>
+                            <TextBox x:Name="NewProductName" Width="150" Margin="0,0,5,0" Text="Название товара"/>
+                            <TextBox x:Name="NewProductDescription" Width="150" Margin="0,0,5,0" Text="Описание"/>
+                            <TextBox x:Name="NewProductPrice" Width="80" Margin="0,0,5,0" Text="Цена"/>
+                            <TextBox x:Name="NewProductBrand" Width="100" Margin="0,0,5,0" Text="Бренд"/>
+                            <ComboBox x:Name="ProductCategory" Width="120" Margin="0,0,5,0"/>
+                            <TextBox x:Name="NewProductImagePath" Width="150" Margin="0,0,5,0" Text="Путь к изображению" IsReadOnly="True"/>
+                            <Button Content="Выбрать изображение" Click="SelectImageButton_Click" Width="120"/>
+                            <Button Content="Добавить товар" Click="AddProduct_Click" Width="120"/>
                         </StackPanel>
                         <ItemsControl x:Name="ProductsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="200"/>
-                                        <TextBlock Text="{Binding Description}" Width="200"/>
-                                        <TextBlock Text="{Binding Price}" Width="100"/>
-                                        <TextBlock Text="{Binding Brand}" Width="150"/>
-                                        <TextBlock Text="{Binding Discount}" Width="100"/>
-                                        <TextBlock Text="{Binding CategoryName}" Width="150"/>
-                                        <Button Content="Редактировать" Click="EditProduct_Click" Tag="{Binding ProductId}"/>
-                                        <Button Content="Удалить" Click="DeleteProduct_Click" Tag="{Binding ProductId}"/>
+                                        <TextBlock Text="{Binding Name}" Width="150"/>
+                                        <TextBlock Text="{Binding Description}" Width="150"/>
+                                        <TextBlock Text="{Binding Price}" Width="80"/>
+                                        <TextBlock Text="{Binding Brand}" Width="100"/>
+                                        <TextBlock Text="{Binding CategoryName}" Width="120"/>
+                                        <TextBlock Text="{Binding ImagePath}" Width="150"/>
+                                        <Button Content="Редактировать" Click="EditProduct_Click" Tag="{Binding ProductId}" Width="100"/>
+                                        <Button Content="Удалить" Click="DeleteProduct_Click" Tag="{Binding ProductId}" Width="80"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

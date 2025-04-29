@@ -81,7 +81,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT uc.UserId, uc.Username, ud.Email, uc.Role, uc.IsBlocked FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE uc.Role != 'Admin'", connection))
+                    using (var command = new NpgsqlCommand("SELECT uc.userid, uc.username, ud.email, uc.role, uc.isblocked FROM usercredentials uc JOIN userdetails ud ON uc.userid = ud.userid WHERE uc.role != 'Admin'", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -128,7 +128,7 @@ namespace ElmirClone
                     connection.Open();
 
                     // Проверяем, существует ли пользователь с таким Username
-                    using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserCredentials WHERE Username = @username", connection))
+                    using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM usercredentials WHERE username = @username", connection))
                     {
                         checkCommand.Parameters.AddWithValue("username", username);
                         long count = (long)checkCommand.ExecuteScalar();
@@ -140,7 +140,7 @@ namespace ElmirClone
                     }
 
                     // Проверяем, существует ли пользователь с таким Email
-                    using (var checkEmailCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserDetails WHERE Email = @email", connection))
+                    using (var checkEmailCommand = new NpgsqlCommand("SELECT COUNT(*) FROM userdetails WHERE email = @email", connection))
                     {
                         checkEmailCommand.Parameters.AddWithValue("email", email);
                         long emailCount = (long)checkEmailCommand.ExecuteScalar();
@@ -157,7 +157,7 @@ namespace ElmirClone
                         {
                             // Регистрация пользователя
                             int userId;
-                            using (var command = new NpgsqlCommand("INSERT INTO UserDetails (FirstName, Email) VALUES (@firstName, @email) RETURNING UserId", connection))
+                            using (var command = new NpgsqlCommand("INSERT INTO userdetails (firstname, email) VALUES (@firstName, @email) RETURNING userid", connection))
                             {
                                 command.Parameters.AddWithValue("firstName", username);
                                 command.Parameters.AddWithValue("email", email);
@@ -166,7 +166,7 @@ namespace ElmirClone
                             }
 
                             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
-                            using (var command = new NpgsqlCommand("INSERT INTO UserCredentials (UserId, Username, Password, Role) VALUES (@userId, @username, @password, @role)", connection))
+                            using (var command = new NpgsqlCommand("INSERT INTO usercredentials (userid, username, password, role) VALUES (@userId, @username, @password, @role)", connection))
                             {
                                 command.Parameters.AddWithValue("userId", userId);
                                 command.Parameters.AddWithValue("username", username);
@@ -180,7 +180,7 @@ namespace ElmirClone
                             if (role == "Seller")
                             {
                                 // Создаем профиль магазина
-                                using (var command = new NpgsqlCommand("INSERT INTO SellerProfiles (SellerId, StoreName, Description, ContactInfo) VALUES (@sellerId, @storeName, @description, @contactInfo)", connection))
+                                using (var command = new NpgsqlCommand("INSERT INTO sellerprofiles (sellerid, storename, description, contactinfo) VALUES (@sellerId, @storeName, @description, @contactInfo)", connection))
                                 {
                                     command.Parameters.AddWithValue("sellerId", userId);
                                     command.Parameters.AddWithValue("storeName", $"{username}'s Store");
@@ -191,7 +191,7 @@ namespace ElmirClone
                                 }
 
                                 // Устанавливаем комиссию по умолчанию (например, 10%)
-                                using (var command = new NpgsqlCommand("INSERT INTO SellerFees (SellerId, FeeType, FeeValue) VALUES (@sellerId, @feeType, @feeValue)", connection))
+                                using (var command = new NpgsqlCommand("INSERT INTO sellerfees (sellerid, feetype, feevalue) VALUES (@sellerId, @feeType, @feeValue)", connection))
                                 {
                                     command.Parameters.AddWithValue("sellerId", userId);
                                     command.Parameters.AddWithValue("feeType", "Percentage");
@@ -227,7 +227,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE UserCredentials SET IsBlocked = NOT IsBlocked WHERE UserId = @userId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE usercredentials SET isblocked = NOT isblocked WHERE userid = @userId", connection))
                     {
                         command.Parameters.AddWithValue("userId", userId);
                         command.ExecuteNonQuery();
@@ -253,14 +253,14 @@ namespace ElmirClone
                     {
                         try
                         {
-                            using (var command = new NpgsqlCommand("DELETE FROM UserCredentials WHERE UserId = @userId", connection))
+                            using (var command = new NpgsqlCommand("DELETE FROM usercredentials WHERE userid = @userId", connection))
                             {
                                 command.Parameters.AddWithValue("userId", userId);
                                 command.Transaction = transaction;
                                 command.ExecuteNonQuery();
                             }
 
-                            using (var command = new NpgsqlCommand("DELETE FROM UserDetails WHERE UserId = @userId", connection))
+                            using (var command = new NpgsqlCommand("DELETE FROM userdetails WHERE userid = @userId", connection))
                             {
                                 command.Parameters.AddWithValue("userId", userId);
                                 command.Transaction = transaction;
@@ -293,7 +293,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT c1.CategoryId, c1.Name, c2.Name AS ParentName FROM Categories c1 LEFT JOIN Categories c2 ON c1.ParentCategoryId = c2.CategoryId", connection))
+                    using (var command = new NpgsqlCommand("SELECT c1.categoryid, c1.name, c2.name AS parentname FROM categories c1 LEFT JOIN categories c2 ON c1.parentcategoryid = c2.categoryid", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -345,7 +345,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO Categories (Name, ParentCategoryId) VALUES (@name, @parentId)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO categories (name, parentcategoryid) VALUES (@name, @parentId)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
                         command.Parameters.AddWithValue("parentId", parentCategoryId == null ? (object)DBNull.Value : parentCategoryId);
@@ -368,7 +368,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("DELETE FROM Categories WHERE CategoryId = @categoryId", connection))
+                    using (var command = new NpgsqlCommand("DELETE FROM categories WHERE categoryid = @categoryId", connection))
                     {
                         command.Parameters.AddWithValue("categoryId", categoryId);
                         command.ExecuteNonQuery();
@@ -389,7 +389,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT p.ProductId, p.Name, p.Price, p.Brand, c.Name AS CategoryName, p.IsHidden FROM Products p JOIN Categories c ON p.CategoryId = c.CategoryId", connection))
+                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.price, p.brand, c.name AS categoryname, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -439,7 +439,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO Products (Name, Price, Brand, CategoryId) VALUES (@name, @price, @brand, @categoryId)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO products (name, price, brand, categoryid) VALUES (@name, @price, @brand, @categoryId)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
                         command.Parameters.AddWithValue("price", price);
@@ -464,7 +464,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE Products SET IsHidden = NOT IsHidden WHERE ProductId = @productId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE products SET ishidden = NOT ishidden WHERE productid = @productId", connection))
                     {
                         command.Parameters.AddWithValue("productId", productId);
                         command.ExecuteNonQuery();
@@ -486,7 +486,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("DELETE FROM Products WHERE ProductId = @productId", connection))
+                    using (var command = new NpgsqlCommand("DELETE FROM products WHERE productid = @productId", connection))
                     {
                         command.Parameters.AddWithValue("productId", productId);
                         command.ExecuteNonQuery();
@@ -508,7 +508,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT sf.SellerId, uc.Username, sf.FeeType, sf.FeeValue FROM SellerFees sf JOIN UserCredentials uc ON sf.SellerId = uc.UserId WHERE uc.Role = 'Seller'", connection))
+                    using (var command = new NpgsqlCommand("SELECT sf.sellerid, uc.username, sf.feetype, sf.feevalue FROM sellerfees sf JOIN usercredentials uc ON sf.sellerid = uc.userid WHERE uc.role = 'Seller'", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -553,7 +553,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO SellerFees (SellerId, FeeType, FeeValue) VALUES (@sellerId, @feeType, @feeValue) ON CONFLICT (SellerId) DO UPDATE SET FeeType = @feeType, FeeValue = @feeValue", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO sellerfees (sellerid, feetype, feevalue) VALUES (@sellerId, @feeType, @feeValue) ON CONFLICT (sellerid) DO UPDATE SET feetype = @feeType, feevalue = @feeValue", connection))
                     {
                         command.Parameters.AddWithValue("sellerId", sellerId);
                         command.Parameters.AddWithValue("feeType", feeType);
@@ -576,7 +576,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT MethodId, Name, IsActive FROM PaymentMethods", connection))
+                    using (var command = new NpgsqlCommand("SELECT methodid, name, isactive FROM paymentmethods", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -614,7 +614,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE PaymentMethods SET IsActive = @isActive WHERE MethodId = @methodId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE paymentmethods SET isactive = @isActive WHERE methodid = @methodId", connection))
                     {
                         command.Parameters.AddWithValue("isActive", isActive);
                         command.Parameters.AddWithValue("methodId", methodId);
@@ -636,7 +636,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT ReturnId, OrderId, Reason, Status FROM Returns", connection))
+                    using (var command = new NpgsqlCommand("SELECT returnid, orderid, reason, status FROM returns", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -675,7 +675,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE Returns SET Status = @status WHERE ReturnId = @returnId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE returns SET status = @status WHERE returnid = @returnId", connection))
                     {
                         command.Parameters.AddWithValue("status", status);
                         command.Parameters.AddWithValue("returnId", returnId);
@@ -698,7 +698,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT ServiceId, Name, IsActive FROM CourierServices", connection))
+                    using (var command = new NpgsqlCommand("SELECT serviceid, name, isactive FROM courierservices", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -738,7 +738,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO CourierServices (Name) VALUES (@name)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO courierservices (name) VALUES (@name)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
                         command.ExecuteNonQuery();
@@ -765,7 +765,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE CourierServices SET IsActive = @isActive WHERE ServiceId = @serviceId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE courierservices SET isactive = @isActive WHERE serviceid = @serviceId", connection))
                     {
                         command.Parameters.AddWithValue("isActive", isActive);
                         command.Parameters.AddWithValue("serviceId", serviceId);
@@ -787,7 +787,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT PointId, Name, Address, Region, IsActive FROM PickupPoints", connection))
+                    using (var command = new NpgsqlCommand("SELECT pickuppointid, name, address, region, isactive FROM pickuppoints", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -831,7 +831,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO PickupPoints (Name, Address, Region) VALUES (@name, @address, @region)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO pickuppoints (name, address, region) VALUES (@name, @address, @region)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
                         command.Parameters.AddWithValue("address", address);
@@ -860,7 +860,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE PickupPoints SET IsActive = @isActive WHERE PointId = @pointId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE pickuppoints SET isactive = @isActive WHERE pickuppointid = @pointId", connection))
                     {
                         command.Parameters.AddWithValue("isActive", isActive);
                         command.Parameters.AddWithValue("pointId", pointId);
@@ -895,6 +895,14 @@ namespace ElmirClone
 
     public class DbProduct
     {
+        internal string? ImagePath;
+        internal int DiscountedPrice;
+        internal int Quantity;
+        internal object SellerId;
+        internal decimal OriginalPrice;
+        internal bool HasDiscount;
+        internal string SellerName;
+
         public int ProductId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }

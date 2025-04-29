@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Npgsql;
 using System.Configuration;
+using Microsoft.Win32; // Для OpenFileDialog
 
 namespace ElmirClone
 {
@@ -11,6 +12,7 @@ namespace ElmirClone
     {
         private string connectionString;
         private int sellerId;
+        private string selectedImagePath; // Переменная для хранения пути к выбранному изображению
 
         public SellerWindow(int sellerId)
         {
@@ -71,6 +73,22 @@ namespace ElmirClone
             this.Close();
         }
 
+        // Метод для выбора изображения через проводник
+        private void SelectImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Image files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
+                Title = "Выберите изображение товара"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                selectedImagePath = openFileDialog.FileName;
+                NewProductImagePath.Text = selectedImagePath; // Отображаем путь в TextBox
+            }
+        }
+
         // Управление товарами
         private void LoadCategories()
         {
@@ -79,7 +97,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT CategoryId, Name FROM Categories", connection))
+                    using (var command = new NpgsqlCommand("SELECT categoryid, name FROM categories", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -112,9 +130,9 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT p.ProductId, p.Name, p.Description, p.Price, p.Brand, p.Discount, c.Name AS CategoryName FROM Products p JOIN Categories c ON p.CategoryId = c.CategoryId WHERE p.SellerId = @sellerId", connection))
+                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, p.image_path FROM products p JOIN categories c ON p.categoryid = c.categoryid WHERE p.sellerid = @sellerid", connection))
                     {
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
                         using (var reader = command.ExecuteReader())
                         {
                             var products = new List<DbProduct>();
@@ -127,8 +145,8 @@ namespace ElmirClone
                                     Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
                                     Price = reader.GetDecimal(3),
                                     Brand = reader.GetString(4),
-                                    Discount = reader.GetDecimal(5),
-                                    CategoryName = reader.GetString(6)
+                                    CategoryName = reader.GetString(5),
+                                    ImagePath = reader.IsDBNull(6) ? "Нет изображения" : reader.GetString(6)
                                 });
                             }
                             ProductsList.ItemsSource = products;
@@ -152,11 +170,6 @@ namespace ElmirClone
                 return;
             }
             string brand = NewProductBrand.Text.Trim();
-            if (!decimal.TryParse(NewProductDiscount.Text, out decimal discount))
-            {
-                MessageBox.Show("Введите корректную скидку (в процентах).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
             int? categoryId = ProductCategory.SelectedValue as int?;
 
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(brand) || categoryId == null)
@@ -170,19 +183,22 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO Products (Name, Description, Price, Brand, Discount, CategoryId, SellerId) VALUES (@name, @description, @price, @brand, @discount, @categoryId, @sellerId)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO products (name, description, price, brand, categoryid, sellerid, image_path) VALUES (@name, @description, @price, @brand, @categoryid, @sellerid, @imagepath)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
                         command.Parameters.AddWithValue("description", description);
                         command.Parameters.AddWithValue("price", price);
                         command.Parameters.AddWithValue("brand", brand);
-                        command.Parameters.AddWithValue("discount", discount);
-                        command.Parameters.AddWithValue("categoryId", categoryId);
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("categoryid", categoryId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
+                        command.Parameters.AddWithValue("imagepath", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
                         command.ExecuteNonQuery();
                     }
                 }
+                selectedImagePath = null; // Сбрасываем путь после добавления
+                NewProductImagePath.Text = "Путь к изображению"; // Сбрасываем поле
                 LoadProducts();
+                MessageBox.Show("Товар успешно добавлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -195,44 +211,100 @@ namespace ElmirClone
             int productId = (int)((Button)sender).Tag;
             var product = (DbProduct)ProductsList.Items.Cast<DbProduct>().First(p => p.ProductId == productId);
 
-            string name = product.Name;
-            string description = product.Description;
-            decimal price = product.Price;
-            string brand = product.Brand;
-            decimal discount = product.Discount;
-            int categoryId = ProductCategory.Items.Cast<Category>().First(c => c.Name == product.CategoryName).CategoryId;
+            // Заполняем поля для редактирования
+            NewProductName.Text = product.Name;
+            NewProductDescription.Text = product.Description;
+            NewProductPrice.Text = product.Price.ToString();
+            NewProductBrand.Text = product.Brand;
+            ProductCategory.SelectedValue = ProductCategory.Items.Cast<Category>().First(c => c.Name == product.CategoryName).CategoryId;
+            selectedImagePath = product.ImagePath == "Нет изображения" ? null : product.ImagePath;
+            NewProductImagePath.Text = selectedImagePath ?? "Путь к изображению";
 
-            NewProductName.Text = name;
-            NewProductDescription.Text = description;
-            NewProductPrice.Text = price.ToString();
-            NewProductBrand.Text = brand;
-            NewProductDiscount.Text = discount.ToString();
-            ProductCategory.SelectedValue = categoryId;
-
-            try
+            // Создаем окно для редактирования
+            Window editWindow = new Window
             {
-                using (var connection = new NpgsqlConnection(connectionString))
+                Title = "Редактировать товар",
+                Width = 400,
+                Height = 600,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
+            };
+
+            StackPanel panel = new StackPanel { Margin = new Thickness(10) };
+            panel.Children.Add(new TextBlock { Text = "Название:", Margin = new Thickness(0, 0, 0, 5) });
+            TextBox nameBox = new TextBox { Text = product.Name, Margin = new Thickness(0, 0, 0, 10) };
+            panel.Children.Add(nameBox);
+
+            panel.Children.Add(new TextBlock { Text = "Описание:", Margin = new Thickness(0, 0, 0, 5) });
+            TextBox descBox = new TextBox { Text = product.Description, AcceptsReturn = true, Height = 100, Margin = new Thickness(0, 0, 0, 10) };
+            panel.Children.Add(descBox);
+
+            panel.Children.Add(new TextBlock { Text = "Цена:", Margin = new Thickness(0, 0, 0, 5) });
+            TextBox priceBox = new TextBox { Text = product.Price.ToString(), Margin = new Thickness(0, 0, 0, 10) };
+            panel.Children.Add(priceBox);
+
+            panel.Children.Add(new TextBlock { Text = "Бренд:", Margin = new Thickness(0, 0, 0, 5) });
+            TextBox brandBox = new TextBox { Text = product.Brand, Margin = new Thickness(0, 0, 0, 10) };
+            panel.Children.Add(brandBox);
+
+            panel.Children.Add(new TextBlock { Text = "Категория:", Margin = new Thickness(0, 0, 0, 5) });
+            ComboBox categoryBox = new ComboBox { ItemsSource = ProductCategory.ItemsSource, DisplayMemberPath = "Name", SelectedValuePath = "CategoryId", SelectedValue = ProductCategory.SelectedValue, Margin = new Thickness(0, 0, 0, 10) };
+            panel.Children.Add(categoryBox);
+
+            panel.Children.Add(new TextBlock { Text = "Изображение:", Margin = new Thickness(0, 0, 0, 5) });
+            TextBox imagePathBox = new TextBox { Text = NewProductImagePath.Text, IsReadOnly = true, Margin = new Thickness(0, 0, 0, 5) };
+            panel.Children.Add(imagePathBox);
+            Button selectImageButton = new Button { Content = "Выбрать изображение", Margin = new Thickness(0, 0, 0, 10) };
+            selectImageButton.Click += (s, ev) =>
+            {
+                OpenFileDialog openFileDialog = new OpenFileDialog
                 {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE Products SET Name = @name, Description = @description, Price = @price, Brand = @brand, Discount = @discount, CategoryId = @categoryId WHERE ProductId = @productId AND SellerId = @sellerId", connection))
-                    {
-                        command.Parameters.AddWithValue("name", name);
-                        command.Parameters.AddWithValue("description", description);
-                        command.Parameters.AddWithValue("price", price);
-                        command.Parameters.AddWithValue("brand", brand);
-                        command.Parameters.AddWithValue("discount", discount);
-                        command.Parameters.AddWithValue("categoryId", categoryId);
-                        command.Parameters.AddWithValue("productId", productId);
-                        command.Parameters.AddWithValue("sellerId", sellerId);
-                        command.ExecuteNonQuery();
-                    }
+                    Filter = "Image files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
+                    Title = "Выберите изображение товара"
+                };
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    selectedImagePath = openFileDialog.FileName;
+                    imagePathBox.Text = selectedImagePath;
                 }
-                LoadProducts();
-            }
-            catch (Exception ex)
+            };
+            panel.Children.Add(selectImageButton);
+
+            Button saveButton = new Button { Content = "Сохранить", Width = 100, Margin = new Thickness(0, 10, 0, 0) };
+            saveButton.Click += (s, ev) =>
             {
-                MessageBox.Show($"Ошибка при редактировании товара: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand("UPDATE products SET name = @name, description = @description, price = @price, brand = @brand, categoryid = @categoryid, image_path = @imagepath WHERE productid = @productid AND sellerid = @sellerid", connection))
+                        {
+                            command.Parameters.AddWithValue("name", nameBox.Text.Trim());
+                            command.Parameters.AddWithValue("description", descBox.Text.Trim());
+                            command.Parameters.AddWithValue("price", decimal.Parse(priceBox.Text));
+                            command.Parameters.AddWithValue("brand", brandBox.Text.Trim());
+                            command.Parameters.AddWithValue("categoryid", (int)categoryBox.SelectedValue);
+                            command.Parameters.AddWithValue("imagepath", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
+                            command.Parameters.AddWithValue("productid", productId);
+                            command.Parameters.AddWithValue("sellerid", sellerId);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                    selectedImagePath = null; // Сбрасываем путь
+                    NewProductImagePath.Text = "Путь к изображению"; // Сбрасываем поле
+                    LoadProducts();
+                    MessageBox.Show("Товар успешно обновлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                    editWindow.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при редактировании товара: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+            panel.Children.Add(saveButton);
+
+            editWindow.Content = panel;
+            editWindow.ShowDialog();
         }
 
         private void DeleteProduct_Click(object sender, RoutedEventArgs e)
@@ -243,14 +315,15 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("DELETE FROM Products WHERE ProductId = @productId AND SellerId = @sellerId", connection))
+                    using (var command = new NpgsqlCommand("DELETE FROM products WHERE productid = @productid AND sellerid = @sellerid", connection))
                     {
-                        command.Parameters.AddWithValue("productId", productId);
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("productid", productId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
                         command.ExecuteNonQuery();
                     }
                 }
                 LoadProducts();
+                MessageBox.Show("Товар успешно удален!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -266,9 +339,9 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT o.OrderId, p.Name AS ProductName, o.Quantity, o.TotalPrice, o.OrderDate, o.Status FROM Orders o JOIN Products p ON o.ProductId = p.ProductId WHERE o.SellerId = @sellerId", connection))
+                    using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.quantity, o.totalprice, o.orderdate, o.status FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid", connection))
                     {
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
                         using (var reader = command.ExecuteReader())
                         {
                             var orders = new List<Order>();
@@ -308,16 +381,17 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE Orders SET Status = @status WHERE OrderId = @orderId AND SellerId = @sellerId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE orders SET status = @status WHERE orderid = @orderid AND sellerid = @sellerid", connection))
                     {
                         command.Parameters.AddWithValue("status", status);
-                        command.Parameters.AddWithValue("orderId", orderId);
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("orderid", orderId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
                         command.ExecuteNonQuery();
                     }
                 }
                 LoadOrders();
                 LoadFinancials(); // Обновляем финансовую информацию
+                MessageBox.Show("Статус заказа обновлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -338,9 +412,9 @@ namespace ElmirClone
                     var sales = new List<Sale>();
 
                     // Получаем процент комиссии продавца
-                    using (var command = new NpgsqlCommand("SELECT FeeValue FROM SellerFees WHERE SellerId = @sellerId AND FeeType = 'Percentage'", connection))
+                    using (var command = new NpgsqlCommand("SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
                     {
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
                         var result = command.ExecuteScalar();
                         if (result != null)
                         {
@@ -349,9 +423,9 @@ namespace ElmirClone
                     }
 
                     // Получаем историю продаж
-                    using (var command = new NpgsqlCommand("SELECT o.OrderId, p.Name AS ProductName, o.TotalPrice, o.OrderDate FROM Orders o JOIN Products p ON o.ProductId = p.ProductId WHERE o.SellerId = @sellerId AND o.Status = 'Delivered'", connection))
+                    using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid AND o.status = 'Delivered'", connection))
                     {
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
                         using (var reader = command.ExecuteReader())
                         {
                             while (reader.Read())
@@ -390,9 +464,9 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT StoreName, Description, ContactInfo FROM SellerProfiles WHERE SellerId = @sellerId", connection))
+                    using (var command = new NpgsqlCommand("SELECT storename, description, contactinfo FROM sellerprofiles WHERE sellerid = @sellerid", connection))
                     {
-                        command.Parameters.AddWithValue("sellerId", sellerId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
                         using (var reader = command.ExecuteReader())
                         {
                             if (reader.Read())
@@ -428,12 +502,12 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO SellerProfiles (SellerId, StoreName, Description, ContactInfo) VALUES (@sellerId, @storeName, @description, @contactInfo) ON CONFLICT (SellerId) DO UPDATE SET StoreName = @storeName, Description = @description, ContactInfo = @contactInfo", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO sellerprofiles (sellerid, storename, description, contactinfo) VALUES (@sellerid, @storename, @description, @contactinfo) ON CONFLICT (sellerid) DO UPDATE SET storename = @storename, description = @description, contactinfo = @contactinfo", connection))
                     {
-                        command.Parameters.AddWithValue("sellerId", sellerId);
-                        command.Parameters.AddWithValue("storeName", storeName);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
+                        command.Parameters.AddWithValue("storename", storeName);
                         command.Parameters.AddWithValue("description", description);
-                        command.Parameters.AddWithValue("contactInfo", contactInfo);
+                        command.Parameters.AddWithValue("contactinfo", contactInfo);
                         command.ExecuteNonQuery();
                     }
                 }
