@@ -15,13 +15,22 @@ namespace ElmirClone
         private UserProfile userProfile;
         private string connectionString;
         private decimal totalPrice;
+        private readonly List<string> regions = new List<string>
+        {
+            "Винницкая область", "Волынская область", "Днепропетровская область", "Донецкая область",
+            "Житомирская область", "Закарпатская область", "Запорожская область", "Ивано-Франковская область",
+            "Киевская область", "Кировоградская область", "Луганская область", "Львовская область",
+            "Николаевская область", "Одесская область", "Полтавская область", "Ровенская область",
+            "Сумская область", "Тернопольская область", "Харьковская область", "Херсонская область",
+            "Хмельницкая область", "Черкасская область", "Черниговская область", "Черновицкая область",
+            "Автономная Республика Крым"
+        };
 
-        // Изменяем модификатор доступа конструктора на internal для диагностики
         internal CartWindow(List<DbProduct> cartItems, UserProfile userProfile)
         {
             InitializeComponent();
-            this.cartItems = cartItems;
-            this.userProfile = userProfile;
+            this.cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
+            this.userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
 
             if (string.IsNullOrEmpty(connectionString))
@@ -31,15 +40,88 @@ namespace ElmirClone
                 return;
             }
 
+            // Инициализация данных
             CartItemsList.ItemsSource = cartItems;
             CalculateTotalPrice();
+            LoadContactDetails();
+            LoadRegions();
             LoadPaymentMethods();
         }
 
         private void CalculateTotalPrice()
         {
             totalPrice = cartItems.Sum(item => item.Price);
-            TotalPriceText.Text = $"Итого: {totalPrice:F2} грн";
+            TotalPriceText.Text = $"Общая сумма: {totalPrice:F2} грн";
+        }
+
+        private void LoadContactDetails()
+        {
+            ContactLastName.Text = userProfile.LastName ?? "";
+            ContactFirstName.Text = userProfile.FirstName ?? "";
+            ContactMiddleName.Text = userProfile.MiddleName ?? "";
+            ContactPhone.Text = userProfile.Phone ?? "";
+        }
+
+        private void LoadRegions()
+        {
+            ShippingRegion.ItemsSource = regions;
+            if (regions.Any())
+            {
+                ShippingRegion.SelectedIndex = 0;
+            }
+        }
+
+        private void ShippingRegion_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            LoadPickupPoints();
+        }
+
+        private void LoadPickupPoints()
+        {
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string selectedRegion = ShippingRegion.SelectedItem?.ToString();
+                    string query = "SELECT pickup_point_id, address, region FROM pickup_points";
+                    if (!string.IsNullOrEmpty(selectedRegion))
+                    {
+                        query += " WHERE region = @region";
+                    }
+
+                    using (var command = new NpgsqlCommand(query, connection))
+                    {
+                        if (!string.IsNullOrEmpty(selectedRegion))
+                        {
+                            command.Parameters.AddWithValue("region", selectedRegion);
+                        }
+
+                        using (var reader = command.ExecuteReader())
+                        {
+                            var pickupPoints = new List<PickupPoint>();
+                            while (reader.Read())
+                            {
+                                pickupPoints.Add(new PickupPoint
+                                {
+                                    PickupPointId = reader.GetInt32(0),
+                                    Address = reader.GetString(1),
+                                    Region = reader.GetString(2)
+                                });
+                            }
+                            PickupPoint.ItemsSource = pickupPoints;
+                            if (pickupPoints.Any())
+                            {
+                                PickupPoint.SelectedIndex = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при загрузке пунктов самовывоза: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void LoadPaymentMethods()
@@ -49,7 +131,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT id, name FROM payment_methods WHERE is_active = TRUE", connection))
+                    using (var command = new NpgsqlCommand("SELECT payment_method_id, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -81,15 +163,17 @@ namespace ElmirClone
 
         private void RemoveFromCart_Click(object sender, RoutedEventArgs e)
         {
-            int productId = (int)((Button)sender).Tag;
-            var productToRemove = cartItems.FirstOrDefault(p => p.ProductId == productId);
-            if (productToRemove != null)
+            if ((sender as Button)?.Tag is int productId)
             {
-                cartItems.Remove(productToRemove);
-                CartItemsList.ItemsSource = null;
-                CartItemsList.ItemsSource = cartItems;
-                CalculateTotalPrice();
-                MessageBox.Show($"{productToRemove.Name} удален из корзины.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                var productToRemove = cartItems.FirstOrDefault(p => p.ProductId == productId);
+                if (productToRemove != null)
+                {
+                    cartItems.Remove(productToRemove);
+                    CartItemsList.ItemsSource = null;
+                    CartItemsList.ItemsSource = cartItems;
+                    CalculateTotalPrice();
+                    MessageBox.Show($"{productToRemove.Name} удален из корзины.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
 
@@ -101,14 +185,22 @@ namespace ElmirClone
                 return;
             }
 
-            if (PaymentMethodsComboBox.SelectedItem == null)
+            string lastName = ContactLastName.Text?.Trim() ?? string.Empty;
+            string firstName = ContactFirstName.Text?.Trim() ?? string.Empty;
+            string middleName = ContactMiddleName.Text?.Trim() ?? string.Empty;
+            string phone = ContactPhone.Text?.Trim() ?? string.Empty;
+            string shippingRegion = ShippingRegion.SelectedItem?.ToString();
+            int? pickupPointId = PickupPoint.SelectedValue as int?;
+            int? paymentMethodId = PaymentMethodsComboBox.SelectedValue as int?;
+            string paymentMethodName = (PaymentMethodsComboBox.SelectedItem as PaymentMethod)?.Name;
+
+            // Проверка заполненности обязательных полей
+            if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(phone) ||
+                string.IsNullOrEmpty(shippingRegion) || pickupPointId == null || paymentMethodId == null)
             {
-                MessageBox.Show("Выберите способ оплаты.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Заполните все обязательные поля (фамилия, имя, телефон, область, пункт самовывоза, способ оплаты).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-
-            int paymentMethodId = (int)PaymentMethodsComboBox.SelectedValue;
-            string paymentMethodName = ((PaymentMethod)PaymentMethodsComboBox.SelectedItem).Name;
 
             try
             {
@@ -119,26 +211,14 @@ namespace ElmirClone
                     {
                         try
                         {
-                            // Создаем заказ
-                            int orderId;
-                            using (var command = new NpgsqlCommand("INSERT INTO Orders (buyerid, orderdate, totalprice, payment_method_id) VALUES (@userId, @orderDate, @totalAmount, @paymentMethodId) RETURNING orderid", connection))
-                            {
-                                command.Parameters.AddWithValue("userId", userProfile.UserId);
-                                command.Parameters.AddWithValue("orderDate", DateTime.Now);
-                                command.Parameters.AddWithValue("totalAmount", (double)totalPrice);
-                                command.Parameters.AddWithValue("paymentMethodId", paymentMethodId);
-                                command.Transaction = transaction;
-                                orderId = (int)command.ExecuteScalar();
-                            }
-
-                            // Добавляем товары в заказ
+                            // Сохраняем заказ для каждого товара в корзине
                             foreach (var item in cartItems)
                             {
                                 // Получаем sellerid для товара
                                 int? sellerId = null;
-                                using (var command = new NpgsqlCommand("SELECT seller_id FROM products WHERE product_id = @product_id", connection))
+                                using (var command = new NpgsqlCommand("SELECT sellerid FROM products WHERE productid = @productId", connection))
                                 {
-                                    command.Parameters.AddWithValue("product_id", item.ProductId);
+                                    command.Parameters.AddWithValue("productId", item.ProductId);
                                     var result = command.ExecuteScalar();
                                     if (result != null && result != DBNull.Value)
                                     {
@@ -146,16 +226,25 @@ namespace ElmirClone
                                     }
                                 }
 
-                                using (var command = new NpgsqlCommand("INSERT INTO orders (buyerid, sellerid, productid, quantity, totalprice, orderdate, status, payment_method_id) VALUES (@buyerid, @sellerid, @productId, @quantity, @price, @orderdate, @status, @paymentMethodId)", connection))
+                                // Сохраняем заказ в таблице orders
+                                using (var command = new NpgsqlCommand(
+                                    "INSERT INTO orders (buyerid, sellerid, productid, quantity, totalprice, orderdate, status, pickup_point_id, payment_method_id, shipping_region, contact_first_name, contact_middle_name, contact_phone, contact_last_name) " +
+                                    "VALUES (@buyerid, @sellerid, @productid, @quantity, @totalprice, @orderdate, @status, @pickup_point_id, @payment_method_id, @shipping_region, @contact_first_name, @contact_middle_name, @contact_phone, @contact_last_name)", connection))
                                 {
                                     command.Parameters.AddWithValue("buyerid", userProfile.UserId);
                                     command.Parameters.AddWithValue("sellerid", sellerId == null ? (object)DBNull.Value : sellerId);
-                                    command.Parameters.AddWithValue("productId", item.ProductId);
+                                    command.Parameters.AddWithValue("productid", item.ProductId);
                                     command.Parameters.AddWithValue("quantity", 1);
-                                    command.Parameters.AddWithValue("price", (double)item.Price);
+                                    command.Parameters.AddWithValue("totalprice", (double)item.Price);
                                     command.Parameters.AddWithValue("orderdate", DateTime.Now);
                                     command.Parameters.AddWithValue("status", "Pending");
-                                    command.Parameters.AddWithValue("paymentMethodId", paymentMethodId);
+                                    command.Parameters.AddWithValue("pickup_point_id", pickupPointId);
+                                    command.Parameters.AddWithValue("payment_method_id", paymentMethodId);
+                                    command.Parameters.AddWithValue("shipping_region", shippingRegion);
+                                    command.Parameters.AddWithValue("contact_first_name", firstName);
+                                    command.Parameters.AddWithValue("contact_middle_name", string.IsNullOrWhiteSpace(middleName) ? (object)DBNull.Value : middleName);
+                                    command.Parameters.AddWithValue("contact_phone", phone);
+                                    command.Parameters.AddWithValue("contact_last_name", lastName);
                                     command.Transaction = transaction;
                                     command.ExecuteNonQuery();
                                 }
@@ -163,8 +252,7 @@ namespace ElmirClone
 
                             transaction.Commit();
                             MessageBox.Show($"Заказ успешно оформлен!\nСпособ оплаты: {paymentMethodName}\nСумма: {totalPrice:F2} грн", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-                            cartItems.Clear();
-                            CartItemsList.ItemsSource = null;
+                            this.DialogResult = true; // Устанавливаем результат диалога
                             Close();
                         }
                         catch (Exception ex)

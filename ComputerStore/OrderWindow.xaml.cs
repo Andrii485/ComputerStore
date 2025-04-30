@@ -213,5 +213,6 @@ namespace ElmirClone
         public string MiddleName { get; set; }
         public string Phone { get; set; }
         public object UserId { get; internal set; }
+        public string LastName { get; internal set; }
     }
 }
