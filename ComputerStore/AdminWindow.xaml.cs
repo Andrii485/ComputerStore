@@ -576,7 +576,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT methodid, name, isactive FROM paymentmethods", connection))
+                    using (var command = new NpgsqlCommand("SELECT methodid, name, is_active FROM payment_methods", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -601,6 +601,38 @@ namespace ElmirClone
             }
         }
 
+        private void AddPaymentMethod_Click(object sender, RoutedEventArgs e)
+        {
+            string name = NewPaymentMethodName.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                MessageBox.Show("Введите название способа оплаты.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("INSERT INTO payment_methods (name, is_active) VALUES (@name, @isActive)", connection))
+                    {
+                        command.Parameters.AddWithValue("name", name);
+                        command.Parameters.AddWithValue("isActive", true);
+                        command.ExecuteNonQuery();
+                    }
+                }
+                LoadPaymentMethods();
+                NewPaymentMethodName.Text = ""; // Очищаем поле после добавления
+                MessageBox.Show("Способ оплаты успешно добавлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при добавлении способа оплаты: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void UpdatePaymentMethod_Click(object sender, RoutedEventArgs e)
         {
             int methodId = (int)((Button)sender).Tag;
@@ -614,7 +646,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE paymentmethods SET isactive = @isActive WHERE methodid = @methodId", connection))
+                    using (var command = new NpgsqlCommand("UPDATE payment_methods SET is_active = @isActive WHERE methodid = @methodId", connection))
                     {
                         command.Parameters.AddWithValue("isActive", isActive);
                         command.Parameters.AddWithValue("methodId", methodId);
@@ -926,16 +958,10 @@ namespace ElmirClone
 
     public class PaymentMethod
     {
-        internal int PaymentMethodId;
-        internal int Id;
-
         public int MethodId { get; set; }
         public string Name { get; set; }
         public bool IsActive { get; set; }
-
-        internal class Items
-        {
-        }
+        public int PaymentMethodId { get; internal set; }
     }
 
     public class Return
@@ -955,12 +981,11 @@ namespace ElmirClone
 
     public class PickupPoint
     {
-        internal int PickupPointId;
-
         public int PointId { get; set; }
         public string Name { get; set; }
         public string Address { get; set; }
         public string Region { get; set; }
         public bool IsActive { get; set; }
+        public int PickupPointId { get; internal set; }
     }
 }

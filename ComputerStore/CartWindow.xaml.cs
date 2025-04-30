@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using Npgsql;
 using System.Configuration;
 using ElmirClone.Models;
+using System.Text.RegularExpressions;
 
 namespace ElmirClone
 {
@@ -131,11 +132,13 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT payment_method_id, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
+
+                    // Проверяем, есть ли уже способы оплаты
+                    var paymentMethods = new List<PaymentMethod>();
+                    using (var command = new NpgsqlCommand("SELECT methodid, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
-                            var paymentMethods = new List<PaymentMethod>();
                             while (reader.Read())
                             {
                                 paymentMethods.Add(new PaymentMethod
@@ -144,20 +147,73 @@ namespace ElmirClone
                                     Name = reader.GetString(1)
                                 });
                             }
-                            PaymentMethodsComboBox.ItemsSource = paymentMethods;
-                            PaymentMethodsComboBox.DisplayMemberPath = "Name";
-                            PaymentMethodsComboBox.SelectedValuePath = "PaymentMethodId";
-                            if (paymentMethods.Any())
+                        }
+                    }
+
+                    // Если способы оплаты не найдены, добавляем их
+                    if (!paymentMethods.Any())
+                    {
+                        using (var command = new NpgsqlCommand(
+                            "INSERT INTO payment_methods (name, is_active) VALUES (@name, @is_active) ON CONFLICT (name) DO NOTHING", connection))
+                        {
+                            command.Parameters.AddWithValue("is_active", true);
+
+                            // Добавляем "Оплата під час отримання товару"
+                            command.Parameters.AddWithValue("name", "Оплата під час отримання товару");
+                            command.ExecuteNonQuery();
+
+                            // Добавляем "Оплатити зараз"
+                            command.Parameters[0].Value = "Оплатити зараз";
+                            command.ExecuteNonQuery();
+                        }
+
+                        // Повторно загружаем способы оплаты после добавления
+                        using (var command = new NpgsqlCommand("SELECT methodid, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
+                        {
+                            using (var reader = command.ExecuteReader())
                             {
-                                PaymentMethodsComboBox.SelectedIndex = 0;
+                                while (reader.Read())
+                                {
+                                    paymentMethods.Add(new PaymentMethod
+                                    {
+                                        PaymentMethodId = reader.GetInt32(0),
+                                        Name = reader.GetString(1)
+                                    });
+                                }
                             }
                         }
+                    }
+
+                    // Устанавливаем способы оплаты в ComboBox
+                    PaymentMethodsComboBox.ItemsSource = paymentMethods;
+                    PaymentMethodsComboBox.DisplayMemberPath = "Name";
+                    PaymentMethodsComboBox.SelectedValuePath = "PaymentMethodId";
+                    if (paymentMethods.Any())
+                    {
+                        PaymentMethodsComboBox.SelectedIndex = 0;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Не удалось добавить способы оплаты в базу данных.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка при загрузке способов оплаты: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void PaymentMethodsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selectedPaymentMethod = (PaymentMethodsComboBox.SelectedItem as PaymentMethod)?.Name;
+            if (selectedPaymentMethod == "Оплатити зараз")
+            {
+                CardDetailsPanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                CardDetailsPanel.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -177,11 +233,23 @@ namespace ElmirClone
             }
         }
 
+        private UserProfile GetUserProfile()
+        {
+            return userProfile;
+        }
+
         private void Checkout_Click(object sender, RoutedEventArgs e)
         {
             if (!cartItems.Any())
             {
                 MessageBox.Show("Корзина пуста.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Проверка userProfile.UserId
+            if (userProfile.UserId == null || Convert.ToInt32(userProfile.UserId) <= 0)
+            {
+                MessageBox.Show("Не удалось определить идентификатор пользователя. Пожалуйста, войдите в систему.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -200,6 +268,35 @@ namespace ElmirClone
             {
                 MessageBox.Show("Заполните все обязательные поля (фамилия, имя, телефон, область, пункт самовывоза, способ оплаты).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
+            }
+
+            // Проверка данных карты, если выбран способ "Оплатити зараз"
+            if (paymentMethodName == "Оплатити зараз")
+            {
+                string cardNumber = CardNumberTextBox.Text?.Trim() ?? string.Empty;
+                string cardExpiry = CardExpiryTextBox.Text?.Trim() ?? string.Empty;
+                string cardCvv = CardCvvTextBox.Text?.Trim() ?? string.Empty;
+
+                // Простая валидация номера карты (16 цифр)
+                if (!Regex.IsMatch(cardNumber, @"^\d{16}$"))
+                {
+                    MessageBox.Show("Введите корректный номер карты (16 цифр).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Проверка срока действия (MM/YY)
+                if (!Regex.IsMatch(cardExpiry, @"^(0[1-9]|1[0-2])\/\d{2}$"))
+                {
+                    MessageBox.Show("Введите корректный срок действия карты в формате MM/YY.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Проверка CVV (3 цифры)
+                if (!Regex.IsMatch(cardCvv, @"^\d{3}$"))
+                {
+                    MessageBox.Show("Введите корректный CVV (3 цифры).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
             }
 
             try
