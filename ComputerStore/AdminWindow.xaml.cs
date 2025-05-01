@@ -11,6 +11,16 @@ namespace ElmirClone
     public partial class AdminWindow : Window
     {
         private string connectionString;
+        private readonly List<string> regions = new List<string>
+        {
+            "Винницкая область", "Волынская область", "Днепропетровская область", "Донецкая область",
+            "Житомирская область", "Закарпатская область", "Запорожская область", "Ивано-Франковская область",
+            "Киевская область", "Кировоградская область", "Луганская область", "Львовская область",
+            "Николаевская область", "Одесская область", "Полтавская область", "Ровенская область",
+            "Сумская область", "Тернопольская область", "Харьковская область", "Херсонская область",
+            "Хмельницкая область", "Черкасская область", "Черниговская область", "Черновицкая область",
+            "Автономная Республика Крым"
+        };
 
         public AdminWindow()
         {
@@ -31,6 +41,22 @@ namespace ElmirClone
             LoadReturns();
             LoadCourierServices();
             LoadPickupPoints();
+            LoadRegionsForPickupPoints();
+        }
+
+        private void LoadRegionsForPickupPoints()
+        {
+            if (NewPickupPointRegion == null)
+            {
+                MessageBox.Show("Элемент NewPickupPointRegion не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            NewPickupPointRegion.ItemsSource = regions;
+            if (regions.Any())
+            {
+                NewPickupPointRegion.SelectedIndex = 0;
+            }
         }
 
         // Переключение панелей
@@ -110,10 +136,10 @@ namespace ElmirClone
 
         private void RegisterUser_Click(object sender, RoutedEventArgs e)
         {
-            string username = NewUserUsername.Text.Trim();
-            string email = NewUserEmail.Text.Trim();
+            string username = NewUserUsername.Text?.Trim();
+            string email = NewUserEmail.Text?.Trim();
             string password = NewUserPassword.Password;
-            string role = (NewUserRole.SelectedItem as ComboBoxItem)?.Content.ToString();
+            string role = (NewUserRole.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(role))
             {
@@ -331,7 +357,7 @@ namespace ElmirClone
 
         private void AddCategory_Click(object sender, RoutedEventArgs e)
         {
-            string name = NewCategoryName.Text.Trim();
+            string name = NewCategoryName.Text?.Trim();
             int? parentCategoryId = (ParentCategory.SelectedItem as ComboBoxItem)?.Tag as int?;
 
             if (string.IsNullOrWhiteSpace(name))
@@ -419,13 +445,13 @@ namespace ElmirClone
 
         private void AddProduct_Click(object sender, RoutedEventArgs e)
         {
-            string name = NewProductName.Text.Trim();
+            string name = NewProductName.Text?.Trim();
             if (!decimal.TryParse(NewProductPrice.Text, out decimal price))
             {
                 MessageBox.Show("Введите корректную цену.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            string brand = NewProductBrand.Text.Trim();
+            string brand = NewProductBrand.Text?.Trim();
             int? categoryId = ProductCategory.SelectedValue as int?;
 
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(brand) || categoryId == null)
@@ -541,7 +567,7 @@ namespace ElmirClone
             var feeTypeCombo = stackPanel.Children[3] as ComboBox;
             var feeValueTextBox = stackPanel.Children[4] as TextBox;
 
-            string feeType = (feeTypeCombo.SelectedItem as ComboBoxItem)?.Content.ToString();
+            string feeType = (feeTypeCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
             if (!decimal.TryParse(feeValueTextBox.Text, out decimal feeValue))
             {
                 MessageBox.Show("Введите корректное значение комиссии.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -700,7 +726,7 @@ namespace ElmirClone
             var stackPanel = ((Button)sender).Parent as StackPanel;
             var statusCombo = stackPanel.Children[3] as ComboBox;
 
-            string status = (statusCombo.SelectedItem as ComboBoxItem)?.Content.ToString();
+            string status = (statusCombo.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
             try
             {
@@ -757,7 +783,7 @@ namespace ElmirClone
 
         private void AddCourierService_Click(object sender, RoutedEventArgs e)
         {
-            string name = NewCourierService.Text.Trim();
+            string name = NewCourierService.Text?.Trim();
 
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -819,7 +845,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT pickuppointid, name, address, region, isactive FROM pickuppoints", connection))
+                    using (var command = new NpgsqlCommand("SELECT pickup_point_id, address, region FROM pickup_points", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -828,11 +854,9 @@ namespace ElmirClone
                             {
                                 points.Add(new PickupPoint
                                 {
-                                    PointId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Address = reader.GetString(2),
-                                    Region = reader.GetString(3),
-                                    IsActive = reader.GetBoolean(4)
+                                    PickupPointId = reader.GetInt32(0),
+                                    Address = reader.GetString(1),
+                                    Region = reader.GetString(2)
                                 });
                             }
                             PickupPointsList.ItemsSource = points;
@@ -848,11 +872,10 @@ namespace ElmirClone
 
         private void AddPickupPoint_Click(object sender, RoutedEventArgs e)
         {
-            string name = NewPickupPointName.Text.Trim();
-            string address = NewPickupPointAddress.Text.Trim();
-            string region = NewPickupPointRegion.Text.Trim();
+            string address = NewPickupPointAddress.Text?.Trim();
+            string region = NewPickupPointRegion.SelectedItem?.ToString();
 
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(region))
+            if (string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(region))
             {
                 MessageBox.Show("Заполните все поля.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
@@ -863,15 +886,15 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO pickuppoints (name, address, region) VALUES (@name, @address, @region)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO pickup_points (address, region) VALUES (@address, @region)", connection))
                     {
-                        command.Parameters.AddWithValue("name", name);
                         command.Parameters.AddWithValue("address", address);
                         command.Parameters.AddWithValue("region", region);
                         command.ExecuteNonQuery();
                     }
                 }
                 LoadPickupPoints();
+                MessageBox.Show("Пункт самовывоза успешно добавлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -881,30 +904,9 @@ namespace ElmirClone
 
         private void UpdatePickupPoint_Click(object sender, RoutedEventArgs e)
         {
-            int pointId = (int)((Button)sender).Tag;
-            var stackPanel = ((Button)sender).Parent as StackPanel;
-            var isActiveCheckBox = stackPanel.Children[3] as CheckBox;
-
-            bool isActive = isActiveCheckBox.IsChecked ?? false;
-
-            try
-            {
-                using (var connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE pickuppoints SET isactive = @isActive WHERE pickuppointid = @pointId", connection))
-                    {
-                        command.Parameters.AddWithValue("isActive", isActive);
-                        command.Parameters.AddWithValue("pointId", pointId);
-                        command.ExecuteNonQuery();
-                    }
-                }
-                LoadPickupPoints();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при обновлении пункта самовывоза: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            // Поскольку столбца isactive нет, этот метод пока не имеет смысла.
+            // Можно либо удалить его, либо добавить столбец isactive в таблицу (см. ниже).
+            MessageBox.Show("Функция обновления пункта самовывоза недоступна, так как столбец isactive отсутствует в таблице.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -981,11 +983,8 @@ namespace ElmirClone
 
     public class PickupPoint
     {
-        public int PointId { get; set; }
-        public string Name { get; set; }
+        public int PickupPointId { get; set; }
         public string Address { get; set; }
         public string Region { get; set; }
-        public bool IsActive { get; set; }
-        public int PickupPointId { get; internal set; }
     }
 }

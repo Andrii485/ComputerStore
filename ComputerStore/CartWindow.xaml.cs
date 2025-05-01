@@ -16,6 +16,7 @@ namespace ElmirClone
         private UserProfile userProfile;
         private string connectionString;
         private decimal totalPrice;
+        private object shipping_region;
         private readonly List<string> regions = new List<string>
         {
             "Винницкая область", "Волынская область", "Днепропетровская область", "Донецкая область",
@@ -31,13 +32,21 @@ namespace ElmirClone
         {
             InitializeComponent();
             this.cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
-            this.userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
+            this.userProfile = userProfile;
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
 
             if (string.IsNullOrEmpty(connectionString))
             {
                 MessageBox.Show("Строка подключения к базе данных не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 Close();
+                return;
+            }
+
+            // Проверка userProfile сразу после инициализации
+            if (this.userProfile == null || (this.userProfile.UserId is int id && id <= 0))
+            {
+                MessageBox.Show("Пользователь не авторизован или идентификатор пользователя некорректен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                RedirectToLogin();
                 return;
             }
 
@@ -49,14 +58,35 @@ namespace ElmirClone
             LoadPaymentMethods();
         }
 
+        private void RedirectToLogin()
+        {
+            try
+            {
+                LoginWindow loginWindow = new LoginWindow();
+                loginWindow.Show();
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при перенаправлении на страницу входа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void CalculateTotalPrice()
         {
-            totalPrice = cartItems.Sum(item => item.Price);
+            totalPrice = (cartItems != null) ? cartItems.Sum(item => item.Price) : 0;
             TotalPriceText.Text = $"Общая сумма: {totalPrice:F2} грн";
         }
 
         private void LoadContactDetails()
         {
+            if (userProfile == null)
+            {
+                MessageBox.Show("Профиль пользователя не загружен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                RedirectToLogin();
+                return;
+            }
+
             ContactLastName.Text = userProfile.LastName ?? "";
             ContactFirstName.Text = userProfile.FirstName ?? "";
             ContactMiddleName.Text = userProfile.MiddleName ?? "";
@@ -65,6 +95,12 @@ namespace ElmirClone
 
         private void LoadRegions()
         {
+            if (ShippingRegion == null)
+            {
+                MessageBox.Show("Элемент ShippingRegion не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             ShippingRegion.ItemsSource = regions;
             if (regions.Any())
             {
@@ -84,7 +120,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    string selectedRegion = ShippingRegion.SelectedItem?.ToString();
+                    string selectedRegion = ShippingRegion?.SelectedItem?.ToString();
                     string query = "SELECT pickup_point_id, address, region FROM pickup_points";
                     if (!string.IsNullOrEmpty(selectedRegion))
                     {
@@ -110,10 +146,19 @@ namespace ElmirClone
                                     Region = reader.GetString(2)
                                 });
                             }
+                            if (PickupPoint == null)
+                            {
+                                MessageBox.Show("Элемент PickupPoint не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
                             PickupPoint.ItemsSource = pickupPoints;
                             if (pickupPoints.Any())
                             {
                                 PickupPoint.SelectedIndex = 0;
+                            }
+                            else
+                            {
+                                MessageBox.Show("Пункты самовывоза не найдены для выбранного региона.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
                             }
                         }
                     }
@@ -185,6 +230,12 @@ namespace ElmirClone
                     }
 
                     // Устанавливаем способы оплаты в ComboBox
+                    if (PaymentMethodsComboBox == null)
+                    {
+                        MessageBox.Show("Элемент PaymentMethodsComboBox не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
                     PaymentMethodsComboBox.ItemsSource = paymentMethods;
                     PaymentMethodsComboBox.DisplayMemberPath = "Name";
                     PaymentMethodsComboBox.SelectedValuePath = "PaymentMethodId";
@@ -206,14 +257,20 @@ namespace ElmirClone
 
         private void PaymentMethodsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedPaymentMethod = (PaymentMethodsComboBox.SelectedItem as PaymentMethod)?.Name;
+            var selectedPaymentMethod = (PaymentMethodsComboBox?.SelectedItem as PaymentMethod)?.Name;
             if (selectedPaymentMethod == "Оплатити зараз")
             {
-                CardDetailsPanel.Visibility = Visibility.Visible;
+                if (CardDetailsPanel != null)
+                {
+                    CardDetailsPanel.Visibility = Visibility.Visible;
+                }
             }
             else
             {
-                CardDetailsPanel.Visibility = Visibility.Collapsed;
+                if (CardDetailsPanel != null)
+                {
+                    CardDetailsPanel.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
@@ -221,7 +278,7 @@ namespace ElmirClone
         {
             if ((sender as Button)?.Tag is int productId)
             {
-                var productToRemove = cartItems.FirstOrDefault(p => p.ProductId == productId);
+                var productToRemove = cartItems?.FirstOrDefault(p => p.ProductId == productId);
                 if (productToRemove != null)
                 {
                     cartItems.Remove(productToRemove);
@@ -240,16 +297,34 @@ namespace ElmirClone
 
         private void Checkout_Click(object sender, RoutedEventArgs e)
         {
-            if (!cartItems.Any())
+            // Проверка cartItems
+            if (cartItems == null || !cartItems.Any())
             {
                 MessageBox.Show("Корзина пуста.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // Проверка userProfile.UserId
-            if (userProfile.UserId == null || Convert.ToInt32(userProfile.UserId) <= 0)
+            // Проверка userProfile
+            if (userProfile == null)
             {
-                MessageBox.Show("Не удалось определить идентификатор пользователя. Пожалуйста, войдите в систему.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Профиль пользователя не загружен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                RedirectToLogin();
+                return;
+            }
+
+            // Проверка UserId
+            if (userProfile.UserId is int id && id <= 0)
+            {
+                MessageBox.Show($"Идентификатор пользователя некорректен (UserId = {userProfile.UserId}). Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                RedirectToLogin();
+                return;
+            }
+
+            // Проверка элементов UI
+            if (ContactLastName == null || ContactFirstName == null || ContactMiddleName == null || ContactPhone == null ||
+                ShippingRegion == null || PickupPoint == null || PaymentMethodsComboBox == null)
+            {
+                MessageBox.Show("Одно или несколько полей формы не найдены в разметке. Проверьте XAML.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -263,16 +338,39 @@ namespace ElmirClone
             string paymentMethodName = (PaymentMethodsComboBox.SelectedItem as PaymentMethod)?.Name;
 
             // Проверка заполненности обязательных полей
-            if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(phone) ||
-                string.IsNullOrEmpty(shippingRegion) || pickupPointId == null || paymentMethodId == null)
+            if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(phone))
             {
-                MessageBox.Show("Заполните все обязательные поля (фамилия, имя, телефон, область, пункт самовывоза, способ оплаты).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Заполните обязательные поля: фамилия, имя, телефон.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(shippingRegion))
+            {
+                MessageBox.Show("Выберите область доставки.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (pickupPointId == null)
+            {
+                MessageBox.Show("Выберите пункт самовывоза.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (paymentMethodId == null || paymentMethodName == null)
+            {
+                MessageBox.Show("Выберите способ оплаты.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             // Проверка данных карты, если выбран способ "Оплатити зараз"
             if (paymentMethodName == "Оплатити зараз")
             {
+                if (CardNumberTextBox == null || CardExpiryTextBox == null || CardCvvTextBox == null)
+                {
+                    MessageBox.Show("Поля для данных карты не найдены в разметке. Проверьте XAML.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
                 string cardNumber = CardNumberTextBox.Text?.Trim() ?? string.Empty;
                 string cardExpiry = CardExpiryTextBox.Text?.Trim() ?? string.Empty;
                 string cardCvv = CardCvvTextBox.Text?.Trim() ?? string.Empty;
@@ -311,11 +409,26 @@ namespace ElmirClone
                             // Сохраняем заказ для каждого товара в корзине
                             foreach (var item in cartItems)
                             {
+                                if (item == null)
+                                {
+                                    MessageBox.Show("Один из товаров в корзине равен null.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    transaction.Rollback();
+                                    return;
+                                }
+
+                                // Проверяем ProductId
+                                if (item.ProductId <= 0)
+                                {
+                                    MessageBox.Show($"Некорректный ProductId у товара: {item.Name}.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    transaction.Rollback();
+                                    return;
+                                }
+
                                 // Получаем sellerid для товара
                                 int? sellerId = null;
                                 using (var command = new NpgsqlCommand("SELECT sellerid FROM products WHERE productid = @productId", connection))
                                 {
-                                    command.Parameters.AddWithValue("productId", item.ProductId);
+                                    command.Parameters.Add(new NpgsqlParameter("productId", NpgsqlTypes.NpgsqlDbType.Integer) { Value = item.ProductId });
                                     var result = command.ExecuteScalar();
                                     if (result != null && result != DBNull.Value)
                                     {
@@ -328,20 +441,30 @@ namespace ElmirClone
                                     "INSERT INTO orders (buyerid, sellerid, productid, quantity, totalprice, orderdate, status, pickup_point_id, payment_method_id, shipping_region, contact_first_name, contact_middle_name, contact_phone, contact_last_name) " +
                                     "VALUES (@buyerid, @sellerid, @productid, @quantity, @totalprice, @orderdate, @status, @pickup_point_id, @payment_method_id, @shipping_region, @contact_first_name, @contact_middle_name, @contact_phone, @contact_last_name)", connection))
                                 {
-                                    command.Parameters.AddWithValue("buyerid", userProfile.UserId);
-                                    command.Parameters.AddWithValue("sellerid", sellerId == null ? (object)DBNull.Value : sellerId);
-                                    command.Parameters.AddWithValue("productid", item.ProductId);
-                                    command.Parameters.AddWithValue("quantity", 1);
-                                    command.Parameters.AddWithValue("totalprice", (double)item.Price);
-                                    command.Parameters.AddWithValue("orderdate", DateTime.Now);
-                                    command.Parameters.AddWithValue("status", "Pending");
-                                    command.Parameters.AddWithValue("pickup_point_id", pickupPointId);
-                                    command.Parameters.AddWithValue("payment_method_id", paymentMethodId);
-                                    command.Parameters.AddWithValue("shipping_region", shippingRegion);
-                                    command.Parameters.AddWithValue("contact_first_name", firstName);
-                                    command.Parameters.AddWithValue("contact_middle_name", string.IsNullOrWhiteSpace(middleName) ? (object)DBNull.Value : middleName);
-                                    command.Parameters.AddWithValue("contact_phone", phone);
-                                    command.Parameters.AddWithValue("contact_last_name", lastName);
+                                    // Проверяем значение перед добавлением
+                                    int buyerIdValue = (int)userProfile.UserId;
+
+                                    if (buyerIdValue <= 0)
+                                    {
+                                        throw new InvalidOperationException($"Недопустимое значение buyerid: {buyerIdValue}. Идентификатор покупателя должен быть больше 0.");
+                                    }
+
+                                    // Явно задаём параметры с указанием типов
+                                    command.Parameters.Add(new NpgsqlParameter("buyerid", NpgsqlTypes.NpgsqlDbType.Integer) { Value = buyerIdValue });
+                                    command.Parameters.Add(new NpgsqlParameter("sellerid", NpgsqlTypes.NpgsqlDbType.Integer) { Value = sellerId.HasValue ? (object)sellerId.Value : DBNull.Value });
+                                    command.Parameters.Add(new NpgsqlParameter("productid", NpgsqlTypes.NpgsqlDbType.Integer) { Value = item.ProductId });
+                                    command.Parameters.Add(new NpgsqlParameter("quantity", NpgsqlTypes.NpgsqlDbType.Integer) { Value = 1 });
+                                    command.Parameters.Add(new NpgsqlParameter("totalprice", NpgsqlTypes.NpgsqlDbType.Double) { Value = (double)item.Price });
+                                    command.Parameters.Add(new NpgsqlParameter("orderdate", NpgsqlTypes.NpgsqlDbType.Timestamp) { Value = DateTime.Now });
+                                    command.Parameters.Add(new NpgsqlParameter("status", NpgsqlTypes.NpgsqlDbType.Text) { Value = "Pending" });
+                                    command.Parameters.Add(new NpgsqlParameter("pickup_point_id", NpgsqlTypes.NpgsqlDbType.Integer) { Value = pickupPointId.Value });
+                                    command.Parameters.Add(new NpgsqlParameter("payment_method_id", NpgsqlTypes.NpgsqlDbType.Integer) { Value = paymentMethodId.Value });
+                                    command.Parameters.Add(new NpgsqlParameter("shipping_region", NpgsqlTypes.NpgsqlDbType.Text) { Value = shipping_region });
+                                    command.Parameters.Add(new NpgsqlParameter("contact_first_name", NpgsqlTypes.NpgsqlDbType.Text) { Value = firstName });
+                                    command.Parameters.Add(new NpgsqlParameter("contact_middle_name", NpgsqlTypes.NpgsqlDbType.Text) { Value = string.IsNullOrWhiteSpace(middleName) ? (object)DBNull.Value : middleName });
+                                    command.Parameters.Add(new NpgsqlParameter("contact_phone", NpgsqlTypes.NpgsqlDbType.Text) { Value = phone });
+                                    command.Parameters.Add(new NpgsqlParameter("contact_last_name", NpgsqlTypes.NpgsqlDbType.Text) { Value = lastName });
+
                                     command.Transaction = transaction;
                                     command.ExecuteNonQuery();
                                 }

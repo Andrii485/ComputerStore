@@ -1,12 +1,18 @@
-﻿namespace ElmirClone
+﻿namespace ElmirClone.Models
 {
     public class UserProfile1
     {
-        public string Email { get; set; }
+        public int UserId { get; set; }
+        public string Username { get; set; }
         public string FirstName { get; set; }
-        public string LastName { get; set; } // Добавляем поле для фамилии
+        public string LastName { get; set; }
         public string MiddleName { get; set; }
         public string Phone { get; set; }
-        public object UserId { get; internal set; }
+        public string Email { get; set; }
+
+        public UserProfile1()
+        {
+            UserId = -1;
+        }
     }
 }

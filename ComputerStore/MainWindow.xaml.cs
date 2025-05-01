@@ -21,6 +21,7 @@ namespace ElmirClone
             this.userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
             cartItems = new List<DbProduct>();
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 MessageBox.Show("Строка подключения к базе данных не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -28,8 +29,30 @@ namespace ElmirClone
                 return;
             }
 
+            // Проверка корректности UserId при инициализации
+            if (userProfile.UserId is int id && id <= 0)
+            {
+                MessageBox.Show("Идентификатор пользователя не задан. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                RedirectToLogin();
+                return;
+            }
+
             DataContext = userProfile;
             LoadProducts();
+        }
+
+        private void RedirectToLogin()
+        {
+            try
+            {
+                LoginWindow loginWindow = new LoginWindow();
+                loginWindow.Show();
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при перенаправлении на страницу входа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         public void LoadProducts(string category = null)
@@ -68,7 +91,7 @@ namespace ElmirClone
                     }
 
                     // Загрузка популярных товаров (с фильтром по категории, если указана)
-                    string query = "SELECT p.ProductId, p.Name, p.Price, p.ImageUrl, p.Rating, p.Reviews FROM Products p";
+                    string query = "SELECT p.ProductId, p.Name, p.Price, p.ImageUrl FROM Products p";
                     if (!string.IsNullOrEmpty(category))
                     {
                         query += " JOIN Categories c ON p.CategoryId = c.CategoryId WHERE c.Name = @category";
@@ -91,9 +114,7 @@ namespace ElmirClone
                                     ProductId = reader.GetInt32(0),
                                     Name = reader.GetString(1),
                                     Price = reader.GetDecimal(2),
-                                    ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3),
-                                    Rating = reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
-                                    Reviews = reader.IsDBNull(5) ? 0 : reader.GetInt32(5)
+                                    ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3)
                                 });
                             }
                             if (PopularProductsGrid != null)
@@ -267,9 +288,10 @@ namespace ElmirClone
                 }
 
                 // Проверка авторизации пользователя
-                if (userProfile == null)
+                if (userProfile == null || userProfile.UserId is int id && id <= 0)
                 {
                     MessageBox.Show("Пожалуйста, войдите в аккаунт, чтобы оформить заказ.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    RedirectToLogin();
                     return;
                 }
 
@@ -313,9 +335,10 @@ namespace ElmirClone
                 }
 
                 // Проверка авторизации пользователя
-                if (userProfile == null)
+                if (userProfile == null || userProfile.UserId is int id && id <= 0)
                 {
                     MessageBox.Show("Для просмотра корзины необходимо авторизоваться.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    RedirectToLogin();
                     return;
                 }
 
@@ -331,9 +354,10 @@ namespace ElmirClone
 
         private void SaveProfileButton_Click(object sender, RoutedEventArgs e)
         {
-            if (userProfile == null)
+            if (userProfile == null || userProfile.UserId is int id && id <= 0)
             {
-                MessageBox.Show("Профиль пользователя не загружен.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Профиль пользователя не загружен. Пожалуйста, войдите в систему.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                RedirectToLogin();
                 return;
             }
 
@@ -353,16 +377,17 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE UserDetails SET FirstName = @firstName, MiddleName = @middleName, Phone = @phone, Email = @email WHERE UserId = (SELECT UserId FROM UserCredentials WHERE Email = @email)", connection))
+                    using (var command = new NpgsqlCommand("UPDATE UserDetails SET FirstName = @firstName, MiddleName = @middleName, Phone = @phone, Email = @email WHERE UserId = @userId", connection))
                     {
                         command.Parameters.AddWithValue("firstName", userProfile.FirstName ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("middleName", string.IsNullOrWhiteSpace(userProfile.MiddleName) ? (object)DBNull.Value : userProfile.MiddleName);
                         command.Parameters.AddWithValue("phone", string.IsNullOrWhiteSpace(userProfile.Phone) ? (object)DBNull.Value : userProfile.Phone);
                         command.Parameters.AddWithValue("email", userProfile.Email);
+                        command.Parameters.AddWithValue("userId", userProfile.UserId);
                         int rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected == 0)
                         {
-                            MessageBox.Show("Не удалось обновить профиль. Пользователь с таким email не найден.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Не удалось обновить профиль. Пользователь не найден.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                         else
                         {

@@ -223,20 +223,16 @@
                         <!-- Пункты самовывоза -->
                         <TextBlock Text="Пункты самовывоза" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBox x:Name="NewPickupPointName" Width="150" Margin="0,0,5,0" Text="Название"/>
                             <TextBox x:Name="NewPickupPointAddress" Width="200" Margin="0,0,5,0" Text="Адрес"/>
-                            <TextBox x:Name="NewPickupPointRegion" Width="150" Margin="0,0,5,0" Text="Область"/>
+                            <ComboBox x:Name="NewPickupPointRegion" Width="150" Margin="0,0,5,0"/>
                             <Button Content="Добавить" Click="AddPickupPoint_Click"/>
                         </StackPanel>
                         <ItemsControl x:Name="PickupPointsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="150"/>
                                         <TextBlock Text="{Binding Address}" Width="200"/>
                                         <TextBlock Text="{Binding Region}" Width="150"/>
-                                        <CheckBox IsChecked="{Binding IsActive}" Content="Активен" Margin="5,0"/>
-                                        <Button Content="Сохранить" Click="UpdatePickupPoint_Click" Tag="{Binding PointId}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
