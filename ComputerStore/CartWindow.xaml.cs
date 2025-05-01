@@ -16,7 +16,7 @@ namespace ElmirClone
         private UserProfile userProfile;
         private string connectionString;
         private decimal totalPrice;
-        private object shipping_region;
+        private bool isInitializedSuccessfully;
         private readonly List<string> regions = new List<string>
         {
             "Винницкая область", "Волынская область", "Днепропетровская область", "Донецкая область",
@@ -30,6 +30,7 @@ namespace ElmirClone
 
         internal CartWindow(List<DbProduct> cartItems, UserProfile userProfile)
         {
+            isInitializedSuccessfully = false;
             InitializeComponent();
             this.cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
             this.userProfile = userProfile;
@@ -38,24 +39,28 @@ namespace ElmirClone
             if (string.IsNullOrEmpty(connectionString))
             {
                 MessageBox.Show("Строка подключения к базе данных не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                Close();
                 return;
             }
 
-            // Проверка userProfile сразу после инициализации
-            if (this.userProfile == null || (this.userProfile.UserId is int id && id <= 0))
+            if (this.userProfile == null || !(this.userProfile.UserId is int id) || id <= 0)
             {
                 MessageBox.Show("Пользователь не авторизован или идентификатор пользователя некорректен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                RedirectToLogin();
                 return;
             }
 
-            // Инициализация данных
-            CartItemsList.ItemsSource = cartItems;
-            CalculateTotalPrice();
-            LoadContactDetails();
-            LoadRegions();
-            LoadPaymentMethods();
+            try
+            {
+                CartItemsList.ItemsSource = cartItems;
+                CalculateTotalPrice();
+                LoadContactDetails();
+                LoadRegions();
+                LoadPaymentMethods();
+                isInitializedSuccessfully = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при инициализации корзины: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void RedirectToLogin()
@@ -83,7 +88,6 @@ namespace ElmirClone
             if (userProfile == null)
             {
                 MessageBox.Show("Профиль пользователя не загружен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                RedirectToLogin();
                 return;
             }
 
@@ -178,7 +182,6 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Проверяем, есть ли уже способы оплаты
                     var paymentMethods = new List<PaymentMethod>();
                     using (var command = new NpgsqlCommand("SELECT methodid, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
                     {
@@ -195,7 +198,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Если способы оплаты не найдены, добавляем их
                     if (!paymentMethods.Any())
                     {
                         using (var command = new NpgsqlCommand(
@@ -203,16 +205,13 @@ namespace ElmirClone
                         {
                             command.Parameters.AddWithValue("is_active", true);
 
-                            // Добавляем "Оплата під час отримання товару"
                             command.Parameters.AddWithValue("name", "Оплата під час отримання товару");
                             command.ExecuteNonQuery();
 
-                            // Добавляем "Оплатити зараз"
                             command.Parameters[0].Value = "Оплатити зараз";
                             command.ExecuteNonQuery();
                         }
 
-                        // Повторно загружаем способы оплаты после добавления
                         using (var command = new NpgsqlCommand("SELECT methodid, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
                         {
                             using (var reader = command.ExecuteReader())
@@ -229,7 +228,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Устанавливаем способы оплаты в ComboBox
                     if (PaymentMethodsComboBox == null)
                     {
                         MessageBox.Show("Элемент PaymentMethodsComboBox не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -297,14 +295,12 @@ namespace ElmirClone
 
         private void Checkout_Click(object sender, RoutedEventArgs e)
         {
-            // Проверка cartItems
             if (cartItems == null || !cartItems.Any())
             {
                 MessageBox.Show("Корзина пуста.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // Проверка userProfile
             if (userProfile == null)
             {
                 MessageBox.Show("Профиль пользователя не загружен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -312,15 +308,13 @@ namespace ElmirClone
                 return;
             }
 
-            // Проверка UserId
-            if (userProfile.UserId is int id && id <= 0)
+            if (!(userProfile.UserId is int buyerIdValue) || buyerIdValue <= 0)
             {
                 MessageBox.Show($"Идентификатор пользователя некорректен (UserId = {userProfile.UserId}). Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 RedirectToLogin();
                 return;
             }
 
-            // Проверка элементов UI
             if (ContactLastName == null || ContactFirstName == null || ContactMiddleName == null || ContactPhone == null ||
                 ShippingRegion == null || PickupPoint == null || PaymentMethodsComboBox == null)
             {
@@ -337,32 +331,14 @@ namespace ElmirClone
             int? paymentMethodId = PaymentMethodsComboBox.SelectedValue as int?;
             string paymentMethodName = (PaymentMethodsComboBox.SelectedItem as PaymentMethod)?.Name;
 
-            // Проверка заполненности обязательных полей
-            if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(phone))
+            if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(phone) ||
+                string.IsNullOrEmpty(shippingRegion) || pickupPointId == null || paymentMethodId == null || string.IsNullOrEmpty(paymentMethodName))
             {
-                MessageBox.Show("Заполните обязательные поля: фамилия, имя, телефон.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Заполните все обязательные поля (фамилия, имя, телефон, область, пункт самовывоза, способ оплаты).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            if (string.IsNullOrEmpty(shippingRegion))
-            {
-                MessageBox.Show("Выберите область доставки.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (pickupPointId == null)
-            {
-                MessageBox.Show("Выберите пункт самовывоза.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (paymentMethodId == null || paymentMethodName == null)
-            {
-                MessageBox.Show("Выберите способ оплаты.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            // Проверка данных карты, если выбран способ "Оплатити зараз"
+            // Проверка данных карты, если выбран способ оплаты "Оплатити зараз"
             if (paymentMethodName == "Оплатити зараз")
             {
                 if (CardNumberTextBox == null || CardExpiryTextBox == null || CardCvvTextBox == null)
@@ -375,24 +351,28 @@ namespace ElmirClone
                 string cardExpiry = CardExpiryTextBox.Text?.Trim() ?? string.Empty;
                 string cardCvv = CardCvvTextBox.Text?.Trim() ?? string.Empty;
 
-                // Простая валидация номера карты (16 цифр)
                 if (!Regex.IsMatch(cardNumber, @"^\d{16}$"))
                 {
                     MessageBox.Show("Введите корректный номер карты (16 цифр).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // Проверка срока действия (MM/YY)
                 if (!Regex.IsMatch(cardExpiry, @"^(0[1-9]|1[0-2])\/\d{2}$"))
                 {
                     MessageBox.Show("Введите корректный срок действия карты в формате MM/YY.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // Проверка CVV (3 цифры)
                 if (!Regex.IsMatch(cardCvv, @"^\d{3}$"))
                 {
                     MessageBox.Show("Введите корректный CVV (3 цифры).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Проверка баланса пользователя
+                if (userProfile.Balance < totalPrice)
+                {
+                    MessageBox.Show($"Недостаточно денег для совершения покупки. Ваш баланс: {userProfile.Balance:F2} грн, требуется: {totalPrice:F2} грн.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
@@ -406,73 +386,100 @@ namespace ElmirClone
                     {
                         try
                         {
-                            // Сохраняем заказ для каждого товара в корзине
                             foreach (var item in cartItems)
                             {
-                                if (item == null)
+                                if (item == null || item.ProductId <= 0 || item.Price < 0)
                                 {
-                                    MessageBox.Show("Один из товаров в корзине равен null.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show($"Некорректные данные товара в корзине: {item?.Name ?? "Неизвестный товар"}.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                                     transaction.Rollback();
                                     return;
                                 }
 
-                                // Проверяем ProductId
-                                if (item.ProductId <= 0)
-                                {
-                                    MessageBox.Show($"Некорректный ProductId у товара: {item.Name}.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    transaction.Rollback();
-                                    return;
-                                }
-
-                                // Получаем sellerid для товара
                                 int? sellerId = null;
-                                using (var command = new NpgsqlCommand("SELECT sellerid FROM products WHERE productid = @productId", connection))
+                                try
                                 {
-                                    command.Parameters.Add(new NpgsqlParameter("productId", NpgsqlTypes.NpgsqlDbType.Integer) { Value = item.ProductId });
-                                    var result = command.ExecuteScalar();
-                                    if (result != null && result != DBNull.Value)
+                                    using (var command = new NpgsqlCommand("SELECT sellerid FROM products WHERE productid = @productId", connection))
                                     {
-                                        sellerId = (int)result;
+                                        command.Parameters.AddWithValue("productId", item.ProductId);
+                                        var result = command.ExecuteScalar();
+                                        if (result != null && result != DBNull.Value)
+                                        {
+                                            sellerId = (int)result;
+                                        }
                                     }
                                 }
-
-                                // Сохраняем заказ в таблице orders
-                                using (var command = new NpgsqlCommand(
-                                    "INSERT INTO orders (buyerid, sellerid, productid, quantity, totalprice, orderdate, status, pickup_point_id, payment_method_id, shipping_region, contact_first_name, contact_middle_name, contact_phone, contact_last_name) " +
-                                    "VALUES (@buyerid, @sellerid, @productid, @quantity, @totalprice, @orderdate, @status, @pickup_point_id, @payment_method_id, @shipping_region, @contact_first_name, @contact_middle_name, @contact_phone, @contact_last_name)", connection))
+                                catch (Exception ex)
                                 {
-                                    // Проверяем значение перед добавлением
-                                    int buyerIdValue = (int)userProfile.UserId;
+                                    MessageBox.Show($"Ошибка при получении sellerId для товара {item.Name}: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    transaction.Rollback();
+                                    return;
+                                }
 
-                                    if (buyerIdValue <= 0)
+                                try
+                                {
+                                    using (var command = new NpgsqlCommand(
+                                        "INSERT INTO orders (buyerid, sellerid, productid, quantity, totalprice, orderdate, status, pickup_point_id, payment_method_id, shipping_region, contact_first_name, contact_middle_name, contact_phone, contact_last_name) " +
+                                        "VALUES (@buyerid, @sellerid, @productid, @quantity, @totalprice, @orderdate, @status, @pickup_point_id, @payment_method_id, @shipping_region, @contact_first_name, @contact_middle_name, @contact_phone, @contact_last_name)", connection))
                                     {
-                                        throw new InvalidOperationException($"Недопустимое значение buyerid: {buyerIdValue}. Идентификатор покупателя должен быть больше 0.");
+                                        command.Parameters.AddWithValue("buyerid", buyerIdValue);
+                                        command.Parameters.AddWithValue("sellerid", sellerId.HasValue ? (object)sellerId.Value : DBNull.Value);
+                                        command.Parameters.AddWithValue("productid", item.ProductId);
+                                        command.Parameters.AddWithValue("quantity", 1);
+                                        command.Parameters.AddWithValue("totalprice", (double)item.Price);
+                                        command.Parameters.AddWithValue("orderdate", DateTime.Now);
+                                        command.Parameters.AddWithValue("status", "Pending");
+                                        command.Parameters.AddWithValue("pickup_point_id", pickupPointId.Value);
+                                        command.Parameters.AddWithValue("payment_method_id", paymentMethodId.Value);
+                                        command.Parameters.AddWithValue("shipping_region", shippingRegion);
+                                        command.Parameters.AddWithValue("contact_first_name", firstName);
+                                        command.Parameters.AddWithValue("contact_middle_name", string.IsNullOrWhiteSpace(middleName) ? (object)DBNull.Value : middleName);
+                                        command.Parameters.AddWithValue("contact_phone", phone);
+                                        command.Parameters.AddWithValue("contact_last_name", lastName);
+                                        command.Transaction = transaction;
+                                        command.ExecuteNonQuery();
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show($"Ошибка при вставке заказа для товара {item.Name}: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    transaction.Rollback();
+                                    return;
+                                }
+                            }
+
+                            // Если выбран способ оплаты "Оплатити зараз", обновляем баланс пользователя
+                            if (paymentMethodName == "Оплатити зараз")
+                            {
+                                try
+                                {
+                                    using (var command = new NpgsqlCommand("UPDATE UserDetails SET Balance = Balance - @amount WHERE UserId = @userId", connection))
+                                    {
+                                        command.Parameters.AddWithValue("amount", totalPrice);
+                                        command.Parameters.AddWithValue("userId", buyerIdValue);
+                                        command.Transaction = transaction;
+                                        int rowsAffected = command.ExecuteNonQuery();
+                                        if (rowsAffected == 0)
+                                        {
+                                            throw new Exception("Не удалось обновить баланс пользователя.");
+                                        }
                                     }
 
-                                    // Явно задаём параметры с указанием типов
-                                    command.Parameters.Add(new NpgsqlParameter("buyerid", NpgsqlTypes.NpgsqlDbType.Integer) { Value = buyerIdValue });
-                                    command.Parameters.Add(new NpgsqlParameter("sellerid", NpgsqlTypes.NpgsqlDbType.Integer) { Value = sellerId.HasValue ? (object)sellerId.Value : DBNull.Value });
-                                    command.Parameters.Add(new NpgsqlParameter("productid", NpgsqlTypes.NpgsqlDbType.Integer) { Value = item.ProductId });
-                                    command.Parameters.Add(new NpgsqlParameter("quantity", NpgsqlTypes.NpgsqlDbType.Integer) { Value = 1 });
-                                    command.Parameters.Add(new NpgsqlParameter("totalprice", NpgsqlTypes.NpgsqlDbType.Double) { Value = (double)item.Price });
-                                    command.Parameters.Add(new NpgsqlParameter("orderdate", NpgsqlTypes.NpgsqlDbType.Timestamp) { Value = DateTime.Now });
-                                    command.Parameters.Add(new NpgsqlParameter("status", NpgsqlTypes.NpgsqlDbType.Text) { Value = "Pending" });
-                                    command.Parameters.Add(new NpgsqlParameter("pickup_point_id", NpgsqlTypes.NpgsqlDbType.Integer) { Value = pickupPointId.Value });
-                                    command.Parameters.Add(new NpgsqlParameter("payment_method_id", NpgsqlTypes.NpgsqlDbType.Integer) { Value = paymentMethodId.Value });
-                                    command.Parameters.Add(new NpgsqlParameter("shipping_region", NpgsqlTypes.NpgsqlDbType.Text) { Value = shipping_region });
-                                    command.Parameters.Add(new NpgsqlParameter("contact_first_name", NpgsqlTypes.NpgsqlDbType.Text) { Value = firstName });
-                                    command.Parameters.Add(new NpgsqlParameter("contact_middle_name", NpgsqlTypes.NpgsqlDbType.Text) { Value = string.IsNullOrWhiteSpace(middleName) ? (object)DBNull.Value : middleName });
-                                    command.Parameters.Add(new NpgsqlParameter("contact_phone", NpgsqlTypes.NpgsqlDbType.Text) { Value = phone });
-                                    command.Parameters.Add(new NpgsqlParameter("contact_last_name", NpgsqlTypes.NpgsqlDbType.Text) { Value = lastName });
-
-                                    command.Transaction = transaction;
-                                    command.ExecuteNonQuery();
+                                    // Обновляем баланс в объекте userProfile
+                                    userProfile.Balance -= totalPrice;
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show($"Ошибка при обновлении баланса: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    transaction.Rollback();
+                                    return;
                                 }
                             }
 
                             transaction.Commit();
-                            MessageBox.Show($"Заказ успешно оформлен!\nСпособ оплаты: {paymentMethodName}\nСумма: {totalPrice:F2} грн", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-                            this.DialogResult = true; // Устанавливаем результат диалога
+                            MessageBox.Show($"Заказ успешно оформлен!\nСпособ оплаты: {paymentMethodName}\nСумма: {totalPrice:F2} грн\n" +
+                                            (paymentMethodName == "Оплатити зараз" ? $"Остаток на балансе: {userProfile.Balance:F2} грн" : ""),
+                                            "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                            this.DialogResult = true;
                             Close();
                         }
                         catch (Exception ex)
@@ -487,6 +494,11 @@ namespace ElmirClone
             {
                 MessageBox.Show($"Произошла ошибка: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        internal bool CanShowDialog()
+        {
+            return isInitializedSuccessfully;
         }
     }
 }

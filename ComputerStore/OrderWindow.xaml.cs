@@ -208,6 +208,8 @@ namespace ElmirClone
 
     public class UserProfile
     {
+        internal decimal Balance;
+
         public string Email { get; set; }
         public string FirstName { get; set; }
         public string MiddleName { get; set; }

@@ -5,6 +5,7 @@ using System.Windows.Threading; // Для DispatcherTimer
 using Npgsql;
 using System.Configuration;
 using BCrypt.Net;
+using ElmirClone.Models;
 
 namespace ElmirClone
 {
@@ -358,7 +359,7 @@ namespace ElmirClone
                         }
 
                         // 2. Если пользователь не администратор, проверяем в таблице UserCredentials
-                        using (var userCommand = new NpgsqlCommand("SELECT uc.UserId, uc.Password, uc.Role, ud.FirstName, ud.LastName, ud.Email FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE uc.Username = @username AND uc.IsBlocked = FALSE", connection))
+                        using (var userCommand = new NpgsqlCommand("SELECT uc.UserId, uc.Password, uc.Role, ud.FirstName, ud.LastName, ud.Email, ud.Balance FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE uc.Username = @username AND uc.IsBlocked = FALSE", connection))
                         {
                             userCommand.Parameters.AddWithValue("username", username);
 
@@ -372,6 +373,7 @@ namespace ElmirClone
                                     string firstName = userReader.GetString(3);
                                     string lastName = userReader.IsDBNull(4) ? "Не вказане" : userReader.GetString(4);
                                     string email = userReader.GetString(5);
+                                    decimal balance = userReader.IsDBNull(6) ? 0 : userReader.GetDecimal(6);
 
                                     if (BCrypt.Net.BCrypt.Verify(password, hashedPassword))
                                     {
@@ -380,10 +382,12 @@ namespace ElmirClone
                                         // Создаем объект профиля пользователя
                                         var userProfile = new UserProfile
                                         {
+                                            UserId = userId,
                                             FirstName = firstName,
-                                            MiddleName = lastName,
+                                            LastName = lastName,
                                             Phone = "+38 (050) 244 75 49",
-                                            Email = email
+                                            Email = email,
+                                            Balance = balance // Устанавливаем баланс
                                         };
 
                                         // Проверяем роль пользователя
@@ -501,25 +505,40 @@ namespace ElmirClone
                         {
                             try
                             {
-                                // 1. Вставляем данные в таблицу UserDetails
+                                // 1. Вставляем данные в таблицу UserDetails с начальным балансом только для роли Buyer
                                 int userId;
-                                using (var command = new NpgsqlCommand("INSERT INTO UserDetails (FirstName, LastName, Email) VALUES (@firstName, @lastName, @email) RETURNING UserId", connection))
+                                decimal initialBalance = 0;
+                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказане") // Предполагаем, что Seller или Admin могут не указывать LastName
+                                {
+                                    initialBalance = 0;
+                                }
+                                else
+                                {
+                                    initialBalance = 1000000m; // Начальный баланс только для Buyer
+                                }
+                                using (var command = new NpgsqlCommand("INSERT INTO UserDetails (FirstName, LastName, Email, Balance) VALUES (@firstName, @lastName, @email, @balance) RETURNING UserId", connection))
                                 {
                                     command.Parameters.AddWithValue("firstName", firstName);
                                     command.Parameters.AddWithValue("lastName", string.IsNullOrWhiteSpace(lastName) ? (object)DBNull.Value : lastName);
                                     command.Parameters.AddWithValue("email", email);
+                                    command.Parameters.AddWithValue("balance", initialBalance);
                                     command.Transaction = transaction;
 
                                     userId = (int)command.ExecuteScalar();
                                 }
 
                                 // 2. Вставляем данные в таблицу UserCredentials
+                                string role = "Buyer"; // По умолчанию покупатель
+                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказане")
+                                {
+                                    role = "Seller"; // Если LastName не указано, предполагаем Seller
+                                }
                                 using (var command = new NpgsqlCommand("INSERT INTO UserCredentials (UserId, Username, Password, Role) VALUES (@userId, @username, @password, @role)", connection))
                                 {
                                     command.Parameters.AddWithValue("userId", userId);
                                     command.Parameters.AddWithValue("username", username);
                                     command.Parameters.AddWithValue("password", BCrypt.Net.BCrypt.HashPassword(password));
-                                    command.Parameters.AddWithValue("role", "Buyer"); // Покупатель
+                                    command.Parameters.AddWithValue("role", role);
                                     command.Transaction = transaction;
 
                                     command.ExecuteNonQuery();
@@ -528,7 +547,12 @@ namespace ElmirClone
                                 // Подтверждаем транзакцию
                                 transaction.Commit();
 
-                                MessageBox.Show("Регистрация успешна! Теперь вы можете войти.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                                string message = "Регистрация успешна! Теперь вы можете войти.";
+                                if (role == "Buyer")
+                                {
+                                    message += " Ваш начальный баланс: 1,000,000 грн";
+                                }
+                                MessageBox.Show(message, "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
 
                                 // Переключаемся в режим входа и очищаем поля
                                 if (LoginRadioButton != null)
