@@ -339,7 +339,13 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.quantity, o.totalprice, o.orderdate, o.status FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid", connection))
+                    using (var command = new NpgsqlCommand(
+                        "SELECT o.orderid, p.name AS productname, o.quantity, o.totalprice, o.orderdate, o.status, " +
+                        "o.contact_last_name, o.contact_first_name, o.contact_middle_name, o.contact_phone, o.shipping_region, pp.address " +
+                        "FROM orders o " +
+                        "JOIN products p ON o.productid = p.productid " +
+                        "JOIN pickup_points pp ON o.pickup_point_id = pp.pickup_point_id " +
+                        "WHERE o.sellerid = @sellerid", connection))
                     {
                         command.Parameters.AddWithValue("sellerid", sellerId);
                         using (var reader = command.ExecuteReader())
@@ -352,9 +358,15 @@ namespace ElmirClone
                                     OrderId = reader.GetInt32(0),
                                     ProductName = reader.GetString(1),
                                     Quantity = reader.GetInt32(2),
-                                    TotalPrice = reader.GetDecimal(3),
+                                    TotalPrice = (decimal)reader.GetDouble(3), // Преобразуем double в decimal
                                     OrderDate = reader.GetDateTime(4),
-                                    Status = reader.GetString(5)
+                                    Status = reader.GetString(5),
+                                    ContactLastName = reader.IsDBNull(6) ? "Не указано" : reader.GetString(6),
+                                    ContactFirstName = reader.IsDBNull(7) ? "Не указано" : reader.GetString(7),
+                                    ContactMiddleName = reader.IsDBNull(8) ? "Не указано" : reader.GetString(8),
+                                    ContactPhone = reader.IsDBNull(9) ? "Не указано" : reader.GetString(9),
+                                    ShippingRegion = reader.IsDBNull(10) ? "Не указано" : reader.GetString(10),
+                                    PickupPointAddress = reader.IsDBNull(11) ? "Не указано" : reader.GetString(11)
                                 });
                             }
                             OrdersList.ItemsSource = orders;
@@ -399,6 +411,38 @@ namespace ElmirClone
             }
         }
 
+        private void SendOrder_Click(object sender, RoutedEventArgs e)
+        {
+            int orderId = (int)((Button)sender).Tag;
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("UPDATE orders SET status = 'Shipped' WHERE orderid = @orderid AND sellerid = @sellerid", connection))
+                    {
+                        command.Parameters.AddWithValue("orderid", orderId);
+                        command.Parameters.AddWithValue("sellerid", sellerId);
+                        int rowsAffected = command.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                        {
+                            MessageBox.Show("Заказ успешно отправлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                            LoadOrders();
+                            LoadFinancials();
+                        }
+                        else
+                        {
+                            MessageBox.Show("Не удалось обновить статус заказа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при отправке заказа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         // Финансовые функции
         private void LoadFinancials()
         {
@@ -430,7 +474,7 @@ namespace ElmirClone
                         {
                             while (reader.Read())
                             {
-                                decimal totalPrice = reader.GetDecimal(2);
+                                decimal totalPrice = (decimal)reader.GetDouble(2); // Преобразуем double в decimal
                                 decimal sellerRevenue = totalPrice * (1 - feePercentage);
                                 totalRevenue += sellerRevenue;
 
@@ -529,6 +573,12 @@ namespace ElmirClone
         public decimal TotalPrice { get; set; }
         public DateTime OrderDate { get; set; }
         public string Status { get; set; }
+        public string ContactLastName { get; set; }
+        public string ContactFirstName { get; set; }
+        public string ContactMiddleName { get; set; }
+        public string ContactPhone { get; set; }
+        public string ShippingRegion { get; set; }
+        public string PickupPointAddress { get; set; }
     }
 
     public class Sale

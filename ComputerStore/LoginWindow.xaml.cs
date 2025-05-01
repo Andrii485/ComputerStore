@@ -550,7 +550,7 @@ namespace ElmirClone
                                 string message = "Регистрация успешна! Теперь вы можете войти.";
                                 if (role == "Buyer")
                                 {
-                                    message += " Ваш начальный баланс: 1,000,000 грн";
+                                    message += "";
                                 }
                                 MessageBox.Show(message, "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
 

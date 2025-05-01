@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using Npgsql;
 using System.Configuration;
 using ElmirClone.Models;
+using System.Windows.Threading;
 
 namespace ElmirClone
 {
@@ -14,12 +15,15 @@ namespace ElmirClone
         private UserProfile userProfile;
         private string connectionString;
         private List<DbProduct> cartItems;
+        private DispatcherTimer orderStatusTimer;
+        private List<int> notifiedOrders;
 
         internal MainWindow(UserProfile userProfile)
         {
             InitializeComponent();
             this.userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
             cartItems = new List<DbProduct>();
+            notifiedOrders = new List<int>();
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -30,6 +34,79 @@ namespace ElmirClone
 
             DataContext = userProfile;
             LoadProducts();
+
+            // Инициализация таймера для проверки статуса заказов
+            orderStatusTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(10) // Проверять каждые 10 секунд
+            };
+            orderStatusTimer.Tick += CheckOrderStatus;
+            orderStatusTimer.Start();
+        }
+
+        private void CheckOrderStatus(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!(userProfile.UserId is int buyerId) || buyerId <= 0)
+                {
+                    return;
+                }
+
+                // Сначала собираем информацию о заказах
+                var shippedOrders = new List<(int OrderId, int ProductId)>();
+
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand(
+                        "SELECT orderid, status, productid FROM orders WHERE buyerid = @buyerid AND status = 'Shipped'", connection))
+                    {
+                        command.Parameters.AddWithValue("buyerid", buyerId);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int orderId = reader.GetInt32(0);
+                                string status = reader.GetString(1);
+                                int productId = reader.GetInt32(2);
+
+                                if (status == "Shipped" && !notifiedOrders.Contains(orderId))
+                                {
+                                    shippedOrders.Add((orderId, productId));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Теперь для каждого заказа получаем название товара
+                foreach (var (orderId, productId) in shippedOrders)
+                {
+                    string productName = "Неизвестный товар";
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var productCommand = new NpgsqlCommand("SELECT name FROM products WHERE productid = @productid", connection))
+                        {
+                            productCommand.Parameters.AddWithValue("productid", productId);
+                            var result = productCommand.ExecuteScalar();
+                            if (result != null)
+                            {
+                                productName = result.ToString();
+                            }
+                        }
+                    }
+
+                    // Показываем уведомление
+                    MessageBox.Show($"Ваш заказ (ID: {orderId}, товар: {productName}) уже в пути!", "Уведомление", MessageBoxButton.OK, MessageBoxImage.Information);
+                    notifiedOrders.Add(orderId);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при проверке статуса заказов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         public void LoadProducts(string category = null)
@@ -379,6 +456,7 @@ namespace ElmirClone
         {
             try
             {
+                orderStatusTimer.Stop();
                 LoginWindow loginWindow = new LoginWindow();
                 loginWindow.Show();
                 this.Close();

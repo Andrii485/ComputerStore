@@ -31,6 +31,9 @@
         <Style x:Key="LogoutButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#FF5722"/>
         </Style>
+        <Style x:Key="SendButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#4CAF50"/>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -99,21 +102,33 @@
                         <ItemsControl x:Name="OrdersList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding OrderId}" Width="100"/>
-                                        <TextBlock Text="{Binding ProductName}" Width="200"/>
-                                        <TextBlock Text="{Binding Quantity}" Width="100"/>
-                                        <TextBlock Text="{Binding TotalPrice}" Width="100"/>
-                                        <TextBlock Text="{Binding OrderDate}" Width="150"/>
-                                        <TextBlock Text="{Binding Status}" Width="100"/>
-                                        <ComboBox x:Name="OrderStatusCombo" Width="100" Margin="5,0" SelectedItem="{Binding Status}">
-                                            <ComboBoxItem Content="Pending"/>
-                                            <ComboBoxItem Content="Confirmed"/>
-                                            <ComboBoxItem Content="Shipped"/>
-                                            <ComboBoxItem Content="Delivered"/>
-                                            <ComboBoxItem Content="Cancelled"/>
-                                        </ComboBox>
-                                        <Button Content="Обновить" Click="UpdateOrderStatus_Click" Tag="{Binding OrderId}"/>
+                                    <StackPanel Margin="0,5">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding OrderId}" Width="100"/>
+                                            <TextBlock Text="{Binding ProductName}" Width="200"/>
+                                            <TextBlock Text="{Binding Quantity}" Width="100"/>
+                                            <TextBlock Text="{Binding TotalPrice}" Width="100"/>
+                                            <TextBlock Text="{Binding OrderDate}" Width="150"/>
+                                            <TextBlock Text="{Binding Status}" Width="100"/>
+                                            <ComboBox x:Name="OrderStatusCombo" Width="100" Margin="5,0" SelectedItem="{Binding Status}">
+                                                <ComboBoxItem Content="Pending"/>
+                                                <ComboBoxItem Content="Confirmed"/>
+                                                <ComboBoxItem Content="Shipped"/>
+                                                <ComboBoxItem Content="Delivered"/>
+                                                <ComboBoxItem Content="Cancelled"/>
+                                            </ComboBox>
+                                            <Button Content="Обновить" Click="UpdateOrderStatus_Click" Tag="{Binding OrderId}"/>
+                                            <Button Content="Отправить заказ" Style="{StaticResource SendButtonStyle}" Click="SendOrder_Click" Tag="{Binding OrderId}"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                            <TextBlock Text="Информация о заказчике:" FontWeight="Bold" Width="150"/>
+                                            <TextBlock Text="{Binding ContactLastName}" Width="100"/>
+                                            <TextBlock Text="{Binding ContactFirstName}" Width="100"/>
+                                            <TextBlock Text="{Binding ContactMiddleName}" Width="100"/>
+                                            <TextBlock Text="{Binding ContactPhone}" Width="150"/>
+                                            <TextBlock Text="{Binding ShippingRegion}" Width="150"/>
+                                            <TextBlock Text="{Binding PickupPointAddress}" Width="200"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
