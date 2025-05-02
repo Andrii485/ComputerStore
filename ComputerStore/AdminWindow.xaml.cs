@@ -35,7 +35,6 @@ namespace ElmirClone
 
             LoadUsers();
             LoadCategories();
-            LoadProducts();
             LoadSellerFees();
             LoadPaymentMethods();
             LoadReturns();
@@ -340,11 +339,15 @@ namespace ElmirClone
                             ParentCategory.Items.Add(new ComboBoxItem { Content = "Нет", Tag = null });
                             foreach (var category in categories)
                             {
-                                ParentCategory.Items.Add(new ComboBoxItem { Content = category.Name, Tag = category.CategoryId });
+                                if (category.ParentCategoryName == "Нет") // Только корневые категории как родительские
+                                {
+                                    ParentCategory.Items.Add(new ComboBoxItem { Content = category.Name, Tag = category.CategoryId });
+                                }
                             }
-                            ProductCategory.ItemsSource = categories;
-                            ProductCategory.DisplayMemberPath = "Name";
-                            ProductCategory.SelectedValuePath = "CategoryId";
+                            if (ParentCategory.Items.Count > 1)
+                            {
+                                ParentCategory.SelectedIndex = 0;
+                            }
                         }
                     }
                 }
@@ -362,7 +365,7 @@ namespace ElmirClone
 
             if (string.IsNullOrWhiteSpace(name))
             {
-                MessageBox.Show("Введите название категории.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Введите название подкатегории.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -379,10 +382,11 @@ namespace ElmirClone
                     }
                 }
                 LoadCategories();
+                NewCategoryName.Text = ""; // Очищаем поле после добавления
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при добавлении категории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ошибка при добавлении подкатегории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -405,124 +409,6 @@ namespace ElmirClone
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка при удалении категории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void LoadProducts()
-        {
-            try
-            {
-                using (var connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.price, p.brand, c.name AS categoryname, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid", connection))
-                    {
-                        using (var reader = command.ExecuteReader())
-                        {
-                            var products = new List<DbProduct>();
-                            while (reader.Read())
-                            {
-                                products.Add(new DbProduct
-                                {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Price = reader.GetDecimal(2),
-                                    Brand = reader.GetString(3),
-                                    CategoryName = reader.GetString(4),
-                                    IsHidden = reader.GetBoolean(5)
-                                });
-                            }
-                            ProductsList.ItemsSource = products;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при загрузке товаров: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void AddProduct_Click(object sender, RoutedEventArgs e)
-        {
-            string name = NewProductName.Text?.Trim();
-            if (!decimal.TryParse(NewProductPrice.Text, out decimal price))
-            {
-                MessageBox.Show("Введите корректную цену.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            string brand = NewProductBrand.Text?.Trim();
-            int? categoryId = ProductCategory.SelectedValue as int?;
-
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(brand) || categoryId == null)
-            {
-                MessageBox.Show("Заполните все поля.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            try
-            {
-                using (var connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO products (name, price, brand, categoryid) VALUES (@name, @price, @brand, @categoryId)", connection))
-                    {
-                        command.Parameters.AddWithValue("name", name);
-                        command.Parameters.AddWithValue("price", price);
-                        command.Parameters.AddWithValue("brand", brand);
-                        command.Parameters.AddWithValue("categoryId", categoryId);
-                        command.ExecuteNonQuery();
-                    }
-                }
-                LoadProducts();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при добавлении товара: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void HideProduct_Click(object sender, RoutedEventArgs e)
-        {
-            int productId = (int)((Button)sender).Tag;
-            try
-            {
-                using (var connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand("UPDATE products SET ishidden = NOT ishidden WHERE productid = @productId", connection))
-                    {
-                        command.Parameters.AddWithValue("productId", productId);
-                        command.ExecuteNonQuery();
-                    }
-                }
-                LoadProducts();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при скрытии товара: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void DeleteProduct_Click(object sender, RoutedEventArgs e)
-        {
-            int productId = (int)((Button)sender).Tag;
-            try
-            {
-                using (var connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand("DELETE FROM products WHERE productid = @productId", connection))
-                    {
-                        command.Parameters.AddWithValue("productId", productId);
-                        command.ExecuteNonQuery();
-                    }
-                }
-                LoadProducts();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при удалении товара: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

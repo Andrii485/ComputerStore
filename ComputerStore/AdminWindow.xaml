@@ -31,6 +31,11 @@
         <Style x:Key="LogoutButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#FF5722"/>
         </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -96,9 +101,24 @@
                         <!-- Управление категориями -->
                         <TextBlock Text="Категории" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,5"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBox x:Name="NewCategoryName" Width="200" Margin="0,0,5,0" Text="Название категории"/>
-                            <ComboBox x:Name="ParentCategory" Width="150" Margin="0,0,5,0"/>
-                            <Button Content="Добавить категорию" Click="AddCategory_Click"/>
+                            <TextBox x:Name="NewCategoryName" Width="200" Margin="0,0,5,0" Text="Название подкатегории"/>
+                            <Grid Width="150" Margin="0,0,5,0">
+                                <ComboBox x:Name="ParentCategory" Width="150" />
+                                <TextBlock Text="Выберите родительскую категорию" Foreground="Gray" Margin="5,0,0,0" VerticalAlignment="Center"
+                                           IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=ParentCategory, Path=SelectedItem}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <Button Content="Добавить подкатегорию" Click="AddCategory_Click"/>
                         </StackPanel>
                         <ItemsControl x:Name="CategoriesList">
                             <ItemsControl.ItemTemplate>
@@ -107,30 +127,6 @@
                                         <TextBlock Text="{Binding Name}" Width="200"/>
                                         <TextBlock Text="{Binding ParentCategoryName}" Width="150"/>
                                         <Button Content="Удалить" Click="DeleteCategory_Click" Tag="{Binding CategoryId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <!-- Управление товарами -->
-                        <TextBlock Text="Товары" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBox x:Name="NewProductName" Width="200" Margin="0,0,5,0" Text="Название товара"/>
-                            <TextBox x:Name="NewProductPrice" Width="100" Margin="0,0,5,0" Text="Цена"/>
-                            <TextBox x:Name="NewProductBrand" Width="150" Margin="0,0,5,0" Text="Бренд"/>
-                            <ComboBox x:Name="ProductCategory" Width="150" Margin="0,0,5,0"/>
-                            <Button Content="Добавить товар" Click="AddProduct_Click"/>
-                        </StackPanel>
-                        <ItemsControl x:Name="ProductsList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="200"/>
-                                        <TextBlock Text="{Binding Price}" Width="100"/>
-                                        <TextBlock Text="{Binding Brand}" Width="150"/>
-                                        <TextBlock Text="{Binding CategoryName}" Width="150"/>
-                                        <Button Content="Скрыть" Click="HideProduct_Click" Tag="{Binding ProductId}"/>
-                                        <Button Content="Удалить" Click="DeleteProduct_Click" Tag="{Binding ProductId}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
