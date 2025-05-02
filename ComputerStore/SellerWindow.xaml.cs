@@ -579,6 +579,7 @@ namespace ElmirClone
         public string ContactPhone { get; set; }
         public string ShippingRegion { get; set; }
         public string PickupPointAddress { get; set; }
+        public int ProductId { get; internal set; }
     }
 
     public class Sale

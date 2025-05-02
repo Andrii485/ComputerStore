@@ -100,25 +100,31 @@
                         <TextBlock Text="Управление каталогом" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
                         <!-- Управление категориями -->
                         <TextBlock Text="Категории" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBox x:Name="NewCategoryName" Width="200" Margin="0,0,5,0" Text="Название подкатегории"/>
-                            <Grid Width="150" Margin="0,0,5,0">
-                                <ComboBox x:Name="ParentCategory" Width="150" />
-                                <TextBlock Text="Выберите родительскую категорию" Foreground="Gray" Margin="5,0,0,0" VerticalAlignment="Center"
-                                           IsHitTestVisible="False">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ElementName=ParentCategory, Path=SelectedItem}" Value="{x:Null}">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
-                            <Button Content="Добавить подкатегорию" Click="AddCategory_Click"/>
+                        <StackPanel Margin="0,0,0,10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox x:Name="NewCategoryName" Width="200" Margin="0,0,5,0" Text="Название категории"/>
+                                <Grid Width="150" Margin="0,0,5,0">
+                                    <ComboBox x:Name="ParentCategory" Width="150" />
+                                    <TextBlock Text="Выберите родительскую категорию" Foreground="Gray" Margin="5,0,0,0" VerticalAlignment="Center"
+                                               IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElementName=ParentCategory, Path=SelectedItem}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <TextBox x:Name="ImagePathTextBox" Width="200" Margin="0,0,5,0" IsReadOnly="True" Text="Путь к изображению"/>
+                                <Button Content="Выбрать изображение" Click="SelectImage_Click"/>
+                            </StackPanel>
+                            <Button Content="Добавить категорию" Click="AddCategory_Click" Margin="0,5,0,0"/>
                         </StackPanel>
                         <ItemsControl x:Name="CategoriesList">
                             <ItemsControl.ItemTemplate>
@@ -126,6 +132,8 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,5">
                                         <TextBlock Text="{Binding Name}" Width="200"/>
                                         <TextBlock Text="{Binding ParentCategoryName}" Width="150"/>
+                                        <TextBlock Text="{Binding ImageUrl}" Width="200"/>
+                                        <Button Content="Редактировать" Click="EditCategory_Click" Tag="{Binding CategoryId}" Margin="5,0"/>
                                         <Button Content="Удалить" Click="DeleteCategory_Click" Tag="{Binding CategoryId}"/>
                                     </StackPanel>
                                 </DataTemplate>

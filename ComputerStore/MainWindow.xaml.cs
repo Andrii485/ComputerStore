@@ -7,6 +7,9 @@ using Npgsql;
 using System.Configuration;
 using ElmirClone.Models;
 using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Navigation;
+using System.Windows.Input;
 
 namespace ElmirClone
 {
@@ -17,6 +20,7 @@ namespace ElmirClone
         private List<DbProduct> cartItems;
         private DispatcherTimer orderStatusTimer;
         private List<int> notifiedOrders;
+        private int? selectedCategoryId;
 
         internal MainWindow(UserProfile userProfile)
         {
@@ -33,12 +37,11 @@ namespace ElmirClone
             }
 
             DataContext = userProfile;
+            LoadCategories();
             LoadProducts();
-
-            // Инициализация таймера для проверки статуса заказов
             orderStatusTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(10) // Проверять каждые 10 секунд
+                Interval = TimeSpan.FromSeconds(10)
             };
             orderStatusTimer.Tick += CheckOrderStatus;
             orderStatusTimer.Start();
@@ -48,14 +51,9 @@ namespace ElmirClone
         {
             try
             {
-                if (!(userProfile.UserId is int buyerId) || buyerId <= 0)
-                {
-                    return;
-                }
+                if (!(userProfile.UserId is int buyerId) || buyerId <= 0) return;
 
-                // Сначала собираем информацию о заказах
                 var shippedOrders = new List<(int OrderId, int ProductId)>();
-
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
@@ -70,7 +68,6 @@ namespace ElmirClone
                                 int orderId = reader.GetInt32(0);
                                 string status = reader.GetString(1);
                                 int productId = reader.GetInt32(2);
-
                                 if (status == "Shipped" && !notifiedOrders.Contains(orderId))
                                 {
                                     shippedOrders.Add((orderId, productId));
@@ -80,7 +77,6 @@ namespace ElmirClone
                     }
                 }
 
-                // Теперь для каждого заказа получаем название товара
                 foreach (var (orderId, productId) in shippedOrders)
                 {
                     string productName = "Неизвестный товар";
@@ -91,14 +87,9 @@ namespace ElmirClone
                         {
                             productCommand.Parameters.AddWithValue("productid", productId);
                             var result = productCommand.ExecuteScalar();
-                            if (result != null)
-                            {
-                                productName = result.ToString();
-                            }
+                            if (result != null) productName = result.ToString();
                         }
                     }
-
-                    // Показываем уведомление
                     MessageBox.Show($"Ваш заказ (ID: {orderId}, товар: {productName}) уже в пути!", "Уведомление", MessageBoxButton.OK, MessageBoxImage.Information);
                     notifiedOrders.Add(orderId);
                 }
@@ -109,77 +100,195 @@ namespace ElmirClone
             }
         }
 
-        public void LoadProducts(string category = null)
+        private void LoadCategories()
         {
             try
             {
+                CategoryPanel.Children.Clear();
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-
-                    // Загрузка дополнительных товаров (без фильтра по категории)
-                    using (var command = new NpgsqlCommand("SELECT ProductId, Name, Price, ImageUrl FROM Products LIMIT 5", connection))
+                    using (var command = new NpgsqlCommand("SELECT categoryid, name FROM categories WHERE parentcategoryid IS NULL", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
-                            var additionalProducts = new List<DbProduct>();
                             while (reader.Read())
                             {
-                                additionalProducts.Add(new DbProduct
+                                int categoryId = reader.GetInt32(0);
+                                string name = reader.GetString(1);
+                                Button categoryButton = new Button { Content = name, Tag = categoryId };
+                                categoryButton.Click += CategoryButton_Click;
+                                CategoryPanel.Children.Add(categoryButton);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при загрузке категорий: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        public void LoadProducts(string category = null, int? categoryId = null)
+        {
+            try
+            {
+                ContentPanel.Children.Clear();
+                selectedCategoryId = categoryId;
+
+                if (categoryId.HasValue)
+                {
+                    WrapPanel subCategoryPanel = new WrapPanel
+                    {
+                        Margin = new Thickness(10),
+                        Orientation = Orientation.Horizontal
+                    };
+
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand("SELECT categoryid, name, image_url FROM categories WHERE parentcategoryid = @parentId", connection))
+                        {
+                            command.Parameters.AddWithValue("parentId", categoryId.Value);
+                            using (var reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Price = reader.GetDecimal(2),
-                                    ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3)
-                                });
-                            }
-                            if (AdditionalProductsGrid != null)
-                            {
-                                AdditionalProductsGrid.ItemsSource = additionalProducts;
-                            }
-                            else
-                            {
-                                MessageBox.Show("Элемент AdditionalProductsGrid не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    int subCategoryId = reader.GetInt32(0);
+                                    string subCategoryName = reader.GetString(1);
+                                    string imageUrl = reader.IsDBNull(2) ? "https://via.placeholder.com/200" : reader.GetString(2);
+
+                                    Border subCategoryBorder = new Border
+                                    {
+                                        BorderBrush = Brushes.LightGray,
+                                        BorderThickness = new Thickness(1),
+                                        Margin = new Thickness(10),
+                                        Width = 250,
+                                        Height = 250,
+                                        Style = (Style)FindResource("SubCategoryBorderStyle")
+                                    };
+
+                                    StackPanel subCategoryContent = new StackPanel
+                                    {
+                                        Background = Brushes.White,
+                                        HorizontalAlignment = HorizontalAlignment.Center,
+                                        VerticalAlignment = VerticalAlignment.Center
+                                    };
+
+                                    Image subCategoryImage = new Image
+                                    {
+                                        Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(imageUrl)),
+                                        Width = 200,
+                                        Height = 160,
+                                        Stretch = Stretch.UniformToFill,
+                                        Margin = new Thickness(5)
+                                    };
+
+                                    TextBlock subCategoryText = new TextBlock
+                                    {
+                                        Text = subCategoryName,
+                                        FontSize = 14,
+                                        Margin = new Thickness(5),
+                                        TextAlignment = TextAlignment.Center,
+                                        TextWrapping = TextWrapping.Wrap,
+                                        MaxHeight = 70,
+                                        TextTrimming = TextTrimming.CharacterEllipsis
+                                    };
+
+                                    subCategoryContent.Children.Add(subCategoryImage);
+                                    subCategoryContent.Children.Add(subCategoryText);
+                                    subCategoryBorder.Child = subCategoryContent;
+
+                                    Button subCategoryButton = new Button { Content = subCategoryBorder, Tag = subCategoryId };
+                                    try
+                                    {
+                                        subCategoryButton.Style = (Style)FindResource("SubCategoryButtonStyle");
+                                    }
+                                    catch (ResourceReferenceKeyNotFoundException)
+                                    {
+                                        subCategoryButton.Background = Brushes.Transparent;
+                                        subCategoryButton.BorderThickness = new Thickness(0);
+                                        subCategoryButton.Padding = new Thickness(0);
+                                        subCategoryButton.Margin = new Thickness(5);
+                                        subCategoryButton.Cursor = Cursors.Hand;
+                                    }
+
+                                    subCategoryButton.Click += SubCategoryButton_Click;
+                                    subCategoryPanel.Children.Add(subCategoryButton);
+                                }
                             }
                         }
                     }
 
-                    // Загрузка популярных товаров (с фильтром по категории, если указана)
-                    string query = "SELECT p.ProductId, p.Name, p.Price, p.ImageUrl, p.Rating, p.Reviews FROM Products p";
-                    if (!string.IsNullOrEmpty(category))
-                    {
-                        query += " JOIN Categories c ON p.CategoryId = c.CategoryId WHERE c.Name = @category";
-                    }
-                    query += " LIMIT 5";
+                    ContentPanel.Children.Add(subCategoryPanel);
+                }
 
+                string query = "SELECT p.ProductId, p.Name, p.Price, p.ImageUrl, p.Rating FROM Products p";
+                var parameters = new List<NpgsqlParameter>();
+                if (categoryId.HasValue)
+                {
+                    query += " JOIN Categories c ON p.CategoryId = c.CategoryId WHERE c.ParentCategoryId = @categoryId";
+                    parameters.Add(new NpgsqlParameter("categoryId", categoryId.Value));
+                }
+                else if (!string.IsNullOrEmpty(category))
+                {
+                    query += " JOIN Categories c ON p.CategoryId = c.CategoryId WHERE c.Name = @category";
+                    parameters.Add(new NpgsqlParameter("category", category));
+                }
+                query += " LIMIT 5";
+
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
                     using (var command = new NpgsqlCommand(query, connection))
                     {
-                        if (!string.IsNullOrEmpty(category))
+                        foreach (var param in parameters)
                         {
-                            command.Parameters.AddWithValue("category", category);
+                            command.Parameters.Add(param);
                         }
                         using (var reader = command.ExecuteReader())
                         {
-                            var popularProducts = new List<DbProduct>();
+                            var products = new List<DbProduct>();
                             while (reader.Read())
                             {
-                                popularProducts.Add(new DbProduct
+                                products.Add(new DbProduct
                                 {
                                     ProductId = reader.GetInt32(0),
                                     Name = reader.GetString(1),
                                     Price = reader.GetDecimal(2),
                                     ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3),
-                                    Rating = reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
-                                    Reviews = reader.IsDBNull(5) ? 0 : reader.GetInt32(5)
+                                    Rating = reader.IsDBNull(4) ? 0 : reader.GetDouble(4)
                                 });
                             }
-                            if (PopularProductsGrid != null)
+                            foreach (var product in products)
                             {
-                                PopularProductsGrid.ItemsSource = popularProducts;
-                            }
-                            else
-                            {
-                                MessageBox.Show("Элемент PopularProductsGrid не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                Border productBorder = new Border
+                                {
+                                    BorderBrush = System.Windows.Media.Brushes.LightGray,
+                                    BorderThickness = new Thickness(1),
+                                    Margin = new Thickness(5),
+                                    Width = 200,
+                                    Height = 320,
+                                    Style = (Style)FindResource("SubCategoryBorderStyle")
+                                };
+                                StackPanel productPanel = new StackPanel { Background = System.Windows.Media.Brushes.White };
+                                productPanel.Children.Add(new Image { Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl)), Height = 140, Stretch = Stretch.Uniform, Margin = new Thickness(5) });
+                                productPanel.Children.Add(new TextBlock { Text = product.Name, FontSize = 15, Margin = new Thickness(5), TextAlignment = TextAlignment.Center, FontWeight = FontWeights.Medium, TextWrapping = TextWrapping.Wrap, Height = 80 });
+                                StackPanel ratingPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(5), HorizontalAlignment = HorizontalAlignment.Center };
+                                ratingPanel.Children.Add(new TextBlock { Text = "★", Foreground = System.Windows.Media.Brushes.Orange, FontSize = 14 });
+                                ratingPanel.Children.Add(new TextBlock { Text = product.Rating.ToString(), FontSize = 14, Margin = new Thickness(2, 0, 0, 0) });
+                                ratingPanel.Children.Add(new TextBlock { Text = "(", Foreground = System.Windows.Media.Brushes.Gray });
+                                ratingPanel.Children.Add(new TextBlock { Text = "0", Foreground = System.Windows.Media.Brushes.Gray });
+                                ratingPanel.Children.Add(new TextBlock { Text = " отз.)", Foreground = System.Windows.Media.Brushes.Gray });
+                                productPanel.Children.Add(ratingPanel);
+                                productPanel.Children.Add(new TextBlock { Text = $"{product.Price:F2} грн", FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(5), Foreground = System.Windows.Media.Brushes.Red, TextAlignment = TextAlignment.Center });
+                                Button addToCartButton = new Button { Content = "Добавить в корзину", Style = (Style)FindResource("AddToCartButtonStyle") };
+                                addToCartButton.Tag = product.ProductId;
+                                addToCartButton.Click += AddToCart_Click;
+                                productPanel.Children.Add(addToCartButton);
+                                productBorder.Child = productPanel;
+                                ContentPanel.Children.Add(productBorder);
                             }
                         }
                     }
@@ -193,6 +302,7 @@ namespace ElmirClone
 
         private void Logo_Click(object sender, RoutedEventArgs e)
         {
+            selectedCategoryId = null;
             LoadProducts();
         }
 
@@ -206,16 +316,42 @@ namespace ElmirClone
             }
         }
 
+        private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            TextBox searchBox = sender as TextBox;
+            if (string.IsNullOrWhiteSpace(searchBox?.Text))
+            {
+                searchBox.Text = "Поиск...";
+                searchBox.Foreground = System.Windows.Media.Brushes.Gray;
+            }
+        }
+
+        private void SearchBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                string searchText = (sender as TextBox)?.Text?.Trim();
+                if (!string.IsNullOrEmpty(searchText) && searchText != "Поиск...")
+                {
+                    // Здесь можно добавить логику поиска
+                    MessageBox.Show($"Поиск: {searchText}", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
         private void CategoryButton_Click(object sender, RoutedEventArgs e)
         {
-            Button button = sender as Button;
-            if (button != null)
+            if ((sender as Button)?.Tag is int categoryId)
             {
-                string category = button.Content?.ToString();
-                if (!string.IsNullOrEmpty(category))
-                {
-                    LoadProducts(category);
-                }
+                LoadProducts(category: null, categoryId: categoryId);
+            }
+        }
+
+        private void SubCategoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.Tag is int subCategoryId)
+            {
+                LoadProducts(category: null, categoryId: subCategoryId);
             }
         }
 
@@ -257,7 +393,7 @@ namespace ElmirClone
 
                                     StackPanel panel = new StackPanel { Margin = new Thickness(10) };
                                     panel.Children.Add(new Image { Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl)), Width = 200, Height = 200, Margin = new Thickness(0, 0, 0, 10) });
-                                    panel.Children.Add(new TextBlock { Text = $"Название: {product.Name}", FontWeight = System.Windows.FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
+                                    panel.Children.Add(new TextBlock { Text = $"Название: {product.Name}", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
                                     panel.Children.Add(new TextBlock { Text = $"Категория: {product.CategoryName}", Margin = new Thickness(0, 0, 0, 5) });
                                     panel.Children.Add(new TextBlock { Text = $"Бренд: {product.Brand}", Margin = new Thickness(0, 0, 0, 5) });
                                     panel.Children.Add(new TextBlock { Text = $"Цена: {product.Price:F2} грн", Margin = new Thickness(0, 0, 0, 5) });
@@ -306,10 +442,7 @@ namespace ElmirClone
                                         ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3)
                                     };
 
-                                    if (cartItems == null)
-                                    {
-                                        cartItems = new List<DbProduct>();
-                                    }
+                                    if (cartItems == null) cartItems = new List<DbProduct>();
 
                                     if (!cartItems.Any(p => p.ProductId == product.ProductId))
                                     {
@@ -332,50 +465,6 @@ namespace ElmirClone
             }
         }
 
-        private void OrderButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (cartItems == null || !cartItems.Any())
-                {
-                    MessageBox.Show("Корзина пуста. Добавьте товары в корзину перед оформлением заказа.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                if (userProfile == null)
-                {
-                    MessageBox.Show("Пожалуйста, войдите в аккаунт, чтобы оформить заказ.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                CartWindow cartWindow = new CartWindow(cartItems, userProfile);
-                if (cartWindow.CanShowDialog())
-                {
-                    bool? dialogResult = cartWindow.ShowDialog();
-                    if (dialogResult == true)
-                    {
-                        cartItems.Clear();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при открытии окна оформления заказа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void ProfileButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (ProfilePanel != null)
-            {
-                ProfilePanel.Visibility = ProfilePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-            }
-            else
-            {
-                MessageBox.Show("Элемент ProfilePanel не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
         private void CartButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -393,14 +482,107 @@ namespace ElmirClone
                 }
 
                 CartWindow cartWindow = new CartWindow(cartItems, userProfile);
-                if (cartWindow.CanShowDialog())
-                {
-                    cartWindow.ShowDialog();
-                }
+                if (cartWindow.CanShowDialog()) cartWindow.ShowDialog();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка при открытии корзины: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ProfileButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ProfilePanel != null)
+            {
+                ProfilePanel.Visibility = ProfilePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            }
+            else
+            {
+                MessageBox.Show("Элемент ProfilePanel не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadOrders()
+        {
+            try
+            {
+                if (!(userProfile.UserId is int buyerId) || buyerId <= 0) return;
+
+                OrdersList.Items.Clear();
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand(
+                        "SELECT o.orderid, o.status, p.name " +
+                        "FROM orders o " +
+                        "JOIN products p ON o.productid = p.productid " +
+                        "WHERE o.buyerid = @buyerid", connection))
+                    {
+                        command.Parameters.AddWithValue("buyerid", buyerId);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int orderId = reader.GetInt32(0);
+                                string status = reader.GetString(1);
+                                string productName = reader.IsDBNull(2) ? "Неизвестный товар" : reader.GetString(2);
+                                OrdersList.Items.Add($"Заказ {orderId}: {productName} - {status}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при загрузке заказов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ReturnButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (OrdersList.SelectedItem is string selectedOrder && int.TryParse(selectedOrder.Split(':')[0].Replace("Заказ ", ""), out int orderId))
+            {
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand("INSERT INTO returns (orderid, reason, status) VALUES (@orderId, @reason, @status)", connection))
+                        {
+                            command.Parameters.AddWithValue("orderId", orderId);
+                            command.Parameters.AddWithValue("reason", "Возврат по желанию клиента");
+                            command.Parameters.AddWithValue("status", "Pending");
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                    MessageBox.Show($"Запрос на возврат для заказа {orderId} отправлен.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LoadOrders();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при запросе возврата: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Выберите заказ для возврата.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            selectedCategoryId = null;
+            LoadProducts();
+            OrderPanel.Visibility = Visibility.Collapsed;
+            e.Handled = true;
+        }
+
+        private void OrdersButton_Click(object sender, RoutedEventArgs e)
+        {
+            OrderPanel.Visibility = OrderPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            if (OrderPanel.Visibility == Visibility.Visible)
+            {
+                LoadOrders();
             }
         }
 

@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using Npgsql;
 using System.Configuration;
 using BCrypt.Net;
+using Microsoft.Win32; // Для OpenFileDialog
 
 namespace ElmirClone
 {
@@ -21,6 +22,7 @@ namespace ElmirClone
             "Хмельницкая область", "Черкасская область", "Черниговская область", "Черновицкая область",
             "Автономная Республика Крым"
         };
+        private string selectedImagePath; // Для хранения пути к выбранному изображению
 
         public AdminWindow()
         {
@@ -318,7 +320,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT c1.categoryid, c1.name, c2.name AS parentname FROM categories c1 LEFT JOIN categories c2 ON c1.parentcategoryid = c2.categoryid", connection))
+                    using (var command = new NpgsqlCommand("SELECT c1.categoryid, c1.name, c2.name AS parentname, c1.image_url FROM categories c1 LEFT JOIN categories c2 ON c1.parentcategoryid = c2.categoryid", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -329,7 +331,8 @@ namespace ElmirClone
                                 {
                                     CategoryId = reader.GetInt32(0),
                                     Name = reader.GetString(1),
-                                    ParentCategoryName = reader.IsDBNull(2) ? "Нет" : reader.GetString(2)
+                                    ParentCategoryName = reader.IsDBNull(2) ? "Нет" : reader.GetString(2),
+                                    ImageUrl = reader.IsDBNull(3) ? null : reader.GetString(3)
                                 });
                             }
                             CategoriesList.ItemsSource = categories;
@@ -344,7 +347,7 @@ namespace ElmirClone
                                     ParentCategory.Items.Add(new ComboBoxItem { Content = category.Name, Tag = category.CategoryId });
                                 }
                             }
-                            if (ParentCategory.Items.Count > 1)
+                            if (ParentCategory.Items.Count > 0)
                             {
                                 ParentCategory.SelectedIndex = 0;
                             }
@@ -358,6 +361,29 @@ namespace ElmirClone
             }
         }
 
+        private void SelectImage_Click(object sender, RoutedEventArgs e)
+        {
+            // Проверяем, выбрана ли родительская категория
+            int? parentCategoryId = (ParentCategory.SelectedItem as ComboBoxItem)?.Tag as int?;
+            if (!parentCategoryId.HasValue)
+            {
+                MessageBox.Show("Добавление изображения возможно только для подкатегорий. Выберите родительскую категорию.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Image files (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|All files (*.*)|*.*",
+                Title = "Выберите изображение для подкатегории"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                selectedImagePath = openFileDialog.FileName;
+                ImagePathTextBox.Text = selectedImagePath;
+            }
+        }
+
         private void AddCategory_Click(object sender, RoutedEventArgs e)
         {
             string name = NewCategoryName.Text?.Trim();
@@ -365,7 +391,24 @@ namespace ElmirClone
 
             if (string.IsNullOrWhiteSpace(name))
             {
-                MessageBox.Show("Введите название подкатегории.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Введите название категории.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Проверяем, является ли категория подкатегорией
+            string imageUrl = null;
+            if (parentCategoryId.HasValue)
+            {
+                if (string.IsNullOrEmpty(selectedImagePath))
+                {
+                    MessageBox.Show("Пожалуйста, выберите изображение для подкатегории.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                imageUrl = selectedImagePath;
+            }
+            else if (!string.IsNullOrEmpty(selectedImagePath))
+            {
+                MessageBox.Show("Добавление изображения для корневых категорий не разрешено.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -374,19 +417,104 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO categories (name, parentcategoryid) VALUES (@name, @parentId)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO categories (name, parentcategoryid, image_url) VALUES (@name, @parentId, @imageUrl)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
                         command.Parameters.AddWithValue("parentId", parentCategoryId == null ? (object)DBNull.Value : parentCategoryId);
+                        command.Parameters.AddWithValue("imageUrl", string.IsNullOrEmpty(imageUrl) ? (object)DBNull.Value : imageUrl);
                         command.ExecuteNonQuery();
                     }
                 }
                 LoadCategories();
-                NewCategoryName.Text = ""; // Очищаем поле после добавления
+                NewCategoryName.Text = "";
+                ImagePathTextBox.Text = "";
+                selectedImagePath = null;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при добавлении подкатегории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ошибка при добавлении категории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void EditCategory_Click(object sender, RoutedEventArgs e)
+        {
+            int categoryId = (int)((Button)sender).Tag;
+
+            // Получаем текущую категорию
+            Category categoryToEdit = null;
+            foreach (Category category in CategoriesList.Items)
+            {
+                if (category.CategoryId == categoryId)
+                {
+                    categoryToEdit = category;
+                    break;
+                }
+            }
+
+            if (categoryToEdit == null)
+            {
+                MessageBox.Show("Категория не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Запрашиваем новое название
+            string newName = Microsoft.VisualBasic.Interaction.InputBox("Введите новое название категории:", "Редактирование категории", categoryToEdit.Name);
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                MessageBox.Show("Название категории не может быть пустым.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Запрашиваем новое изображение (если это подкатегория)
+            string newImageUrl = categoryToEdit.ImageUrl;
+            bool isSubCategory = categoryToEdit.ParentCategoryName != "Нет";
+            if (isSubCategory)
+            {
+                MessageBoxResult result = MessageBox.Show("Хотите изменить изображение подкатегории?", "Редактирование изображения", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Yes)
+                {
+                    OpenFileDialog openFileDialog = new OpenFileDialog
+                    {
+                        Filter = "Image files (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|All files (*.*)|*.*",
+                        Title = "Выберите новое изображение для подкатегории"
+                    };
+
+                    if (openFileDialog.ShowDialog() == true)
+                    {
+                        newImageUrl = openFileDialog.FileName;
+                    }
+                    else
+                    {
+                        return; // Если пользователь отменил выбор изображения, прерываем редактирование
+                    }
+                }
+            }
+            else if (!string.IsNullOrEmpty(newImageUrl))
+            {
+                MessageBox.Show("Изображения для корневых категорий не поддерживаются.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Обновляем категорию в базе данных
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("UPDATE categories SET name = @name, image_url = @imageUrl WHERE categoryid = @categoryId", connection))
+                    {
+                        command.Parameters.AddWithValue("name", newName);
+                        command.Parameters.AddWithValue("imageUrl", string.IsNullOrEmpty(newImageUrl) ? (object)DBNull.Value : newImageUrl);
+                        command.Parameters.AddWithValue("categoryId", categoryId);
+                        command.ExecuteNonQuery();
+                    }
+                }
+                LoadCategories();
+                MessageBox.Show("Категория успешно обновлена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при обновлении категории: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -536,7 +664,7 @@ namespace ElmirClone
                     }
                 }
                 LoadPaymentMethods();
-                NewPaymentMethodName.Text = ""; // Очищаем поле после добавления
+                NewPaymentMethodName.Text = "";
                 MessageBox.Show("Способ оплаты успешно добавлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -790,8 +918,6 @@ namespace ElmirClone
 
         private void UpdatePickupPoint_Click(object sender, RoutedEventArgs e)
         {
-            // Поскольку столбца isactive нет, этот метод пока не имеет смысла.
-            // Можно либо удалить его, либо добавить столбец isactive в таблицу (см. ниже).
             MessageBox.Show("Функция обновления пункта самовывоза недоступна, так как столбец isactive отсутствует в таблице.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -811,6 +937,7 @@ namespace ElmirClone
         public int CategoryId { get; set; }
         public string Name { get; set; }
         public string ParentCategoryName { get; set; }
+        public string ImageUrl { get; set; }
     }
 
     public class DbProduct
