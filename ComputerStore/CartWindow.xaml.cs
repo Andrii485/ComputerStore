@@ -19,13 +19,13 @@ namespace ElmirClone
         private bool isInitializedSuccessfully;
         private readonly List<string> regions = new List<string>
         {
-            "Винницкая область", "Волынская область", "Днепропетровская область", "Донецкая область",
-            "Житомирская область", "Закарпатская область", "Запорожская область", "Ивано-Франковская область",
-            "Киевская область", "Кировоградская область", "Луганская область", "Львовская область",
-            "Николаевская область", "Одесская область", "Полтавская область", "Ровенская область",
-            "Сумская область", "Тернопольская область", "Харьковская область", "Херсонская область",
-            "Хмельницкая область", "Черкасская область", "Черниговская область", "Черновицкая область",
-            "Автономная Республика Крым"
+            "Вінницька область", "Волинська область", "Дніпропетровська область", "Донецька область",
+            "Житомирська область", "Закарпатська область", "Запорізька область", "Івано-Франківська область",
+            "Київська область", "Кіровоградська область", "Луганська область", "Львівська область",
+            "Миколаївська область", "Одеська область", "Полтавська область", "Рівненська область",
+            "Сумська область", "Тернопільська область", "Харківська область", "Херсонська область",
+            "Хмельницька область", "Черкаська область", "Чернігівська область", "Чернівецька область",
+            "Автономна Республіка Крим"
         };
 
         internal CartWindow(List<DbProduct> cartItems, UserProfile userProfile)
@@ -38,13 +38,13 @@ namespace ElmirClone
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                MessageBox.Show("Строка подключения к базе данных не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Рядок підключення до бази даних не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             if (this.userProfile == null || !(this.userProfile.UserId is int id) || id <= 0)
             {
-                MessageBox.Show("Пользователь не авторизован или идентификатор пользователя некорректен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Користувач не авторизований або ідентифікатор користувача некоректний. Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -59,7 +59,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при инициализации корзины: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка під час ініціалізації кошика: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -73,21 +73,21 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при перенаправлении на страницу входа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка під час перенаправлення на сторінку входу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void CalculateTotalPrice()
         {
             totalPrice = (cartItems != null) ? cartItems.Sum(item => item.Price) : 0;
-            TotalPriceText.Text = $"Общая сумма: {totalPrice:F2} грн";
+            TotalPriceText.Text = $"Загальна сума: {totalPrice:F2} грн";
         }
 
         private void LoadContactDetails()
         {
             if (userProfile == null)
             {
-                MessageBox.Show("Профиль пользователя не загружен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Профіль користувача не завантажено. Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -101,7 +101,7 @@ namespace ElmirClone
         {
             if (ShippingRegion == null)
             {
-                MessageBox.Show("Элемент ShippingRegion не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Елемент ShippingRegion не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -152,7 +152,7 @@ namespace ElmirClone
                             }
                             if (PickupPoint == null)
                             {
-                                MessageBox.Show("Элемент PickupPoint не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show("Елемент PickupPoint не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return;
                             }
                             PickupPoint.ItemsSource = pickupPoints;
@@ -162,7 +162,7 @@ namespace ElmirClone
                             }
                             else
                             {
-                                MessageBox.Show("Пункты самовывоза не найдены для выбранного региона.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                MessageBox.Show("Пункти самовивозу не знайдено для обраного регіону.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
                             }
                         }
                     }
@@ -170,7 +170,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при загрузке пунктов самовывоза: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка під час завантаження пунктів самовивозу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -181,9 +181,8 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-
                     var paymentMethods = new List<PaymentMethod>();
-                    using (var command = new NpgsqlCommand("SELECT methodid, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
+                    using (var command = new NpgsqlCommand("SELECT methodid, name FROM payment_methods WHERE is_active = TRUE", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -198,39 +197,9 @@ namespace ElmirClone
                         }
                     }
 
-                    if (!paymentMethods.Any())
-                    {
-                        using (var command = new NpgsqlCommand(
-                            "INSERT INTO payment_methods (name, is_active) VALUES (@name, @is_active) ON CONFLICT (name) DO NOTHING", connection))
-                        {
-                            command.Parameters.AddWithValue("is_active", true);
-
-                            command.Parameters.AddWithValue("name", "Оплата під час отримання товару");
-                            command.ExecuteNonQuery();
-
-                            command.Parameters[0].Value = "Оплатити зараз";
-                            command.ExecuteNonQuery();
-                        }
-
-                        using (var command = new NpgsqlCommand("SELECT methodid, name FROM payment_methods WHERE name IN ('Оплата під час отримання товару', 'Оплатити зараз') AND is_active = TRUE", connection))
-                        {
-                            using (var reader = command.ExecuteReader())
-                            {
-                                while (reader.Read())
-                                {
-                                    paymentMethods.Add(new PaymentMethod
-                                    {
-                                        PaymentMethodId = reader.GetInt32(0),
-                                        Name = reader.GetString(1)
-                                    });
-                                }
-                            }
-                        }
-                    }
-
                     if (PaymentMethodsComboBox == null)
                     {
-                        MessageBox.Show("Элемент PaymentMethodsComboBox не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("Елемент PaymentMethodsComboBox не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -243,20 +212,24 @@ namespace ElmirClone
                     }
                     else
                     {
-                        MessageBox.Show("Не удалось добавить способы оплаты в базу данных.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("Немає доступних способів оплати. Будь ласка, зверніться до адміністратора.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при загрузке способов оплаты: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка під час завантаження способів оплати: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void PaymentMethodsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedPaymentMethod = (PaymentMethodsComboBox?.SelectedItem as PaymentMethod)?.Name;
-            if (selectedPaymentMethod == "Оплатити зараз")
+            var selectedPaymentMethod = (PaymentMethodsComboBox?.SelectedItem as PaymentMethod)?.Name?.ToLower();
+            // Припускаємо, що способи оплати, які містять "карт", "оплатити зараз" або "онлайн", потребують введення даних картки
+            if (selectedPaymentMethod != null &&
+                (selectedPaymentMethod.Contains("карт") ||
+                 selectedPaymentMethod.Contains("оплатити зараз") ||
+                 selectedPaymentMethod.Contains("онлайн")))
             {
                 if (CardDetailsPanel != null)
                 {
@@ -283,7 +256,7 @@ namespace ElmirClone
                     CartItemsList.ItemsSource = null;
                     CartItemsList.ItemsSource = cartItems;
                     CalculateTotalPrice();
-                    MessageBox.Show($"{productToRemove.Name} удален из корзины.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"{productToRemove.Name} видалено з кошика.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
@@ -297,20 +270,20 @@ namespace ElmirClone
         {
             if (cartItems == null || !cartItems.Any())
             {
-                MessageBox.Show("Корзина пуста.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Кошик порожній.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (userProfile == null)
             {
-                MessageBox.Show("Профиль пользователя не загружен. Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Профіль користувача не завантажено. Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 RedirectToLogin();
                 return;
             }
 
             if (!(userProfile.UserId is int buyerIdValue) || buyerIdValue <= 0)
             {
-                MessageBox.Show($"Идентификатор пользователя некорректен (UserId = {userProfile.UserId}). Перенаправляем на страницу входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ідентифікатор користувача некоректний (UserId = {userProfile.UserId}). Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 RedirectToLogin();
                 return;
             }
@@ -318,7 +291,7 @@ namespace ElmirClone
             if (ContactLastName == null || ContactFirstName == null || ContactMiddleName == null || ContactPhone == null ||
                 ShippingRegion == null || PickupPoint == null || PaymentMethodsComboBox == null)
             {
-                MessageBox.Show("Одно или несколько полей формы не найдены в разметке. Проверьте XAML.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Одне або кілька полів форми не знайдено у розмітці. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -334,16 +307,19 @@ namespace ElmirClone
             if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(phone) ||
                 string.IsNullOrEmpty(shippingRegion) || pickupPointId == null || paymentMethodId == null || string.IsNullOrEmpty(paymentMethodName))
             {
-                MessageBox.Show("Заполните все обязательные поля (фамилия, имя, телефон, область, пункт самовывоза, способ оплаты).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Заповніть усі обов'язкові поля (прізвище, ім'я, телефон, область, пункт самовивозу, спосіб оплати).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Проверка данных карты, если выбран способ оплаты "Оплатити зараз"
-            if (paymentMethodName == "Оплатити зараз")
+            // Перевірка даних картки, якщо потрібно
+            bool requiresCardDetails = paymentMethodName.ToLower().Contains("карт") ||
+                                       paymentMethodName.ToLower().Contains("оплатити зараз") ||
+                                       paymentMethodName.ToLower().Contains("онлайн");
+            if (requiresCardDetails)
             {
                 if (CardNumberTextBox == null || CardExpiryTextBox == null || CardCvvTextBox == null)
                 {
-                    MessageBox.Show("Поля для данных карты не найдены в разметке. Проверьте XAML.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Поля для даних картки не знайдено у розмітці. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -353,26 +329,26 @@ namespace ElmirClone
 
                 if (!Regex.IsMatch(cardNumber, @"^\d{16}$"))
                 {
-                    MessageBox.Show("Введите корректный номер карты (16 цифр).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Введіть коректний номер картки (16 цифр).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (!Regex.IsMatch(cardExpiry, @"^(0[1-9]|1[0-2])\/\d{2}$"))
                 {
-                    MessageBox.Show("Введите корректный срок действия карты в формате MM/YY.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Введіть коректний термін дії картки у форматі MM/YY.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (!Regex.IsMatch(cardCvv, @"^\d{3}$"))
                 {
-                    MessageBox.Show("Введите корректный CVV (3 цифры).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Введіть коректний CVV (3 цифри).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // Проверка баланса пользователя
+                // Перевірка балансу користувача
                 if (userProfile.Balance < totalPrice)
                 {
-                    MessageBox.Show($"Недостаточно денег для совершения покупки. Ваш баланс: {userProfile.Balance:F2} грн, требуется: {totalPrice:F2} грн.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Недостатньо коштів для здійснення покупки. Ваш баланс: {userProfile.Balance:F2} грн, потрібно: {totalPrice:F2} грн.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
@@ -390,7 +366,7 @@ namespace ElmirClone
                             {
                                 if (item == null || item.ProductId <= 0 || item.Price < 0)
                                 {
-                                    MessageBox.Show($"Некорректные данные товара в корзине: {item?.Name ?? "Неизвестный товар"}.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show($"Некоректні дані товару в кошику: {item?.Name ?? "Невідомий товар"}.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                     transaction.Rollback();
                                     return;
                                 }
@@ -410,7 +386,7 @@ namespace ElmirClone
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"Ошибка при получении sellerId для товара {item.Name}: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show($"Помилка під час отримання sellerId для товару {item.Name}: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                     transaction.Rollback();
                                     return;
                                 }
@@ -441,14 +417,14 @@ namespace ElmirClone
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"Ошибка при вставке заказа для товара {item.Name}: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show($"Помилка під час вставки замовлення для товару {item.Name}: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                     transaction.Rollback();
                                     return;
                                 }
                             }
 
-                            // Если выбран способ оплаты "Оплатити зараз", обновляем баланс пользователя
-                            if (paymentMethodName == "Оплатити зараз")
+                            // Якщо потрібна оплата з картки, оновлюємо баланс користувача
+                            if (requiresCardDetails)
                             {
                                 try
                                 {
@@ -460,39 +436,39 @@ namespace ElmirClone
                                         int rowsAffected = command.ExecuteNonQuery();
                                         if (rowsAffected == 0)
                                         {
-                                            throw new Exception("Не удалось обновить баланс пользователя.");
+                                            throw new Exception("Не вдалося оновити баланс користувача.");
                                         }
                                     }
 
-                                    // Обновляем баланс в объекте userProfile
+                                    // Оновлюємо баланс в об'єкті userProfile
                                     userProfile.Balance -= totalPrice;
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"Ошибка при обновлении баланса: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show($"Помилка під час оновлення балансу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                     transaction.Rollback();
                                     return;
                                 }
                             }
 
                             transaction.Commit();
-                            MessageBox.Show($"Заказ успешно оформлен!\nСпособ оплаты: {paymentMethodName}\nСумма: {totalPrice:F2} грн\n" +
-                                            (paymentMethodName == "Оплатити зараз" ? $"Остаток на балансе: {userProfile.Balance:F2} грн" : ""),
-                                            "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Замовлення успішно оформлено!\nСпосіб оплати: {paymentMethodName}\nСума: {totalPrice:F2} грн\n" +
+                                            (requiresCardDetails ? $"Залишок на балансі: {userProfile.Balance:F2} грн" : ""),
+                                            "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                             this.DialogResult = true;
                             Close();
                         }
                         catch (Exception ex)
                         {
                             transaction.Rollback();
-                            MessageBox.Show($"Ошибка при оформлении заказа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show($"Помилка під час оформлення замовлення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Произошла ошибка: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Сталася помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
