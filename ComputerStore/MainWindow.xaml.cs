@@ -31,7 +31,7 @@ namespace ElmirClone
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
             if (string.IsNullOrEmpty(connectionString))
             {
-                MessageBox.Show("Строка подключения к базе данных не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Рядок підключення до бази даних не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 Close();
                 return;
             }
@@ -79,7 +79,7 @@ namespace ElmirClone
 
                 foreach (var (orderId, productId) in shippedOrders)
                 {
-                    string productName = "Неизвестный товар";
+                    string productName = "Невідомий товар";
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
@@ -90,13 +90,13 @@ namespace ElmirClone
                             if (result != null) productName = result.ToString();
                         }
                     }
-                    MessageBox.Show($"Ваш заказ (ID: {orderId}, товар: {productName}) уже в пути!", "Уведомление", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"Ваше замовлення (ID: {orderId}, товар: {productName}) вже в дорозі!", "Сповіщення", MessageBoxButton.OK, MessageBoxImage.Information);
                     notifiedOrders.Add(orderId);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при проверке статуса заказов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при перевірці статусу замовлень: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -126,7 +126,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при загрузке категорий: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при завантаженні категорій: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -280,10 +280,10 @@ namespace ElmirClone
                                 ratingPanel.Children.Add(new TextBlock { Text = product.Rating.ToString(), FontSize = 14, Margin = new Thickness(2, 0, 0, 0) });
                                 ratingPanel.Children.Add(new TextBlock { Text = "(", Foreground = System.Windows.Media.Brushes.Gray });
                                 ratingPanel.Children.Add(new TextBlock { Text = "0", Foreground = System.Windows.Media.Brushes.Gray });
-                                ratingPanel.Children.Add(new TextBlock { Text = " отз.)", Foreground = System.Windows.Media.Brushes.Gray });
+                                ratingPanel.Children.Add(new TextBlock { Text = " відгуків)", Foreground = System.Windows.Media.Brushes.Gray });
                                 productPanel.Children.Add(ratingPanel);
                                 productPanel.Children.Add(new TextBlock { Text = $"{product.Price:F2} грн", FontSize = 16, FontWeight = FontWeights.Bold, Margin = new Thickness(5), Foreground = System.Windows.Media.Brushes.Red, TextAlignment = TextAlignment.Center });
-                                Button addToCartButton = new Button { Content = "Добавить в корзину", Style = (Style)FindResource("AddToCartButtonStyle") };
+                                Button addToCartButton = new Button { Content = "Додати до кошика", Style = (Style)FindResource("AddToCartButtonStyle") };
                                 addToCartButton.Tag = product.ProductId;
                                 addToCartButton.Click += AddToCart_Click;
                                 productPanel.Children.Add(addToCartButton);
@@ -296,7 +296,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при загрузке товаров: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при завантаженні товарів: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -309,7 +309,7 @@ namespace ElmirClone
         private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
         {
             TextBox searchBox = sender as TextBox;
-            if (searchBox?.Text == "Поиск...")
+            if (searchBox?.Text == "Пошук...")
             {
                 searchBox.Text = "";
                 searchBox.Foreground = System.Windows.Media.Brushes.White;
@@ -321,7 +321,7 @@ namespace ElmirClone
             TextBox searchBox = sender as TextBox;
             if (string.IsNullOrWhiteSpace(searchBox?.Text))
             {
-                searchBox.Text = "Поиск...";
+                searchBox.Text = "Пошук...";
                 searchBox.Foreground = System.Windows.Media.Brushes.Gray;
             }
         }
@@ -331,10 +331,9 @@ namespace ElmirClone
             if (e.Key == System.Windows.Input.Key.Enter)
             {
                 string searchText = (sender as TextBox)?.Text?.Trim();
-                if (!string.IsNullOrEmpty(searchText) && searchText != "Поиск...")
+                if (!string.IsNullOrEmpty(searchText) && searchText != "Пошук...")
                 {
-                    // Здесь можно добавить логику поиска
-                    MessageBox.Show($"Поиск: {searchText}", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"Пошук: {searchText}", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
@@ -393,14 +392,14 @@ namespace ElmirClone
 
                                     StackPanel panel = new StackPanel { Margin = new Thickness(10) };
                                     panel.Children.Add(new Image { Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl)), Width = 200, Height = 200, Margin = new Thickness(0, 0, 0, 10) });
-                                    panel.Children.Add(new TextBlock { Text = $"Название: {product.Name}", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
-                                    panel.Children.Add(new TextBlock { Text = $"Категория: {product.CategoryName}", Margin = new Thickness(0, 0, 0, 5) });
+                                    panel.Children.Add(new TextBlock { Text = $"Назва: {product.Name}", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
+                                    panel.Children.Add(new TextBlock { Text = $"Категорія: {product.CategoryName}", Margin = new Thickness(0, 0, 0, 5) });
                                     panel.Children.Add(new TextBlock { Text = $"Бренд: {product.Brand}", Margin = new Thickness(0, 0, 0, 5) });
-                                    panel.Children.Add(new TextBlock { Text = $"Цена: {product.Price:F2} грн", Margin = new Thickness(0, 0, 0, 5) });
-                                    panel.Children.Add(new TextBlock { Text = $"Скидка: {product.Discount:F2}%", Margin = new Thickness(0, 0, 0, 5) });
-                                    panel.Children.Add(new TextBlock { Text = $"Описание: {product.Description}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
+                                    panel.Children.Add(new TextBlock { Text = $"Ціна: {product.Price:F2} грн", Margin = new Thickness(0, 0, 0, 5) });
+                                    panel.Children.Add(new TextBlock { Text = $"Знижка: {product.Discount:F2}%", Margin = new Thickness(0, 0, 0, 5) });
+                                    panel.Children.Add(new TextBlock { Text = $"Опис: {product.Description}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
 
-                                    Button closeButton = new Button { Content = "Закрыть", Width = 100 };
+                                    Button closeButton = new Button { Content = "Закрити", Width = 100 };
                                     closeButton.Click += (s, ev) => productWindow.Close();
                                     panel.Children.Add(closeButton);
 
@@ -413,7 +412,7 @@ namespace ElmirClone
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка при загрузке деталей товара: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Помилка при завантаженні деталей товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -447,11 +446,11 @@ namespace ElmirClone
                                     if (!cartItems.Any(p => p.ProductId == product.ProductId))
                                     {
                                         cartItems.Add(product);
-                                        MessageBox.Show($"{product.Name} добавлен в корзину!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                                        MessageBox.Show($"{product.Name} додано до кошика!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                                     }
                                     else
                                     {
-                                        MessageBox.Show($"{product.Name} уже находится в корзине.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                                        MessageBox.Show($"{product.Name} вже є в кошику.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
                                     }
                                 }
                             }
@@ -460,7 +459,7 @@ namespace ElmirClone
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка при добавлении товара в корзину: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Помилка при додаванні товару до кошика: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -471,13 +470,13 @@ namespace ElmirClone
             {
                 if (cartItems == null || !cartItems.Any())
                 {
-                    MessageBox.Show("Корзина пуста. Добавьте товары в корзину.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Кошик порожній. Додайте товари до кошика.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 if (userProfile == null)
                 {
-                    MessageBox.Show("Для просмотра корзины необходимо авторизоваться.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Для перегляду кошика необхідно авторизуватися.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -486,7 +485,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при открытии корзины: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при відкритті кошика: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -498,7 +497,7 @@ namespace ElmirClone
             }
             else
             {
-                MessageBox.Show("Элемент ProfilePanel не найден в разметке.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Елемент ProfilePanel не знайдено в розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -525,8 +524,8 @@ namespace ElmirClone
                             {
                                 int orderId = reader.GetInt32(0);
                                 string status = reader.GetString(1);
-                                string productName = reader.IsDBNull(2) ? "Неизвестный товар" : reader.GetString(2);
-                                OrdersList.Items.Add($"Заказ {orderId}: {productName} - {status}");
+                                string productName = reader.IsDBNull(2) ? "Невідомий товар" : reader.GetString(2);
+                                OrdersList.Items.Add($"Замовлення {orderId}: {productName} - {status}");
                             }
                         }
                     }
@@ -534,13 +533,13 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при загрузке заказов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при завантаженні замовлень: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void ReturnButton_Click(object sender, RoutedEventArgs e)
         {
-            if (OrdersList.SelectedItem is string selectedOrder && int.TryParse(selectedOrder.Split(':')[0].Replace("Заказ ", ""), out int orderId))
+            if (OrdersList.SelectedItem is string selectedOrder && int.TryParse(selectedOrder.Split(':')[0].Replace("Замовлення ", ""), out int orderId))
             {
                 try
                 {
@@ -550,22 +549,22 @@ namespace ElmirClone
                         using (var command = new NpgsqlCommand("INSERT INTO returns (orderid, reason, status) VALUES (@orderId, @reason, @status)", connection))
                         {
                             command.Parameters.AddWithValue("orderId", orderId);
-                            command.Parameters.AddWithValue("reason", "Возврат по желанию клиента");
+                            command.Parameters.AddWithValue("reason", "Повернення за бажанням клієнта");
                             command.Parameters.AddWithValue("status", "Pending");
                             command.ExecuteNonQuery();
                         }
                     }
-                    MessageBox.Show($"Запрос на возврат для заказа {orderId} отправлен.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"Запит на повернення для замовлення {orderId} надіслано.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                     LoadOrders();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка при запросе возврата: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Помилка при запиті повернення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show("Выберите заказ для возврата.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Виберіть замовлення для повернення.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -590,7 +589,7 @@ namespace ElmirClone
         {
             if (userProfile == null)
             {
-                MessageBox.Show("Профиль пользователя не загружен.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Профіль користувача не завантажено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -603,7 +602,7 @@ namespace ElmirClone
 
                 if (string.IsNullOrWhiteSpace(userProfile.Email))
                 {
-                    MessageBox.Show("Email не может быть пустым.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Email не може бути порожнім.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -619,18 +618,18 @@ namespace ElmirClone
                         int rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected == 0)
                         {
-                            MessageBox.Show("Не удалось обновить профиль. Пользователь с таким email не найден.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Не вдалося оновити профіль. Користувача з таким email не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                         else
                         {
-                            MessageBox.Show("Профиль обновлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show("Профіль оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при обновлении профиля: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при оновленні профілю: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -645,7 +644,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при выходе из системы: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при виході з системи: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

@@ -9,12 +9,12 @@
         public string MiddleName { get; set; }
         public string Phone { get; set; }
         public string Email { get; set; }
-        public decimal Balance { get; set; } // Свойство для баланса
+        public decimal Balance { get; set; } 
 
         public UserProfile1()
         {
             UserId = -1;
-            Balance = 0; // Инициализируем баланс
+            Balance = 0; 
         }
     }
 }

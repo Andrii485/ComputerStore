@@ -16,13 +16,13 @@ namespace ElmirClone
         private string connectionString;
         private readonly List<string> regions = new List<string>
         {
-            "Винницкая область", "Волынская область", "Днепропетровская область", "Донецкая область",
-            "Житомирская область", "Закарпатская область", "Запорожская область", "Ивано-Франковская область",
-            "Киевская область", "Кировоградская область", "Луганская область", "Львовская область",
-            "Николаевская область", "Одесская область", "Полтавская область", "Ровенская область",
-            "Сумская область", "Тернопольская область", "Харьковская область", "Херсонская область",
-            "Хмельницкая область", "Черкасская область", "Черниговская область", "Черновицкая область",
-            "Автономная Республика Крым"
+            "Вінницька область", "Волинська область", "Дніпропетровська область", "Донецька область",
+            "Житомирська область", "Закарпатська область", "Запорізька область", "Івано-Франківська область",
+            "Київська область", "Кіровоградська область", "Луганська область", "Львівська область",
+            "Миколаївська область", "Одеська область", "Полтавська область", "Рівненська область",
+            "Сумська область", "Тернопільська область", "Харківська область", "Херсонська область",
+            "Хмельницька область", "Черкаська область", "Чернігівська область", "Чернівецька область",
+            "Автономна Республіка Крим"
         };
 
         public OrderWindow(List<DbProduct> cartItems, UserProfile userProfile)
@@ -32,20 +32,20 @@ namespace ElmirClone
             this.userProfile = userProfile;
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
 
-            // Заполняем контактные данные из профиля пользователя
+            // Заповнюємо контактні дані з профілю користувача
             ContactFirstName.Text = userProfile.FirstName;
             ContactMiddleName.Text = userProfile.MiddleName;
             ContactPhone.Text = userProfile.Phone;
             ContactEmail.Text = userProfile.Email;
 
-            // Загружаем области
+            // Завантажуємо області
             ShippingRegion.ItemsSource = regions;
 
-            // Загружаем пункты самовывоза и способы оплаты
+            // Завантажуємо пункти самовивозу і способи оплати
             LoadPickupPoints();
             LoadPaymentMethods();
 
-            // Устанавливаем обработчик для фильтрации пунктов самовывоза по выбранной области
+            // Встановлюємо обробник для фільтрації пунктів самовивозу за вибраною областю
             ShippingRegion.SelectionChanged += ShippingRegion_SelectionChanged;
         }
 
@@ -94,7 +94,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при загрузке пунктов самовывоза: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при завантаженні пунктів самовивозу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -125,7 +125,7 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при загрузке способов оплаты: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при завантаженні способів оплати: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -139,11 +139,11 @@ namespace ElmirClone
             int? pickupPointId = PickupPoint.SelectedValue as int?;
             int? paymentMethodId = PaymentMethod.SelectedValue as int?;
 
-            // Проверка заполненности обязательных полей
+            // Перевірка заповненості обов'язкових полів
             if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(email) ||
                 string.IsNullOrEmpty(shippingRegion) || pickupPointId == null || paymentMethodId == null)
             {
-                MessageBox.Show("Заполните все обязательные поля (имя, телефон, email, область, пункт самовывоза, способ оплаты).", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Заповніть усі обов'язкові поля (ім'я, телефон, email, область, пункт самовивозу, спосіб оплати).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -153,7 +153,7 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Получаем buyerid пользователя
+                    // Отримуємо buyerid користувача
                     int buyerId;
                     using (var command = new NpgsqlCommand("SELECT user_id FROM user_credentials WHERE email = @email", connection))
                     {
@@ -161,10 +161,10 @@ namespace ElmirClone
                         buyerId = (int)command.ExecuteScalar();
                     }
 
-                    // Сохраняем заказ для каждого товара в корзине
+                    // Зберігаємо замовлення для кожного товару в кошику
                     foreach (var item in cartItems)
                     {
-                        // Получаем sellerid для товара
+                        // Отримуємо sellerid для товару
                         int sellerId;
                         using (var command = new NpgsqlCommand("SELECT seller_id FROM products WHERE product_id = @product_id", connection))
                         {
@@ -172,7 +172,7 @@ namespace ElmirClone
                             sellerId = (int)command.ExecuteScalar();
                         }
 
-                        // Сохраняем заказ в таблице orders
+                        // Зберігаємо замовлення в таблиці orders
                         using (var command = new NpgsqlCommand(
                             "INSERT INTO orders (buyerid, sellerid, productid, quantity, totalprice, orderdate, status, pickup_point_id, payment_method_id, shipping_region, contact_first_name, contact_middle_name, contact_phone, contact_email) " +
                             "VALUES (@buyerid, @sellerid, @productid, @quantity, @totalprice, @orderdate, @status, @pickup_point_id, @payment_method_id, @shipping_region, @contact_first_name, @contact_middle_name, @contact_phone, @contact_email)", connection))
@@ -195,13 +195,13 @@ namespace ElmirClone
                         }
                     }
 
-                    MessageBox.Show("Заказ успешно оформлен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Замовлення успішно оформлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                     this.Close();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при оформлении заказа: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка при оформленні замовлення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

@@ -88,37 +88,37 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0">
                     <Image Source="https://i.postimg.cc/02SPKrX0/2025-04-17-000603.png" Width="40" Height="40" Cursor="Hand" MouseLeftButtonDown="Logo_Click"/>
-                    <TextBox x:Name="SearchBox" Width="300" Height="30" Margin="10,0,0,0" VerticalAlignment="Center" Text="Поиск..." Foreground="Gray"
+                    <TextBox x:Name="SearchBox" Width="300" Height="30" Margin="10,0,0,0" VerticalAlignment="Center" Text="Пошук..." Foreground="Gray"
                              GotFocus="SearchBox_GotFocus" LostFocus="SearchBox_LostFocus" KeyDown="SearchBox_KeyDown"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0">
-                    <Button x:Name="OrdersButton" Content="Заказы" Click="OrdersButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="CartButton" Content="Корзина" Click="CartButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="ProfileButton" Content="Профиль" Click="ProfileButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="LogoutButton" Content="Выйти" Click="LogoutButton_Click" Style="{StaticResource OrderButtonStyle}"/>
+                    <Button x:Name="OrdersButton" Content="Замовлення" Click="OrdersButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
+                    <Button x:Name="CartButton" Content="Кошик" Click="CartButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
+                    <Button x:Name="ProfileButton" Content="Профіль" Click="ProfileButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
+                    <Button x:Name="LogoutButton" Content="Вийти" Click="LogoutButton_Click" Style="{StaticResource OrderButtonStyle}"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Боковая панель с категориями -->
+        <!-- Бічна панель із категоріями -->
         <StackPanel Grid.Row="1" Grid.Column="0" Background="#E0E0E0" Margin="5">
-            <TextBlock Text="Категории" FontSize="16" FontWeight="SemiBold" Margin="10,10,0,5" Foreground="#333"/>
+            <TextBlock Text="Категорії" FontSize="16" FontWeight="SemiBold" Margin="10,10,0,5" Foreground="#333"/>
             <StackPanel x:Name="CategoryPanel" Margin="5"/>
         </StackPanel>
 
-        <!-- Основной контент -->
+        <!-- Основний контент -->
         <Grid Grid.Row="1" Grid.Column="1" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <StackPanel x:Name="OrderPanel" Grid.Row="0" Visibility="Collapsed" Orientation="Vertical" Margin="0,0,0,10">
-                <TextBlock Text="Статусы заказов" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <TextBlock Text="Статуси замовлень" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
                 <ListBox x:Name="OrdersList" Height="100" Margin="0,0,0,10"/>
-                <Button x:Name="ReturnButton" Content="Возврат товара" Click="ReturnButton_Click" Margin="0,10,0,0" Style="{StaticResource OrderButtonStyle}"/>
+                <Button x:Name="ReturnButton" Content="Повернення товару" Click="ReturnButton_Click" Margin="0,10,0,0" Style="{StaticResource OrderButtonStyle}"/>
                 <TextBlock Margin="0,10,0,0">
                     <Hyperlink NavigateUri="/MainWindow.xaml" RequestNavigate="Hyperlink_RequestNavigate">
-                        Перейти на главную страницу товаров
+                        Перейти на головну сторінку товарів
                     </Hyperlink>
                 </TextBlock>
             </StackPanel>
@@ -126,13 +126,13 @@
                 <StackPanel x:Name="ContentPanel" Orientation="Vertical"/>
             </ScrollViewer>
             <StackPanel x:Name="ProfilePanel" Orientation="Vertical" Background="White" Visibility="Collapsed" Margin="0,0,0,10">
-                <TextBlock Text="Профиль" FontSize="18" FontWeight="SemiBold" Margin="10"/>
+                <TextBlock Text="Профіль" FontSize="18" FontWeight="SemiBold" Margin="10"/>
                 <StackPanel Margin="10">
                     <TextBox x:Name="FirstNameTextBox" Text="{Binding FirstName}" Margin="0,5"/>
                     <TextBox x:Name="MiddleNameTextBox" Text="{Binding MiddleName}" Margin="0,5"/>
                     <TextBox x:Name="PhoneTextBox" Text="{Binding Phone}" Margin="0,5"/>
                     <TextBox x:Name="EmailTextBox" Text="{Binding Email}" Margin="0,5"/>
-                    <Button x:Name="SaveProfileButton" Content="Сохранить" Click="SaveProfileButton_Click" Margin="0,10,0,0" Style="{StaticResource OrderButtonStyle}"/>
+                    <Button x:Name="SaveProfileButton" Content="Зберегти" Click="SaveProfileButton_Click" Margin="0,10,0,0" Style="{StaticResource OrderButtonStyle}"/>
                 </StackPanel>
             </StackPanel>
         </Grid>

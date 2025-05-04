@@ -13,7 +13,7 @@ namespace ElmirClone
     {
         private bool isLoginMode = true;
         private bool isResetPasswordMode = false;
-        private DispatcherTimer resetPasswordTimer; // Таймер для отсчета 20 секунд
+        private DispatcherTimer resetPasswordTimer; // Таймер для відліку 20 секунд
         private string connectionString;
 
         public LoginWindow()
@@ -24,42 +24,42 @@ namespace ElmirClone
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка в InitializeComponent: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Помилка в InitializeComponent: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw;
             }
 
-            // Инициализация строки подключения
+            // Ініціалізація рядка підключення
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
             if (string.IsNullOrEmpty(connectionString))
             {
-                MessageBox.Show("Строка подключения к базе данных не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Рядок підключення до бази даних не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 Close();
                 return;
             }
 
-            // Инициализация таймера
+            // Ініціалізація таймера
             resetPasswordTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(20) // Устанавливаем интервал 20 секунд
+                Interval = TimeSpan.FromSeconds(20) // Встановлюємо інтервал 20 секунд
             };
-            resetPasswordTimer.Tick += ResetPasswordTimer_Tick; // Обработчик события таймера
+            resetPasswordTimer.Tick += ResetPasswordTimer_Tick; // Обробник події таймера
 
-            // Проверяем, что таймер инициализирован
+            // Перевіряємо, що таймер ініціалізовано
             if (resetPasswordTimer == null)
             {
-                MessageBox.Show("resetPasswordTimer не был инициализирован в конструкторе!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("resetPasswordTimer не було ініціалізовано в конструкторі!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 Close();
                 return;
             }
 
-            // Устанавливаем начальное состояние после инициализации таймера
+            // Встановлюємо початковий стан після ініціалізації таймера
             if (LoginRadioButton != null)
             {
-                LoginRadioButton.IsChecked = true; // Устанавливаем режим "Вход" по умолчанию
+                LoginRadioButton.IsChecked = true; // Встановлюємо режим "Вхід" за замовчуванням
             }
             else
             {
-                MessageBox.Show("LoginRadioButton is null. Проверьте XAML.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("LoginRadioButton є null. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -68,21 +68,21 @@ namespace ElmirClone
             isLoginMode = true;
             isResetPasswordMode = false;
 
-            // Проверяем таймер перед использованием
+            // Перевіряємо таймер перед використанням
             if (resetPasswordTimer == null)
             {
-                MessageBox.Show("resetPasswordTimer is null in LoginRadioButton_Checked!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("resetPasswordTimer є null у LoginRadioButton_Checked!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            resetPasswordTimer.Stop(); // Останавливаем таймер при возврате в режим входа
+            resetPasswordTimer.Stop(); // Зупиняємо таймер при поверненні в режим входу
 
             if (TitleTextBlock != null)
             {
-                TitleTextBlock.Text = "Вход";
+                TitleTextBlock.Text = "Вхід";
             }
             else
             {
-                MessageBox.Show("TitleTextBlock is null. Проверьте XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("TitleTextBlock є null. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             if (LoginFields != null && RegisterFieldsScrollViewer != null && ResetPasswordFields != null)
@@ -93,7 +93,7 @@ namespace ElmirClone
             }
             else
             {
-                MessageBox.Show("Один из элементов (LoginFields, RegisterFieldsScrollViewer, ResetPasswordFields) is null. Проверьте XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Один із елементів (LoginFields, RegisterFieldsScrollViewer, ResetPasswordFields) є null. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -102,21 +102,21 @@ namespace ElmirClone
             isLoginMode = false;
             isResetPasswordMode = false;
 
-            // Проверяем таймер перед использованием
+            // Перевіряємо таймер перед використанням
             if (resetPasswordTimer == null)
             {
-                MessageBox.Show("resetPasswordTimer is null in RegisterRadioButton_Checked!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("resetPasswordTimer є null у RegisterRadioButton_Checked!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            resetPasswordTimer.Stop(); // Останавливаем таймер при переходе в режим регистрации
+            resetPasswordTimer.Stop(); // Зупиняємо таймер при переході в режим реєстрації
 
             if (TitleTextBlock != null)
             {
-                TitleTextBlock.Text = "Регистрация";
+                TitleTextBlock.Text = "Реєстрація";
             }
             else
             {
-                MessageBox.Show("TitleTextBlock is null. Проверьте XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("TitleTextBlock є null. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             if (LoginFields != null && RegisterFieldsScrollViewer != null && ResetPasswordFields != null)
@@ -127,7 +127,7 @@ namespace ElmirClone
             }
             else
             {
-                MessageBox.Show("Один из элементов (LoginFields, RegisterFieldsScrollViewer, ResetPasswordFields) is null. Проверьте XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Один із елементів (LoginFields, RegisterFieldsScrollViewer, ResetPasswordFields) є null. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -135,43 +135,43 @@ namespace ElmirClone
         {
             isResetPasswordMode = true;
 
-            // Проверка TitleTextBlock
+            // Перевірка TitleTextBlock
             if (TitleTextBlock == null)
             {
-                MessageBox.Show("TitleTextBlock is null. Check x:Name in XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("TitleTextBlock є null. Перевірте x:Name у XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            TitleTextBlock.Text = "Сброс пароля";
+            TitleTextBlock.Text = "Скидання пароля";
 
-            // Проверяем наличие всех элементов
+            // Перевіряємо наявність усіх елементів
             if (LoginFields == null)
             {
-                MessageBox.Show("LoginFields is null. Check x:Name in XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("LoginFields є null. Перевірте x:Name у XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             if (RegisterFieldsScrollViewer == null)
             {
-                MessageBox.Show("RegisterFieldsScrollViewer is null. Check x:Name in XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("RegisterFieldsScrollViewer є null. Перевірте x:Name у XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             if (ResetPasswordFields == null)
             {
-                MessageBox.Show("ResetPasswordFields is null. Check x:Name in XAML.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("ResetPasswordFields є null. Перевірте x:Name у XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Если все элементы найдены, выполняем переключение видимости
+            // Якщо всі елементи знайдені, виконуємо перемикання видимості
             LoginFields.Visibility = Visibility.Collapsed;
             RegisterFieldsScrollViewer.Visibility = Visibility.Collapsed;
             ResetPasswordFields.Visibility = Visibility.Visible;
 
-            // Проверяем таймер перед использованием
+            // Перевіряємо таймер перед використанням
             if (resetPasswordTimer == null)
             {
-                MessageBox.Show("resetPasswordTimer is null in ResetPasswordButton_Click!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("resetPasswordTimer є null у ResetPasswordButton_Click!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            resetPasswordTimer.Stop(); // Останавливаем, если уже был запущен
+            resetPasswordTimer.Stop(); // Зупиняємо, якщо вже був запущений
             resetPasswordTimer.Start();
         }
 
@@ -179,31 +179,31 @@ namespace ElmirClone
         {
             if (resetPasswordTimer == null)
             {
-                MessageBox.Show("resetPasswordTimer is null in ResetPasswordTimer_Tick!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("resetPasswordTimer є null у ResetPasswordTimer_Tick!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            resetPasswordTimer.Stop(); // Останавливаем таймер
+            resetPasswordTimer.Stop(); // Зупиняємо таймер
 
-            // Проверяем, заполнены ли поля
+            // Перевіряємо, чи заповнені поля
             bool isAnyFieldFilled =
                 !string.IsNullOrWhiteSpace(EmailResetTextBox?.Text) ||
                 !string.IsNullOrWhiteSpace(NewPasswordBox?.Password) ||
                 !string.IsNullOrWhiteSpace(ConfirmNewPasswordBox?.Password);
 
-            // Если поля заполнены или не заполнены, в любом случае переводим в режим входа
+            // Якщо поля заповнені або не заповнені, у будь-якому випадку переводимо в режим входу
             if (isResetPasswordMode)
             {
                 if (isAnyFieldFilled)
                 {
-                    MessageBox.Show("Время ожидания истекло. Пожалуйста, попробуйте снова.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Час очікування минув. Будь ласка, спробуйте ще раз.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
-                // Переводим в режим входа
+                // Переводимо в режим входу
                 if (LoginRadioButton != null)
                 {
                     LoginRadioButton.IsChecked = true;
                 }
-                // Очищаем поля сброса пароля
+                // Очищаємо поля скидання пароля
                 if (EmailResetTextBox != null) EmailResetTextBox.Text = "";
                 if (NewPasswordBox != null) NewPasswordBox.Password = "";
                 if (ConfirmNewPasswordBox != null) ConfirmNewPasswordBox.Password = "";
@@ -212,34 +212,34 @@ namespace ElmirClone
 
         private void ConfirmResetButton_Click(object sender, RoutedEventArgs e)
         {
-            // Получаем данные из полей
+            // Отримуємо дані з полів
             string email = EmailResetTextBox?.Text?.Trim();
             string newPassword = NewPasswordBox?.Password;
             string confirmNewPassword = ConfirmNewPasswordBox?.Password;
 
-            // Проверка на пустые поля
+            // Перевірка на порожні поля
             if (string.IsNullOrWhiteSpace(email))
             {
-                MessageBox.Show("Пожалуйста, введите вашу почту.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Будь ласка, введіть вашу пошту.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(newPassword))
             {
-                MessageBox.Show("Пожалуйста, введите новый пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Будь ласка, введіть новий пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(confirmNewPassword))
             {
-                MessageBox.Show("Пожалуйста, повторите новый пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Будь ласка, повторіть новий пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Проверка совпадения паролей
+            // Перевірка збігу паролів
             if (newPassword != confirmNewPassword)
             {
-                MessageBox.Show("Пароли не совпадают.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Паролі не збігаються.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -249,7 +249,7 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Проверяем, существует ли пользователь с указанным email
+                    // Перевіряємо, чи існує користувач з вказаною поштою
                     int userId;
                     using (var command = new NpgsqlCommand("SELECT UserId FROM UserDetails WHERE Email = @email", connection))
                     {
@@ -257,16 +257,16 @@ namespace ElmirClone
                         var result = command.ExecuteScalar();
                         if (result == null)
                         {
-                            MessageBox.Show("Пользователь с указанным email не найден.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Користувача з вказаною поштою не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
                         userId = (int)result;
                     }
 
-                    // Хешируем новый пароль
+                    // Хешуємо новий пароль
                     string hashedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
-                    // Обновляем пароль в таблице UserCredentials
+                    // Оновлюємо пароль у таблиці UserCredentials
                     using (var command = new NpgsqlCommand("UPDATE UserCredentials SET Password = @password WHERE UserId = @userId", connection))
                     {
                         command.Parameters.AddWithValue("password", hashedPassword);
@@ -275,17 +275,17 @@ namespace ElmirClone
 
                         if (rowsAffected > 0)
                         {
-                            MessageBox.Show("Пароль успешно сброшен! Теперь вы можете войти с новым паролем.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show("Пароль успішно скинуто! Тепер ви можете увійти з новим паролем.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                            // Останавливаем таймер
+                            // Зупиняємо таймер
                             if (resetPasswordTimer == null)
                             {
-                                MessageBox.Show("resetPasswordTimer is null in ConfirmResetButton_Click!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show("resetPasswordTimer є null у ConfirmResetButton_Click!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return;
                             }
                             resetPasswordTimer.Stop();
 
-                            // Переключаемся обратно в режим входа
+                            // Перемикаємося назад у режим входу
                             if (LoginRadioButton != null)
                             {
                                 LoginRadioButton.IsChecked = true;
@@ -296,14 +296,14 @@ namespace ElmirClone
                         }
                         else
                         {
-                            MessageBox.Show("Не удалось сбросить пароль. Пожалуйста, попробуйте снова.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Не вдалося скинути пароль. Будь ласка, спробуйте ще раз.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Произошла ошибка: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Сталася помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -311,14 +311,14 @@ namespace ElmirClone
         {
             if (isLoginMode)
             {
-                // Режим входа
+                // Режим входу
                 string username = UsernameTextBox?.Text?.Trim();
                 string password = PasswordBox?.Password;
 
-                // Проверка на пустые поля
+                // Перевірка на порожні поля
                 if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
                 {
-                    MessageBox.Show("Пожалуйста, заполните все поля для входа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Будь ласка, заповніть усі поля для входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -328,7 +328,7 @@ namespace ElmirClone
                     {
                         connection.Open();
 
-                        // 1. Проверяем, является ли пользователь администратором (таблица AdminCredentials)
+                        // 1. Перевіряємо, чи є користувач адміністратором (таблиця AdminCredentials)
                         using (var adminCommand = new NpgsqlCommand("SELECT Password FROM AdminCredentials WHERE Username = @username", connection))
                         {
                             adminCommand.Parameters.AddWithValue("username", username);
@@ -341,24 +341,24 @@ namespace ElmirClone
 
                                     if (BCrypt.Net.BCrypt.Verify(password, hashedPassword))
                                     {
-                                        MessageBox.Show($"Вход успешен! Добро пожаловать, администратор {username}!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                                        MessageBox.Show($"Вхід успішний! Ласкаво просимо, адміністраторе {username}!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                                        // Открываем окно администратора
+                                        // Відкриваємо вікно адміністратора
                                         AdminWindow adminWindow = new AdminWindow();
                                         adminWindow.Show();
                                         this.Close();
-                                        return; // Выходим из метода, так как администратор успешно вошел
+                                        return; // Виходимо з методу, оскільки адміністратор успішно увійшов
                                     }
                                     else
                                     {
-                                        MessageBox.Show("Неверный пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                        MessageBox.Show("Невірний пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                         return;
                                     }
                                 }
                             }
                         }
 
-                        // 2. Если пользователь не администратор, проверяем в таблице UserCredentials
+                        // 2. Якщо користувач не адміністратор, перевіряємо в таблиці UserCredentials
                         using (var userCommand = new NpgsqlCommand("SELECT uc.UserId, uc.Password, uc.Role, ud.FirstName, ud.LastName, ud.Email, ud.Balance FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE uc.Username = @username AND uc.IsBlocked = FALSE", connection))
                         {
                             userCommand.Parameters.AddWithValue("username", username);
@@ -371,15 +371,15 @@ namespace ElmirClone
                                     string hashedPassword = userReader.GetString(1);
                                     string role = userReader.GetString(2);
                                     string firstName = userReader.GetString(3);
-                                    string lastName = userReader.IsDBNull(4) ? "Не вказане" : userReader.GetString(4);
+                                    string lastName = userReader.IsDBNull(4) ? "Не вказано" : userReader.GetString(4);
                                     string email = userReader.GetString(5);
                                     decimal balance = userReader.IsDBNull(6) ? 0 : userReader.GetDecimal(6);
 
                                     if (BCrypt.Net.BCrypt.Verify(password, hashedPassword))
                                     {
-                                        MessageBox.Show($"Вход успешен! Добро пожаловать, {firstName}!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                                        MessageBox.Show($"Вхід успішний! Ласкаво просимо, {firstName}!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                                        // Создаем объект профиля пользователя
+                                        // Створюємо об'єкт профілю користувача
                                         var userProfile = new UserProfile
                                         {
                                             UserId = userId,
@@ -387,10 +387,10 @@ namespace ElmirClone
                                             LastName = lastName,
                                             Phone = "+38 (050) 244 75 49",
                                             Email = email,
-                                            Balance = balance // Устанавливаем баланс
+                                            Balance = balance // Встановлюємо баланс
                                         };
 
-                                        // Проверяем роль пользователя
+                                        // Перевіряємо роль користувача
                                         if (role == "Seller")
                                         {
                                             SellerWindow sellerWindow = new SellerWindow(userId);
@@ -406,12 +406,12 @@ namespace ElmirClone
                                     }
                                     else
                                     {
-                                        MessageBox.Show("Неверный пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                        MessageBox.Show("Невірний пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                     }
                                 }
                                 else
                                 {
-                                    MessageBox.Show($"Пользователь с именем '{username}' не найден или заблокирован.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show($"Користувача з ім'ям '{username}' не знайдено або він заблокований.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                 }
                             }
                         }
@@ -419,54 +419,54 @@ namespace ElmirClone
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Произошла ошибка при входе: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Сталася помилка при вході: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                // Режим регистрации
+                // Режим реєстрації
                 string firstName = FirstNameTextBox?.Text?.Trim();
                 string lastName = LastNameTextBox?.Text?.Trim();
                 string email = EmailTextBox?.Text?.Trim();
                 string password = PasswordBoxRegister?.Password;
                 string confirmPassword = ConfirmPasswordBox?.Password;
-                string username = firstName; // Используем имя как username
+                string username = firstName; // Використовуємо ім'я як username
 
-                // Проверка на пустые поля
+                // Перевірка на порожні поля
                 if (FirstNameTextBox == null || LastNameTextBox == null || EmailTextBox == null || PasswordBoxRegister == null || ConfirmPasswordBox == null)
                 {
-                    MessageBox.Show("Ошибка: одно из полей формы регистрации не инициализировано. Проверьте XAML.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Помилка: одне з полів форми реєстрації не ініціалізовано. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(firstName))
                 {
-                    MessageBox.Show("Пожалуйста, введите имя.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Будь ласка, введіть ім'я.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(email))
                 {
-                    MessageBox.Show("Пожалуйста, введите почту.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Будь ласка, введіть пошту.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(password))
                 {
-                    MessageBox.Show("Пожалуйста, введите пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Будь ласка, введіть пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(confirmPassword))
                 {
-                    MessageBox.Show("Пожалуйста, повторите пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Будь ласка, повторіть пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // Проверка совпадения паролей
+                // Перевірка збігу паролів
                 if (password != confirmPassword)
                 {
-                    MessageBox.Show("Пароли не совпадают.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Паролі не збігаються.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -476,45 +476,45 @@ namespace ElmirClone
                     {
                         connection.Open();
 
-                        // Проверяем, существует ли пользователь с таким Username
+                        // Перевіряємо, чи існує користувач з таким Username
                         using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserCredentials WHERE Username = @username", connection))
                         {
                             checkCommand.Parameters.AddWithValue("username", username);
                             long count = (long)checkCommand.ExecuteScalar();
                             if (count > 0)
                             {
-                                MessageBox.Show("Пользователь с таким именем уже существует. Пожалуйста, выберите другое имя.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show("Користувач з таким ім'ям уже існує. Будь ласка, виберіть інше ім'я.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return;
                             }
                         }
 
-                        // Проверяем, существует ли пользователь с таким Email
+                        // Перевіряємо, чи існує користувач з таким Email
                         using (var checkEmailCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserDetails WHERE Email = @email", connection))
                         {
                             checkEmailCommand.Parameters.AddWithValue("email", email);
                             long emailCount = (long)checkEmailCommand.ExecuteScalar();
                             if (emailCount > 0)
                             {
-                                MessageBox.Show("Пользователь с таким email уже существует. Пожалуйста, используйте другой email.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show("Користувач з такою поштою уже існує. Будь ласка, використовуйте іншу пошту.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return;
                             }
                         }
 
-                        // Начинаем транзакцию
+                        // Починаємо транзакцію
                         using (var transaction = connection.BeginTransaction())
                         {
                             try
                             {
-                                // 1. Вставляем данные в таблицу UserDetails с начальным балансом только для роли Buyer
+                                // 1. Вставляємо дані в таблицю UserDetails з початковим балансом лише для ролі Buyer
                                 int userId;
                                 decimal initialBalance = 0;
-                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказане") // Предполагаем, что Seller или Admin могут не указывать LastName
+                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказано") // Припускаємо, що Seller або Admin можуть не вказувати LastName
                                 {
                                     initialBalance = 0;
                                 }
                                 else
                                 {
-                                    initialBalance = 1000000m; // Начальный баланс только для Buyer
+                                    initialBalance = 1000000m; // Початковий баланс лише для Buyer
                                 }
                                 using (var command = new NpgsqlCommand("INSERT INTO UserDetails (FirstName, LastName, Email, Balance) VALUES (@firstName, @lastName, @email, @balance) RETURNING UserId", connection))
                                 {
@@ -527,11 +527,11 @@ namespace ElmirClone
                                     userId = (int)command.ExecuteScalar();
                                 }
 
-                                // 2. Вставляем данные в таблицу UserCredentials
-                                string role = "Buyer"; // По умолчанию покупатель
-                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказане")
+                                // 2. Вставляємо дані в таблицю UserCredentials
+                                string role = "Buyer"; // За замовчуванням покупець
+                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказано")
                                 {
-                                    role = "Seller"; // Если LastName не указано, предполагаем Seller
+                                    role = "Seller"; // Якщо LastName не вказано, припускаємо Seller
                                 }
                                 using (var command = new NpgsqlCommand("INSERT INTO UserCredentials (UserId, Username, Password, Role) VALUES (@userId, @username, @password, @role)", connection))
                                 {
@@ -544,17 +544,17 @@ namespace ElmirClone
                                     command.ExecuteNonQuery();
                                 }
 
-                                // Подтверждаем транзакцию
+                                // Підтверджуємо транзакцію
                                 transaction.Commit();
 
-                                string message = "Регистрация успешна! Теперь вы можете войти.";
+                                string message = "Реєстрація успішна! Тепер ви можете увійти.";
                                 if (role == "Buyer")
                                 {
                                     message += "";
                                 }
-                                MessageBox.Show(message, "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                                MessageBox.Show(message, "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                                // Переключаемся в режим входа и очищаем поля
+                                // Перемикаємося в режим входу та очищаємо поля
                                 if (LoginRadioButton != null)
                                 {
                                     LoginRadioButton.IsChecked = true;
@@ -564,32 +564,32 @@ namespace ElmirClone
                                 EmailTextBox.Text = "";
                                 PasswordBoxRegister.Password = "";
                                 ConfirmPasswordBox.Password = "";
-                                if (UsernameTextBox != null) UsernameTextBox.Text = firstName; // Заполняем поле входа именем пользователя
+                                if (UsernameTextBox != null) UsernameTextBox.Text = firstName; // Заповнюємо поле входу ім'ям користувача
                             }
                             catch (Exception ex)
                             {
-                                // Откатываем транзакцию
+                                // Відкотимо транзакцію
                                 transaction.Rollback();
-                                MessageBox.Show($"Ошибка при регистрации: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show($"Помилка при реєстрації: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             }
                         }
                     }
                 }
                 catch (NpgsqlException ex)
                 {
-                    MessageBox.Show($"Ошибка подключения к базе данных: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Помилка підключення до бази даних: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Произошла ошибка при регистрации: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Сталася помилка при реєстрації: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
 
         private void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
-            // Этот метод больше не нужен, так как регистрация обрабатывается в ActionButton_Click
-            MessageBox.Show("Кнопка регистрации устарела. Используйте ActionButton_Click.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            // Цей метод більше не потрібен, оскільки реєстрація обробляється в ActionButton_Click
+            MessageBox.Show("Кнопка реєстрації застаріла. Використовуйте ActionButton_Click.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 }
