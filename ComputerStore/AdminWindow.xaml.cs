@@ -1244,6 +1244,7 @@ namespace ElmirClone
         public string ImageUrl { get; internal set; }
         public double Rating { get; internal set; }
         public int Reviews { get; internal set; }
+        public string SubcategoryName { get; internal set; }
     }
 
     public class PaymentMethod

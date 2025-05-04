@@ -15,6 +15,15 @@ namespace ElmirClone.Models
     {
         public int CategoryId { get; set; }
         public string Name { get; set; }
+        public int? ParentCategoryId { get; set; } // Добавлено для поддержки иерархии
+        public string ImageUrl { get; set; }
+    }
+
+    public class Subcategory
+    {
+        public int SubcategoryId { get; set; }
+        public string Name { get; set; }
+        public int CategoryId { get; set; } // Ссылка на родительскую категорию
     }
 
     public class DbProduct
@@ -26,6 +35,7 @@ namespace ElmirClone.Models
         public string Brand { get; set; }
         public decimal Discount { get; set; }
         public string CategoryName { get; set; }
+        public string SubcategoryName { get; set; }
         public string ImageUrl { get; set; }
         public double Rating { get; set; }
         public int Reviews { get; set; }
@@ -39,6 +49,13 @@ namespace ElmirClone.Models
         public decimal TotalPrice { get; set; }
         public DateTime OrderDate { get; set; }
         public string Status { get; set; }
+        public string ContactLastName { get; set; }
+        public string ContactFirstName { get; set; }
+        public string ContactMiddleName { get; set; }
+        public string ContactPhone { get; set; }
+        public string ShippingRegion { get; set; }
+        public string PickupPointAddress { get; set; }
+        public int ProductId { get; set; }
     }
 
     public class Sale
@@ -61,5 +78,21 @@ namespace ElmirClone.Models
     {
         public int PaymentMethodId { get; set; }
         public string Name { get; set; }
+    }
+
+    public class User
+    {
+        public int UserId { get; set; }
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public string Role { get; set; }
+        public bool IsBlocked { get; set; }
+    }
+
+    public class CourierService
+    {
+        public int ServiceId { get; set; }
+        public string Name { get; set; }
+        public bool IsActive { get; set; }
     }
 }

@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using Npgsql;
 using System.Configuration;
 using Microsoft.Win32; // Для OpenFileDialog
+using ElmirClone.Models; // Используем модели из Models.cs
 
 namespace ElmirClone
 {
@@ -12,7 +13,7 @@ namespace ElmirClone
     {
         private string connectionString;
         private int sellerId;
-        private string selectedImagePath; // Змінна для зберігання шляху до вибраного зображення
+        private string selectedImagePath;
 
         public SellerWindow(int sellerId)
         {
@@ -33,7 +34,6 @@ namespace ElmirClone
             LoadStoreProfile();
         }
 
-        // Переключення панелей
         private void ShowProductsPanel_Click(object sender, RoutedEventArgs e)
         {
             ProductsPanel.Visibility = Visibility.Visible;
@@ -73,7 +73,6 @@ namespace ElmirClone
             this.Close();
         }
 
-        // Метод для вибору зображення через провідник
         private void SelectImageButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
@@ -85,11 +84,10 @@ namespace ElmirClone
             if (openFileDialog.ShowDialog() == true)
             {
                 selectedImagePath = openFileDialog.FileName;
-                NewProductImagePath.Text = selectedImagePath; // Відображаємо шлях у TextBox
+                NewProductImagePath.Text = selectedImagePath;
             }
         }
 
-        // Керування товарами
         private void LoadCategories()
         {
             try
@@ -97,7 +95,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT categoryid, name FROM categories", connection))
+                    using (var command = new NpgsqlCommand("SELECT categoryid, name FROM categories WHERE parentcategoryid IS NULL", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -113,6 +111,7 @@ namespace ElmirClone
                             ProductCategory.ItemsSource = categories;
                             ProductCategory.DisplayMemberPath = "Name";
                             ProductCategory.SelectedValuePath = "CategoryId";
+                            ProductCategory.SelectionChanged += ProductCategory_SelectionChanged;
                         }
                     }
                 }
@@ -123,6 +122,53 @@ namespace ElmirClone
             }
         }
 
+        private void ProductCategory_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            LoadSubcategories();
+        }
+
+        private void LoadSubcategories()
+        {
+            try
+            {
+                int? selectedCategoryId = ProductCategory.SelectedValue as int?;
+                if (selectedCategoryId == null)
+                {
+                    ProductSubcategory.ItemsSource = null;
+                    return;
+                }
+
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT categoryid, name FROM categories WHERE parentcategoryid = @categoryid", connection))
+                    {
+                        command.Parameters.AddWithValue("categoryid", selectedCategoryId.Value);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            var subcategories = new List<Subcategory>();
+                            while (reader.Read())
+                            {
+                                subcategories.Add(new Subcategory
+                                {
+                                    SubcategoryId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    CategoryId = selectedCategoryId.Value
+                                });
+                            }
+                            ProductSubcategory.ItemsSource = subcategories;
+                            ProductSubcategory.DisplayMemberPath = "Name";
+                            ProductSubcategory.SelectedValuePath = "SubcategoryId";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при завантаженні підкатегорій: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void LoadProducts()
         {
             try
@@ -130,7 +176,7 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, p.image_path FROM products p JOIN categories c ON p.categoryid = c.categoryid WHERE p.sellerid = @sellerid", connection))
+                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid WHERE p.sellerid = @sellerid", connection))
                     {
                         command.Parameters.AddWithValue("sellerid", sellerId);
                         using (var reader = command.ExecuteReader())
@@ -146,7 +192,8 @@ namespace ElmirClone
                                     Price = reader.GetDecimal(3),
                                     Brand = reader.GetString(4),
                                     CategoryName = reader.GetString(5),
-                                    ImagePath = reader.IsDBNull(6) ? "Немає зображення" : reader.GetString(6)
+                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl = reader.IsDBNull(7) ? "Немає зображення" : reader.GetString(7)
                                 });
                             }
                             ProductsList.ItemsSource = products;
@@ -171,6 +218,7 @@ namespace ElmirClone
             }
             string brand = NewProductBrand.Text.Trim();
             int? categoryId = ProductCategory.SelectedValue as int?;
+            int? subcategoryId = ProductSubcategory.SelectedValue as int?;
 
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(brand) || categoryId == null)
             {
@@ -183,20 +231,21 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("INSERT INTO products (name, description, price, brand, categoryid, sellerid, image_path) VALUES (@name, @description, @price, @brand, @categoryid, @sellerid, @imagepath)", connection))
+                    using (var command = new NpgsqlCommand("INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url) VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
                         command.Parameters.AddWithValue("description", description);
                         command.Parameters.AddWithValue("price", price);
                         command.Parameters.AddWithValue("brand", brand);
                         command.Parameters.AddWithValue("categoryid", categoryId);
+                        command.Parameters.AddWithValue("subcategoryid", subcategoryId ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("sellerid", sellerId);
-                        command.Parameters.AddWithValue("imagepath", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
+                        command.Parameters.AddWithValue("imageurl", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
                         command.ExecuteNonQuery();
                     }
                 }
-                selectedImagePath = null; // Скидаємо шлях після додавання
-                NewProductImagePath.Text = "Шлях до зображення"; // Скидаємо поле
+                selectedImagePath = null;
+                NewProductImagePath.Text = "Шлях до зображення";
                 LoadProducts();
                 MessageBox.Show("Товар успішно додано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -211,21 +260,30 @@ namespace ElmirClone
             int productId = (int)((Button)sender).Tag;
             var product = (DbProduct)ProductsList.Items.Cast<DbProduct>().First(p => p.ProductId == productId);
 
-            // Заповнюємо поля для редагування
+            ProductCategory.SelectedValue = ProductCategory.Items.Cast<Category>().First(c => c.Name == product.CategoryName).CategoryId;
+            LoadSubcategories();
+
             NewProductName.Text = product.Name;
             NewProductDescription.Text = product.Description;
             NewProductPrice.Text = product.Price.ToString();
             NewProductBrand.Text = product.Brand;
-            ProductCategory.SelectedValue = ProductCategory.Items.Cast<Category>().First(c => c.Name == product.CategoryName).CategoryId;
-            selectedImagePath = product.ImagePath == "Немає зображення" ? null : product.ImagePath;
+            selectedImagePath = product.ImageUrl == "Немає зображення" ? null : product.ImageUrl;
             NewProductImagePath.Text = selectedImagePath ?? "Шлях до зображення";
 
-            // Створюємо вікно для редагування
+            if (product.SubcategoryName != "Не вказано")
+            {
+                ProductSubcategory.SelectedValue = ProductSubcategory.Items.Cast<Subcategory>().FirstOrDefault(sc => sc.Name == product.SubcategoryName)?.SubcategoryId;
+            }
+            else
+            {
+                ProductSubcategory.SelectedValue = null;
+            }
+
             Window editWindow = new Window
             {
                 Title = "Редагувати товар",
                 Width = 400,
-                Height = 600,
+                Height = 650,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen
             };
 
@@ -249,6 +307,52 @@ namespace ElmirClone
             panel.Children.Add(new TextBlock { Text = "Категорія:", Margin = new Thickness(0, 0, 0, 5) });
             ComboBox categoryBox = new ComboBox { ItemsSource = ProductCategory.ItemsSource, DisplayMemberPath = "Name", SelectedValuePath = "CategoryId", SelectedValue = ProductCategory.SelectedValue, Margin = new Thickness(0, 0, 0, 10) };
             panel.Children.Add(categoryBox);
+
+            panel.Children.Add(new TextBlock { Text = "Підкатегорія:", Margin = new Thickness(0, 0, 0, 5) });
+            ComboBox subcategoryBox = new ComboBox { ItemsSource = ProductSubcategory.ItemsSource, DisplayMemberPath = "Name", SelectedValuePath = "SubcategoryId", SelectedValue = ProductSubcategory.SelectedValue, Margin = new Thickness(0, 0, 0, 10) };
+            panel.Children.Add(subcategoryBox);
+
+            categoryBox.SelectionChanged += (s, ev) =>
+            {
+                try
+                {
+                    int? selectedCategoryId = categoryBox.SelectedValue as int?;
+                    if (selectedCategoryId == null)
+                    {
+                        subcategoryBox.ItemsSource = null;
+                        return;
+                    }
+
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand("SELECT categoryid, name FROM categories WHERE parentcategoryid = @categoryid", connection))
+                        {
+                            command.Parameters.AddWithValue("categoryid", selectedCategoryId.Value);
+                            using (var reader = command.ExecuteReader())
+                            {
+                                var subcategories = new List<Subcategory>();
+                                while (reader.Read())
+                                {
+                                    subcategories.Add(new Subcategory
+                                    {
+                                        SubcategoryId = reader.GetInt32(0),
+                                        Name = reader.GetString(1),
+                                        CategoryId = selectedCategoryId.Value
+                                    });
+                                }
+                                subcategoryBox.ItemsSource = subcategories;
+                                subcategoryBox.DisplayMemberPath = "Name";
+                                subcategoryBox.SelectedValuePath = "SubcategoryId";
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при завантаженні підкатегорій: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
 
             panel.Children.Add(new TextBlock { Text = "Зображення:", Margin = new Thickness(0, 0, 0, 5) });
             TextBox imagePathBox = new TextBox { Text = NewProductImagePath.Text, IsReadOnly = true, Margin = new Thickness(0, 0, 0, 5) };
@@ -277,21 +381,22 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("UPDATE products SET name = @name, description = @description, price = @price, brand = @brand, categoryid = @categoryid, image_path = @imagepath WHERE productid = @productid AND sellerid = @sellerid", connection))
+                        using (var command = new NpgsqlCommand("UPDATE products SET name = @name, description = @description, price = @price, brand = @brand, categoryid = @categoryid, subcategoryid = @subcategoryid, image_url = @imageurl WHERE productid = @productid AND sellerid = @sellerid", connection))
                         {
                             command.Parameters.AddWithValue("name", nameBox.Text.Trim());
                             command.Parameters.AddWithValue("description", descBox.Text.Trim());
                             command.Parameters.AddWithValue("price", decimal.Parse(priceBox.Text));
                             command.Parameters.AddWithValue("brand", brandBox.Text.Trim());
                             command.Parameters.AddWithValue("categoryid", (int)categoryBox.SelectedValue);
-                            command.Parameters.AddWithValue("imagepath", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
+                            command.Parameters.AddWithValue("subcategoryid", subcategoryBox.SelectedValue ?? (object)DBNull.Value);
+                            command.Parameters.AddWithValue("imageurl", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
                             command.Parameters.AddWithValue("productid", productId);
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.ExecuteNonQuery();
                         }
                     }
-                    selectedImagePath = null; // Скидаємо шлях
-                    NewProductImagePath.Text = "Шлях до зображення"; // Скидаємо поле
+                    selectedImagePath = null;
+                    NewProductImagePath.Text = "Шлях до зображення";
                     LoadProducts();
                     MessageBox.Show("Товар успішно оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                     editWindow.Close();
@@ -331,7 +436,6 @@ namespace ElmirClone
             }
         }
 
-        // Керування замовленнями
         private void LoadOrders()
         {
             try
@@ -358,7 +462,7 @@ namespace ElmirClone
                                     OrderId = reader.GetInt32(0),
                                     ProductName = reader.GetString(1),
                                     Quantity = reader.GetInt32(2),
-                                    TotalPrice = (decimal)reader.GetDouble(3), // Перетворюємо double в decimal
+                                    TotalPrice = (decimal)reader.GetDouble(3),
                                     OrderDate = reader.GetDateTime(4),
                                     Status = reader.GetString(5),
                                     ContactLastName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
@@ -366,7 +470,8 @@ namespace ElmirClone
                                     ContactMiddleName = reader.IsDBNull(8) ? "Не вказано" : reader.GetString(8),
                                     ContactPhone = reader.IsDBNull(9) ? "Не вказано" : reader.GetString(9),
                                     ShippingRegion = reader.IsDBNull(10) ? "Не вказано" : reader.GetString(10),
-                                    PickupPointAddress = reader.IsDBNull(11) ? "Не вказано" : reader.GetString(11)
+                                    PickupPointAddress = reader.IsDBNull(11) ? "Не вказано" : reader.GetString(11),
+                                    ProductId = reader.GetInt32(0) // Используем OrderId как ProductId (можно уточнить логику)
                                 });
                             }
                             OrdersList.ItemsSource = orders;
@@ -402,7 +507,7 @@ namespace ElmirClone
                     }
                 }
                 LoadOrders();
-                LoadFinancials(); // Оновлюємо фінансову інформацію
+                LoadFinancials();
                 MessageBox.Show("Статус замовлення оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -443,7 +548,6 @@ namespace ElmirClone
             }
         }
 
-        // Фінансові функції
         private void LoadFinancials()
         {
             try
@@ -455,7 +559,6 @@ namespace ElmirClone
                     decimal feePercentage = 0;
                     var sales = new List<Sale>();
 
-                    // Отримуємо відсоток комісії продавця
                     using (var command = new NpgsqlCommand("SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
                     {
                         command.Parameters.AddWithValue("sellerid", sellerId);
@@ -466,7 +569,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Отримуємо історію продажів
                     using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid AND o.status = 'Доставлено'", connection))
                     {
                         command.Parameters.AddWithValue("sellerid", sellerId);
@@ -474,7 +576,7 @@ namespace ElmirClone
                         {
                             while (reader.Read())
                             {
-                                decimal totalPrice = (decimal)reader.GetDouble(2); // Перетворюємо double в decimal
+                                decimal totalPrice = (decimal)reader.GetDouble(2);
                                 decimal sellerRevenue = totalPrice * (1 - feePercentage);
                                 totalRevenue += sellerRevenue;
 
@@ -500,7 +602,6 @@ namespace ElmirClone
             }
         }
 
-        // Профіль магазину
         private void LoadStoreProfile()
         {
             try
@@ -562,32 +663,5 @@ namespace ElmirClone
                 MessageBox.Show($"Помилка при збереженні профілю магазину: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-    }
-
-    // Моделі даних
-    public class Order
-    {
-        public int OrderId { get; set; }
-        public string ProductName { get; set; }
-        public int Quantity { get; set; }
-        public decimal TotalPrice { get; set; }
-        public DateTime OrderDate { get; set; }
-        public string Status { get; set; }
-        public string ContactLastName { get; set; }
-        public string ContactFirstName { get; set; }
-        public string ContactMiddleName { get; set; }
-        public string ContactPhone { get; set; }
-        public string ShippingRegion { get; set; }
-        public string PickupPointAddress { get; set; }
-        public int ProductId { get; internal set; }
-    }
-
-    public class Sale
-    {
-        public int OrderId { get; set; }
-        public string ProductName { get; set; }
-        public decimal TotalPrice { get; set; }
-        public decimal SellerRevenue { get; set; }
-        public DateTime OrderDate { get; set; }
     }
 }

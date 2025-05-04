@@ -73,66 +73,78 @@
                             <TextBox x:Name="NewProductDescription" Width="150" Margin="0,0,5,0" Text="Опис"/>
                             <TextBox x:Name="NewProductPrice" Width="80" Margin="0,0,5,0" Text="Ціна"/>
                             <TextBox x:Name="NewProductBrand" Width="100" Margin="0,0,5,0" Text="Бренд"/>
-                            <ComboBox x:Name="ProductCategory" Width="120" Margin="0,0,5,0"/>
+                            <ComboBox x:Name="ProductCategory" Width="120" Margin="0,0,5,0" DisplayMemberPath="Name" SelectedValuePath="CategoryId"/>
+                            <ComboBox x:Name="ProductSubcategory" Width="120" Margin="0,0,5,0" DisplayMemberPath="Name" SelectedValuePath="SubcategoryId"/>
                             <TextBox x:Name="NewProductImagePath" Width="150" Margin="0,0,5,0" Text="Шлях до зображення" IsReadOnly="True"/>
                             <Button Content="Вибрати зображення" Click="SelectImageButton_Click" Width="120"/>
                             <Button Content="Додати товар" Click="AddProduct_Click" Width="120"/>
                         </StackPanel>
-                        <ItemsControl x:Name="ProductsList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="150"/>
-                                        <TextBlock Text="{Binding Description}" Width="150"/>
-                                        <TextBlock Text="{Binding Price}" Width="80"/>
-                                        <TextBlock Text="{Binding Brand}" Width="100"/>
-                                        <TextBlock Text="{Binding CategoryName}" Width="120"/>
-                                        <TextBlock Text="{Binding ImagePath}" Width="150"/>
-                                        <Button Content="Редагувати" Click="EditProduct_Click" Tag="{Binding ProductId}" Width="100"/>
-                                        <Button Content="Видалити" Click="DeleteProduct_Click" Tag="{Binding ProductId}" Width="80"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <DataGrid x:Name="ProductsList" AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="150"/>
+                                <DataGridTextColumn Header="Опис" Binding="{Binding Description}" Width="150"/>
+                                <DataGridTextColumn Header="Ціна" Binding="{Binding Price}" Width="80"/>
+                                <DataGridTextColumn Header="Бренд" Binding="{Binding Brand}" Width="100"/>
+                                <DataGridTextColumn Header="Категорія" Binding="{Binding CategoryName}" Width="120"/>
+                                <DataGridTextColumn Header="Підкатегорія" Binding="{Binding SubcategoryName}" Width="120"/>
+                                <DataGridTextColumn Header="Зображення" Binding="{Binding ImageUrl}" Width="150"/>
+                                <!-- Заменили ImagePath на ImageUrl -->
+                                <DataGridTemplateColumn Header="Дії" Width="180">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Редагувати" Click="EditProduct_Click" Tag="{Binding ProductId}" Width="100" Margin="0,0,5,0"/>
+                                                <Button Content="Видалити" Click="DeleteProduct_Click" Tag="{Binding ProductId}" Width="80"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
 
                     <!-- Панель керування замовленнями -->
                     <StackPanel x:Name="OrdersPanel" Visibility="Collapsed">
                         <TextBlock Text="Керування замовленнями" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                        <ItemsControl x:Name="OrdersList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="0,5">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding OrderId}" Width="100"/>
-                                            <TextBlock Text="{Binding ProductName}" Width="200"/>
-                                            <TextBlock Text="{Binding Quantity}" Width="100"/>
-                                            <TextBlock Text="{Binding TotalPrice}" Width="100"/>
-                                            <TextBlock Text="{Binding OrderDate}" Width="150"/>
-                                            <TextBlock Text="{Binding Status}" Width="100"/>
-                                            <ComboBox x:Name="OrderStatusCombo" Width="100" Margin="5,0" SelectedItem="{Binding Status}">
+                        <DataGrid x:Name="OrdersList" AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID замовлення" Binding="{Binding OrderId}" Width="100"/>
+                                <DataGridTextColumn Header="Товар" Binding="{Binding ProductName}" Width="200"/>
+                                <DataGridTextColumn Header="Кількість" Binding="{Binding Quantity}" Width="100"/>
+                                <DataGridTextColumn Header="Сума" Binding="{Binding TotalPrice}" Width="100"/>
+                                <DataGridTextColumn Header="Дата" Binding="{Binding OrderDate}" Width="150"/>
+                                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="100"/>
+                                <DataGridTemplateColumn Header="Оновити статус" Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Width="100" Margin="5,0">
                                                 <ComboBoxItem Content="Очікується"/>
                                                 <ComboBoxItem Content="Підтверджено"/>
                                                 <ComboBoxItem Content="Відправлено"/>
                                                 <ComboBoxItem Content="Доставлено"/>
                                                 <ComboBoxItem Content="Скасовано"/>
                                             </ComboBox>
-                                            <Button Content="Оновити" Click="UpdateOrderStatus_Click" Tag="{Binding OrderId}"/>
-                                            <Button Content="Відправити замовлення" Style="{StaticResource SendButtonStyle}" Click="SendOrder_Click" Tag="{Binding OrderId}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                            <TextBlock Text="Інформація про замовника:" FontWeight="Bold" Width="150"/>
-                                            <TextBlock Text="{Binding ContactLastName}" Width="100"/>
-                                            <TextBlock Text="{Binding ContactFirstName}" Width="100"/>
-                                            <TextBlock Text="{Binding ContactMiddleName}" Width="100"/>
-                                            <TextBlock Text="{Binding ContactPhone}" Width="150"/>
-                                            <TextBlock Text="{Binding ShippingRegion}" Width="150"/>
-                                            <TextBlock Text="{Binding PickupPointAddress}" Width="200"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Дії" Width="200">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Оновити" Click="UpdateOrderStatus_Click" Tag="{Binding OrderId}" Width="80" Margin="0,0,5,0"/>
+                                                <Button Content="Відправити" Style="{StaticResource SendButtonStyle}" Click="SendOrder_Click" Tag="{Binding OrderId}" Width="120"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Прізвище" Binding="{Binding ContactLastName}" Width="100"/>
+                                <DataGridTextColumn Header="Ім'я" Binding="{Binding ContactFirstName}" Width="100"/>
+                                <DataGridTextColumn Header="По батькові" Binding="{Binding ContactMiddleName}" Width="100"/>
+                                <DataGridTextColumn Header="Телефон" Binding="{Binding ContactPhone}" Width="150"/>
+                                <DataGridTextColumn Header="Регіон" Binding="{Binding ShippingRegion}" Width="150"/>
+                                <DataGridTextColumn Header="Адреса" Binding="{Binding PickupPointAddress}" Width="200"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
 
                     <!-- Панель фінансів -->
@@ -141,19 +153,15 @@
                         <TextBlock Text="Загальний дохід (після комісії):" FontSize="16" Margin="0,0,0,5"/>
                         <TextBlock x:Name="TotalRevenueText" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
                         <TextBlock Text="Історія продажів" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
-                        <ItemsControl x:Name="SalesHistoryList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding OrderId}" Width="100"/>
-                                        <TextBlock Text="{Binding ProductName}" Width="200"/>
-                                        <TextBlock Text="{Binding TotalPrice}" Width="100"/>
-                                        <TextBlock Text="{Binding SellerRevenue}" Width="100"/>
-                                        <TextBlock Text="{Binding OrderDate}" Width="150"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <DataGrid x:Name="SalesHistoryList" AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID замовлення" Binding="{Binding OrderId}" Width="100"/>
+                                <DataGridTextColumn Header="Товар" Binding="{Binding ProductName}" Width="200"/>
+                                <DataGridTextColumn Header="Сума" Binding="{Binding TotalPrice}" Width="100"/>
+                                <DataGridTextColumn Header="Дохід продавця" Binding="{Binding SellerRevenue}" Width="100"/>
+                                <DataGridTextColumn Header="Дата" Binding="{Binding OrderDate}" Width="150"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
 
                     <!-- Панель профілю магазину -->

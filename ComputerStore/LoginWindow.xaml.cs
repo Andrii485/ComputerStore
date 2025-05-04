@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Threading; // Для DispatcherTimer
+using System.Windows.Input;
 using Npgsql;
 using System.Configuration;
 using BCrypt.Net;
@@ -13,7 +13,6 @@ namespace ElmirClone
     {
         private bool isLoginMode = true;
         private bool isResetPasswordMode = false;
-        private DispatcherTimer resetPasswordTimer; // Таймер для відліку 20 секунд
         private string connectionString;
 
         public LoginWindow()
@@ -37,22 +36,7 @@ namespace ElmirClone
                 return;
             }
 
-            // Ініціалізація таймера
-            resetPasswordTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(20) // Встановлюємо інтервал 20 секунд
-            };
-            resetPasswordTimer.Tick += ResetPasswordTimer_Tick; // Обробник події таймера
-
-            // Перевіряємо, що таймер ініціалізовано
-            if (resetPasswordTimer == null)
-            {
-                MessageBox.Show("resetPasswordTimer не було ініціалізовано в конструкторі!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                Close();
-                return;
-            }
-
-            // Встановлюємо початковий стан після ініціалізації таймера
+            // Встановлюємо початковий стан
             if (LoginRadioButton != null)
             {
                 LoginRadioButton.IsChecked = true; // Встановлюємо режим "Вхід" за замовчуванням
@@ -67,14 +51,6 @@ namespace ElmirClone
         {
             isLoginMode = true;
             isResetPasswordMode = false;
-
-            // Перевіряємо таймер перед використанням
-            if (resetPasswordTimer == null)
-            {
-                MessageBox.Show("resetPasswordTimer є null у LoginRadioButton_Checked!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            resetPasswordTimer.Stop(); // Зупиняємо таймер при поверненні в режим входу
 
             if (TitleTextBlock != null)
             {
@@ -101,14 +77,6 @@ namespace ElmirClone
         {
             isLoginMode = false;
             isResetPasswordMode = false;
-
-            // Перевіряємо таймер перед використанням
-            if (resetPasswordTimer == null)
-            {
-                MessageBox.Show("resetPasswordTimer є null у RegisterRadioButton_Checked!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            resetPasswordTimer.Stop(); // Зупиняємо таймер при переході в режим реєстрації
 
             if (TitleTextBlock != null)
             {
@@ -160,60 +128,17 @@ namespace ElmirClone
                 return;
             }
 
-            // Якщо всі елементи знайдені, виконуємо перемикання видимості
+            // Виконуємо перемикання видимості
             LoginFields.Visibility = Visibility.Collapsed;
             RegisterFieldsScrollViewer.Visibility = Visibility.Collapsed;
             ResetPasswordFields.Visibility = Visibility.Visible;
-
-            // Перевіряємо таймер перед використанням
-            if (resetPasswordTimer == null)
-            {
-                MessageBox.Show("resetPasswordTimer є null у ResetPasswordButton_Click!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            resetPasswordTimer.Stop(); // Зупиняємо, якщо вже був запущений
-            resetPasswordTimer.Start();
-        }
-
-        private void ResetPasswordTimer_Tick(object sender, EventArgs e)
-        {
-            if (resetPasswordTimer == null)
-            {
-                MessageBox.Show("resetPasswordTimer є null у ResetPasswordTimer_Tick!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            resetPasswordTimer.Stop(); // Зупиняємо таймер
-
-            // Перевіряємо, чи заповнені поля
-            bool isAnyFieldFilled =
-                !string.IsNullOrWhiteSpace(EmailResetTextBox?.Text) ||
-                !string.IsNullOrWhiteSpace(NewPasswordBox?.Password) ||
-                !string.IsNullOrWhiteSpace(ConfirmNewPasswordBox?.Password);
-
-            // Якщо поля заповнені або не заповнені, у будь-якому випадку переводимо в режим входу
-            if (isResetPasswordMode)
-            {
-                if (isAnyFieldFilled)
-                {
-                    MessageBox.Show("Час очікування минув. Будь ласка, спробуйте ще раз.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-
-                // Переводимо в режим входу
-                if (LoginRadioButton != null)
-                {
-                    LoginRadioButton.IsChecked = true;
-                }
-                // Очищаємо поля скидання пароля
-                if (EmailResetTextBox != null) EmailResetTextBox.Text = "";
-                if (NewPasswordBox != null) NewPasswordBox.Password = "";
-                if (ConfirmNewPasswordBox != null) ConfirmNewPasswordBox.Password = "";
-            }
         }
 
         private void ConfirmResetButton_Click(object sender, RoutedEventArgs e)
         {
             // Отримуємо дані з полів
             string email = EmailResetTextBox?.Text?.Trim();
+            string securityCode = SecurityCodeTextBox?.Text?.Trim();
             string newPassword = NewPasswordBox?.Password;
             string confirmNewPassword = ConfirmNewPasswordBox?.Password;
 
@@ -221,6 +146,12 @@ namespace ElmirClone
             if (string.IsNullOrWhiteSpace(email))
             {
                 MessageBox.Show("Будь ласка, введіть вашу пошту.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(securityCode) || securityCode.Length != 4 || !securityCode.All(char.IsDigit))
+            {
+                MessageBox.Show("Будь ласка, введіть коректний 4-значний код.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -249,15 +180,16 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Перевіряємо, чи існує користувач з вказаною поштою
+                    // Перевіряємо, чи існує користувач з вказаною поштою та кодом
                     int userId;
-                    using (var command = new NpgsqlCommand("SELECT UserId FROM UserDetails WHERE Email = @email", connection))
+                    using (var command = new NpgsqlCommand("SELECT uc.UserId FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE ud.Email = @email AND uc.securitycode = @securityCode", connection))
                     {
                         command.Parameters.AddWithValue("email", email);
+                        command.Parameters.AddWithValue("securityCode", securityCode);
                         var result = command.ExecuteScalar();
                         if (result == null)
                         {
-                            MessageBox.Show("Користувача з вказаною поштою не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Неправильна пошта або код безпеки.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
                         userId = (int)result;
@@ -277,20 +209,13 @@ namespace ElmirClone
                         {
                             MessageBox.Show("Пароль успішно скинуто! Тепер ви можете увійти з новим паролем.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                            // Зупиняємо таймер
-                            if (resetPasswordTimer == null)
-                            {
-                                MessageBox.Show("resetPasswordTimer є null у ConfirmResetButton_Click!", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
-                            resetPasswordTimer.Stop();
-
                             // Перемикаємося назад у режим входу
                             if (LoginRadioButton != null)
                             {
                                 LoginRadioButton.IsChecked = true;
                             }
                             if (EmailResetTextBox != null) EmailResetTextBox.Text = "";
+                            if (SecurityCodeTextBox != null) SecurityCodeTextBox.Text = "";
                             if (NewPasswordBox != null) NewPasswordBox.Password = "";
                             if (ConfirmNewPasswordBox != null) ConfirmNewPasswordBox.Password = "";
                         }
@@ -324,11 +249,18 @@ namespace ElmirClone
 
                 try
                 {
+                    int userId = 0;
+                    string role = null;
+                    string firstName = null;
+                    string lastName = null;
+                    string email = null;
+                    string securityCode = null;
+                    bool passwordVerified = false;
+
+                    // 1. Перевіряємо, чи є користувач адміністратором (таблиця AdminCredentials)
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-
-                        // 1. Перевіряємо, чи є користувач адміністратором (таблиця AdminCredentials)
                         using (var adminCommand = new NpgsqlCommand("SELECT Password FROM AdminCredentials WHERE Username = @username", connection))
                         {
                             adminCommand.Parameters.AddWithValue("username", username);
@@ -357,9 +289,13 @@ namespace ElmirClone
                                 }
                             }
                         }
+                    }
 
-                        // 2. Якщо користувач не адміністратор, перевіряємо в таблиці UserCredentials
-                        using (var userCommand = new NpgsqlCommand("SELECT uc.UserId, uc.Password, uc.Role, ud.FirstName, ud.LastName, ud.Email, ud.Balance FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE uc.Username = @username AND uc.IsBlocked = FALSE", connection))
+                    // 2. Якщо користувач не адміністратор, перевіряємо в таблиці UserCredentials
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var userCommand = new NpgsqlCommand("SELECT uc.UserId, uc.Password, uc.Role, ud.FirstName, ud.LastName, ud.Email, uc.securitycode FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE uc.Username = @username AND uc.IsBlocked = FALSE", connection))
                         {
                             userCommand.Parameters.AddWithValue("username", username);
 
@@ -367,54 +303,82 @@ namespace ElmirClone
                             {
                                 if (userReader.Read())
                                 {
-                                    int userId = userReader.GetInt32(0);
+                                    userId = userReader.GetInt32(0);
                                     string hashedPassword = userReader.GetString(1);
-                                    string role = userReader.GetString(2);
-                                    string firstName = userReader.GetString(3);
-                                    string lastName = userReader.IsDBNull(4) ? "Не вказано" : userReader.GetString(4);
-                                    string email = userReader.GetString(5);
-                                    decimal balance = userReader.IsDBNull(6) ? 0 : userReader.GetDecimal(6);
+                                    role = userReader.GetString(2);
+                                    firstName = userReader.GetString(3);
+                                    lastName = userReader.IsDBNull(4) ? "Не вказано" : userReader.GetString(4);
+                                    email = userReader.GetString(5);
+                                    securityCode = userReader.IsDBNull(6) ? null : userReader.GetString(6);
 
-                                    if (BCrypt.Net.BCrypt.Verify(password, hashedPassword))
-                                    {
-                                        MessageBox.Show($"Вхід успішний! Ласкаво просимо, {firstName}!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                                        // Створюємо об'єкт профілю користувача
-                                        var userProfile = new UserProfile
-                                        {
-                                            UserId = userId,
-                                            FirstName = firstName,
-                                            LastName = lastName,
-                                            Phone = "+38 (050) 244 75 49",
-                                            Email = email,
-                                            Balance = balance // Встановлюємо баланс
-                                        };
-
-                                        // Перевіряємо роль користувача
-                                        if (role == "Seller")
-                                        {
-                                            SellerWindow sellerWindow = new SellerWindow(userId);
-                                            sellerWindow.Show();
-                                            this.Close();
-                                        }
-                                        else
-                                        {
-                                            MainWindow mainWindow = new MainWindow(userProfile);
-                                            mainWindow.Show();
-                                            this.Close();
-                                        }
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Невірний пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    }
+                                    passwordVerified = BCrypt.Net.BCrypt.Verify(password, hashedPassword);
                                 }
                                 else
                                 {
                                     MessageBox.Show($"Користувача з ім'ям '{username}' не знайдено або він заблокований.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
                                 }
                             }
                         }
+                    }
+
+                    if (passwordVerified)
+                    {
+                        // Перевіряємо, чи встановлений securitycode
+                        if (securityCode == null)
+                        {
+                            // Запитуємо 4-значний код, якщо він не встановлений
+                            string inputSecurityCode = Microsoft.VisualBasic.Interaction.InputBox("Це ваш перший вхід. Придумайте 4-значний код безпеки (тільки цифри). Запам'ятайте його, він знадобиться для скидання пароля:", "Налаштування коду безпеки", "");
+                            if (string.IsNullOrWhiteSpace(inputSecurityCode) || inputSecurityCode.Length != 4 || !inputSecurityCode.All(char.IsDigit))
+                            {
+                                MessageBox.Show("Будь ласка, введіть коректний 4-значний код (тільки цифри).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+
+                            // Зберігаємо введений код у базі даних
+                            using (var connection = new NpgsqlConnection(connectionString))
+                            {
+                                connection.Open();
+                                using (var updateCommand = new NpgsqlCommand("UPDATE UserCredentials SET securitycode = @securityCode WHERE UserId = @userId", connection))
+                                {
+                                    updateCommand.Parameters.AddWithValue("securityCode", inputSecurityCode);
+                                    updateCommand.Parameters.AddWithValue("userId", userId);
+                                    updateCommand.ExecuteNonQuery();
+                                }
+                            }
+                            MessageBox.Show("Код безпеки успішно встановлено! Запам'ятайте його для скидання пароля.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+
+                        MessageBox.Show($"Вхід успішний! Ласкаво просимо, {firstName}!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Створюємо об'єкт профілю користувача
+                        var userProfile = new UserProfile
+                        {
+                            UserId = userId,
+                            FirstName = firstName,
+                            LastName = lastName,
+                            Phone = "+38 (050) 244 75 49",
+                            Email = email,
+                            Balance = 1000000m // Встановлюємо баланс (для Buyer)
+                        };
+
+                        // Перевіряємо роль користувача
+                        if (role == "Seller")
+                        {
+                            SellerWindow sellerWindow = new SellerWindow(userId);
+                            sellerWindow.Show();
+                            this.Close();
+                        }
+                        else
+                        {
+                            MainWindow mainWindow = new MainWindow(userProfile);
+                            mainWindow.Show();
+                            this.Close();
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Невірний пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
                 catch (Exception ex)
@@ -430,10 +394,11 @@ namespace ElmirClone
                 string email = EmailTextBox?.Text?.Trim();
                 string password = PasswordBoxRegister?.Password;
                 string confirmPassword = ConfirmPasswordBox?.Password;
+                string securityCode = SecurityCodeRegisterTextBox?.Text?.Trim();
                 string username = firstName; // Використовуємо ім'я як username
 
                 // Перевірка на порожні поля
-                if (FirstNameTextBox == null || LastNameTextBox == null || EmailTextBox == null || PasswordBoxRegister == null || ConfirmPasswordBox == null)
+                if (FirstNameTextBox == null || LastNameTextBox == null || EmailTextBox == null || PasswordBoxRegister == null || ConfirmPasswordBox == null || SecurityCodeRegisterTextBox == null)
                 {
                     MessageBox.Show("Помилка: одне з полів форми реєстрації не ініціалізовано. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
@@ -460,6 +425,12 @@ namespace ElmirClone
                 if (string.IsNullOrWhiteSpace(confirmPassword))
                 {
                     MessageBox.Show("Будь ласка, повторіть пароль.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(securityCode) || securityCode.Length != 4 || !securityCode.All(char.IsDigit))
+                {
+                    MessageBox.Show("Будь ласка, введіть коректний 4-значний код.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -505,17 +476,9 @@ namespace ElmirClone
                         {
                             try
                             {
-                                // 1. Вставляємо дані в таблицю UserDetails з початковим балансом лише для ролі Buyer
+                                // 1. Вставляємо дані в таблицю UserDetails з початковим балансом для ролі Buyer
                                 int userId;
-                                decimal initialBalance = 0;
-                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказано") // Припускаємо, що Seller або Admin можуть не вказувати LastName
-                                {
-                                    initialBalance = 0;
-                                }
-                                else
-                                {
-                                    initialBalance = 1000000m; // Початковий баланс лише для Buyer
-                                }
+                                decimal initialBalance = 1000000m; // Початковий баланс для Buyer
                                 using (var command = new NpgsqlCommand("INSERT INTO UserDetails (FirstName, LastName, Email, Balance) VALUES (@firstName, @lastName, @email, @balance) RETURNING UserId", connection))
                                 {
                                     command.Parameters.AddWithValue("firstName", firstName);
@@ -527,18 +490,15 @@ namespace ElmirClone
                                     userId = (int)command.ExecuteScalar();
                                 }
 
-                                // 2. Вставляємо дані в таблицю UserCredentials
-                                string role = "Buyer"; // За замовчуванням покупець
-                                if (string.IsNullOrWhiteSpace(lastName) || lastName == "Не вказано")
-                                {
-                                    role = "Seller"; // Якщо LastName не вказано, припускаємо Seller
-                                }
-                                using (var command = new NpgsqlCommand("INSERT INTO UserCredentials (UserId, Username, Password, Role) VALUES (@userId, @username, @password, @role)", connection))
+                                // 2. Вставляємо дані в таблицю UserCredentials з роллю Buyer і SecurityCode
+                                string role = "Buyer"; // Усі нові користувачі отримують роль Buyer
+                                using (var command = new NpgsqlCommand("INSERT INTO UserCredentials (UserId, Username, Password, Role, securitycode) VALUES (@userId, @username, @password, @role, @securityCode)", connection))
                                 {
                                     command.Parameters.AddWithValue("userId", userId);
                                     command.Parameters.AddWithValue("username", username);
                                     command.Parameters.AddWithValue("password", BCrypt.Net.BCrypt.HashPassword(password));
                                     command.Parameters.AddWithValue("role", role);
+                                    command.Parameters.AddWithValue("securityCode", securityCode);
                                     command.Transaction = transaction;
 
                                     command.ExecuteNonQuery();
@@ -548,10 +508,6 @@ namespace ElmirClone
                                 transaction.Commit();
 
                                 string message = "Реєстрація успішна! Тепер ви можете увійти.";
-                                if (role == "Buyer")
-                                {
-                                    message += "";
-                                }
                                 MessageBox.Show(message, "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
                                 // Перемикаємося в режим входу та очищаємо поля
@@ -564,6 +520,7 @@ namespace ElmirClone
                                 EmailTextBox.Text = "";
                                 PasswordBoxRegister.Password = "";
                                 ConfirmPasswordBox.Password = "";
+                                SecurityCodeRegisterTextBox.Text = "";
                                 if (UsernameTextBox != null) UsernameTextBox.Text = firstName; // Заповнюємо поле входу ім'ям користувача
                             }
                             catch (Exception ex)
@@ -586,10 +543,12 @@ namespace ElmirClone
             }
         }
 
-        private void RegisterButton_Click(object sender, RoutedEventArgs e)
+        private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
         {
-            // Цей метод більше не потрібен, оскільки реєстрація обробляється в ActionButton_Click
-            MessageBox.Show("Кнопка реєстрації застаріла. Використовуйте ActionButton_Click.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (!char.IsDigit(e.Text, e.Text.Length - 1))
+            {
+                e.Handled = true; // Блокуємо введення не цифр
+            }
         }
     }
 }

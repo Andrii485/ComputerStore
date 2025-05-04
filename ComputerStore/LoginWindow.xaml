@@ -154,16 +154,20 @@
                         <PasswordBox x:Name="PasswordBox" Width="350" Margin="0,0,0,40"/>
                     </StackPanel>
 
-                    <!-- Поля для скидання пароля -->
-                    <StackPanel x:Name="ResetPasswordFields" Visibility="Collapsed">
-                        <TextBlock Text="Введіть вашу пошту" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
-                        <TextBox x:Name="EmailResetTextBox" Width="350"/>
-                        <TextBlock Text="Новий пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                        <PasswordBox x:Name="NewPasswordBox" Width="350"/>
-                        <TextBlock Text="Повторіть новий пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                        <PasswordBox x:Name="ConfirmNewPasswordBox" Width="350" Margin="0,0,0,40"/>
-                        <Button x:Name="ConfirmResetButton" Content="Скинути пароль" Width="350" Style="{StaticResource ActionButtonStyle}" Background="#FF5722" Click="ConfirmResetButton_Click"/>
-                    </StackPanel>
+                    <!-- Поля для скидання пароля з прокруткою -->
+                    <ScrollViewer x:Name="ResetPasswordFields" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" MaxHeight="400">
+                        <StackPanel>
+                            <TextBlock Text="Введіть вашу пошту" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
+                            <TextBox x:Name="EmailResetTextBox" Width="350"/>
+                            <TextBlock Text="Введіть 4 цифри" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5" ToolTip="Введіть 4 цифри, які ви запам'ятаєте, ці цифри потрібні, якщо ви забудете пароль, щоб ви могли його скинути"/>
+                            <TextBox x:Name="SecurityCodeTextBox" Width="350" MaxLength="4" PreviewTextInput="NumberValidationTextBox"/>
+                            <TextBlock Text="Новий пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <PasswordBox x:Name="NewPasswordBox" Width="350"/>
+                            <TextBlock Text="Повторіть новий пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <PasswordBox x:Name="ConfirmNewPasswordBox" Width="350" Margin="0,0,0,40"/>
+                            <Button x:Name="ConfirmResetButton" Content="Скинути пароль" Width="350" Style="{StaticResource ActionButtonStyle}" Background="#FF5722" Click="ConfirmResetButton_Click"/>
+                        </StackPanel>
+                    </ScrollViewer>
 
                     <!-- Поля для реєстрації з прокруткою -->
                     <ScrollViewer x:Name="RegisterFieldsScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" MaxHeight="400">
@@ -178,6 +182,8 @@
                             <PasswordBox x:Name="PasswordBoxRegister" Width="350"/>
                             <TextBlock Text="Повторіть пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
                             <PasswordBox x:Name="ConfirmPasswordBox" Width="350"/>
+                            <TextBlock Text="Введіть 4 цифри" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5" ToolTip="Введіть 4 цифри, які ви запам'ятаєте, ці цифри потрібні, якщо ви забудете пароль, щоб ви могли його скинути"/>
+                            <TextBox x:Name="SecurityCodeRegisterTextBox" Width="350" MaxLength="4" PreviewTextInput="NumberValidationTextBox"/>
                             <!-- Кнопка для реєстрації -->
                             <Button x:Name="RegisterButton" Content="Зареєструватися" Width="350" Style="{StaticResource ActionButtonStyle}" Background="#FF5722" Margin="0,40,0,20" Click="ActionButton_Click"/>
                         </StackPanel>
