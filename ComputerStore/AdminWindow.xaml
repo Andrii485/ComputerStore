@@ -80,19 +80,23 @@
                             </ComboBox>
                             <Button Content="Зареєструвати" Click="RegisterUser_Click"/>
                         </StackPanel>
-                        <ItemsControl x:Name="UsersList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Username}" Width="150"/>
-                                        <TextBlock Text="{Binding Email}" Width="200"/>
-                                        <TextBlock Text="{Binding Role}" Width="100"/>
-                                        <Button Content="Заблокувати" Click="BlockUser_Click" Tag="{Binding UserId}" Margin="5,0"/>
-                                        <Button Content="Видалити" Click="DeleteUser_Click" Tag="{Binding UserId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <DataGrid x:Name="UsersList" AutoGenerateColumns="False" Margin="0,5,0,10" CanUserAddRows="False" CanUserDeleteRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Ім'я користувача" Binding="{Binding Username}" Width="150"/>
+                                <DataGridTextColumn Header="Електронна пошта" Binding="{Binding Email}" Width="200"/>
+                                <DataGridTextColumn Header="Роль" Binding="{Binding Role}" Width="100"/>
+                                <DataGridTemplateColumn Header="Дії" Width="200">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Заблокувати" Click="BlockUser_Click" Tag="{Binding UserId}" Margin="5,0"/>
+                                                <Button Content="Видалити" Click="DeleteUser_Click" Tag="{Binding UserId}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
 
                     <!-- Панель керування каталогом -->
@@ -126,19 +130,37 @@
                             </StackPanel>
                             <Button Content="Додати категорію" Click="AddCategory_Click" Margin="0,5,0,0"/>
                         </StackPanel>
-                        <ItemsControl x:Name="CategoriesList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="200"/>
-                                        <TextBlock Text="{Binding ParentCategoryName}" Width="150"/>
-                                        <TextBlock Text="{Binding ImageUrl}" Width="200"/>
-                                        <Button Content="Редагувати" Click="EditCategory_Click" Tag="{Binding CategoryId}" Margin="5,0"/>
-                                        <Button Content="Видалити" Click="DeleteCategory_Click" Tag="{Binding CategoryId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <DataGrid x:Name="CategoriesList" AutoGenerateColumns="False" Margin="0,5,0,10" CanUserAddRows="False" CanUserDeleteRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="200"/>
+                                <DataGridTextColumn Header="Батьківська категорія" Binding="{Binding ParentCategoryName}" Width="150"/>
+                                <DataGridTextColumn Header="Зображення" Binding="{Binding ImageUrl}" Width="200"/>
+                                <DataGridTemplateColumn Header="Дії" Width="200">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Редагувати" Click="EditCategory_Click" Tag="{Binding CategoryId}" Margin="5,0"/>
+                                                <Button Content="Видалити" Click="DeleteCategory_Click" Tag="{Binding CategoryId}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Керування товарами -->
+                        <TextBlock Text="Товари" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
+                        <DataGrid x:Name="ProductsList" AutoGenerateColumns="False" Margin="0,5,0,10" CanUserAddRows="False" CanUserDeleteRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="150"/>
+                                <DataGridTextColumn Header="Опис" Binding="{Binding Description}" Width="150"/>
+                                <DataGridTextColumn Header="Ціна" Binding="{Binding Price, StringFormat={}{0:C}}" Width="80"/>
+                                <DataGridTextColumn Header="Бренд" Binding="{Binding Brand}" Width="100"/>
+                                <DataGridTextColumn Header="Категорія" Binding="{Binding CategoryName}" Width="120"/>
+                                <DataGridTextColumn Header="Підкатегорія" Binding="{Binding SubcategoryName}" Width="120"/>
+                                <DataGridTextColumn Header="Зображення" Binding="{Binding ImageUrl}" Width="150"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
 
                     <!-- Панель фінансових налаштувань -->
@@ -150,18 +172,22 @@
                             <TextBox x:Name="NewPaymentMethodName" Width="200" Margin="0,0,5,0" Text="Назва способу оплати"/>
                             <Button Content="Додати" Click="AddPaymentMethod_Click"/>
                         </StackPanel>
-                        <ItemsControl x:Name="PaymentMethodsList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="200"/>
-                                        <CheckBox IsChecked="{Binding IsActive}" Content="Активний" Margin="5,0"/>
-                                        <Button Content="Редагувати" Click="EditPaymentMethod_Click" Tag="{Binding MethodId}" Margin="5,0"/>
-                                        <Button Content="Видалити" Click="DeletePaymentMethod_Click" Tag="{Binding MethodId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <DataGrid x:Name="PaymentMethodsList" AutoGenerateColumns="False" Margin="0,5,0,10" CanUserAddRows="False" CanUserDeleteRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="200"/>
+                                <DataGridCheckBoxColumn Header="Активний" Binding="{Binding IsActive}" Width="100"/>
+                                <DataGridTemplateColumn Header="Дії" Width="200">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Редагувати" Click="EditPaymentMethod_Click" Tag="{Binding MethodId}" Margin="5,0"/>
+                                                <Button Content="Видалити" Click="DeletePaymentMethod_Click" Tag="{Binding MethodId}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
 
                     <!-- Панель логістики та доставки -->
@@ -173,19 +199,23 @@
                             <TextBox x:Name="NewCourierService" Width="200" Margin="0,0,5,0" Text="Назва служби"/>
                             <Button Content="Додати" Click="AddCourierService_Click"/>
                         </StackPanel>
-                        <ItemsControl x:Name="CourierServicesList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="200"/>
-                                        <CheckBox IsChecked="{Binding IsActive}" Content="Активна" Margin="5,0"/>
-                                        <Button Content="Зберегти" Click="UpdateCourierService_Click" Tag="{Binding ServiceId}" Margin="5,0"/>
-                                        <Button Content="Редагувати" Click="EditCourierService_Click" Tag="{Binding ServiceId}" Margin="5,0"/>
-                                        <Button Content="Видалити" Click="DeleteCourierService_Click" Tag="{Binding ServiceId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <DataGrid x:Name="CourierServicesList" AutoGenerateColumns="False" Margin="0,5,0,10" CanUserAddRows="False" CanUserDeleteRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="200"/>
+                                <DataGridCheckBoxColumn Header="Активна" Binding="{Binding IsActive}" Width="100"/>
+                                <DataGridTemplateColumn Header="Дії" Width="300">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Зберегти" Click="UpdateCourierService_Click" Tag="{Binding ServiceId}" Margin="5,0"/>
+                                                <Button Content="Редагувати" Click="EditCourierService_Click" Tag="{Binding ServiceId}" Margin="5,0"/>
+                                                <Button Content="Видалити" Click="DeleteCourierService_Click" Tag="{Binding ServiceId}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
 
                         <!-- Пункти самовивозу -->
                         <TextBlock Text="Пункти самовивозу" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
@@ -194,18 +224,22 @@
                             <ComboBox x:Name="NewPickupPointRegion" Width="150" Margin="0,0,5,0"/>
                             <Button Content="Додати" Click="AddPickupPoint_Click"/>
                         </StackPanel>
-                        <ItemsControl x:Name="PickupPointsList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Address}" Width="200"/>
-                                        <TextBlock Text="{Binding Region}" Width="150"/>
-                                        <Button Content="Редагувати" Click="UpdatePickupPoint_Click" Tag="{Binding PickupPointId}" Margin="5,0"/>
-                                        <Button Content="Видалити" Click="DeletePickupPoint_Click" Tag="{Binding PickupPointId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <DataGrid x:Name="PickupPointsList" AutoGenerateColumns="False" Margin="0,5,0,10" CanUserAddRows="False" CanUserDeleteRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Адреса" Binding="{Binding Address}" Width="200"/>
+                                <DataGridTextColumn Header="Регіон" Binding="{Binding Region}" Width="150"/>
+                                <DataGridTemplateColumn Header="Дії" Width="200">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Редагувати" Click="UpdatePickupPoint_Click" Tag="{Binding PickupPointId}" Margin="5,0"/>
+                                                <Button Content="Видалити" Click="DeletePickupPoint_Click" Tag="{Binding PickupPointId}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

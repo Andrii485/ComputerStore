@@ -37,6 +37,7 @@ namespace ElmirClone
 
             LoadUsers();
             LoadCategories();
+            LoadProducts();
             LoadPaymentMethods();
             LoadCourierServices();
             LoadPickupPoints();
@@ -148,23 +149,18 @@ namespace ElmirClone
                 return;
             }
 
+            // Перевіряємо, чи email закінчується на @gmail.com або @outlook.com
+            if (!(email.EndsWith("@gmail.com") || email.EndsWith("@outlook.com")))
+            {
+                MessageBox.Show("Електронна пошта повинна закінчуватися на @gmail.com або @outlook.com.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             try
             {
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-
-                    // Перевіряємо, чи існує користувач з таким Username
-                    using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM usercredentials WHERE username = @username", connection))
-                    {
-                        checkCommand.Parameters.AddWithValue("username", username);
-                        long count = (long)checkCommand.ExecuteScalar();
-                        if (count > 0)
-                        {
-                            MessageBox.Show("Користувач з таким ім'ям уже існує. Будь ласка, виберіть інше ім'я.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-                    }
 
                     // Перевіряємо, чи існує користувач з таким Email
                     using (var checkEmailCommand = new NpgsqlCommand("SELECT COUNT(*) FROM userdetails WHERE email = @email", connection))
@@ -173,7 +169,7 @@ namespace ElmirClone
                         long emailCount = (long)checkEmailCommand.ExecuteScalar();
                         if (emailCount > 0)
                         {
-                            MessageBox.Show("Користувач з такою електронною поштою уже існує. Будь ласка, використовуйте іншу електронну пошту.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Користувач з такою електронною поштою вже є в базі даних.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
                     }
@@ -381,6 +377,43 @@ namespace ElmirClone
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка під час завантаження категорій: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadProducts()
+        {
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid", connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            var products = new List<DbProduct>();
+                            while (reader.Read())
+                            {
+                                products.Add(new DbProduct
+                                {
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price = reader.GetDecimal(3),
+                                    Brand = reader.GetString(4),
+                                    CategoryName = reader.GetString(5),
+                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl = reader.IsDBNull(7) ? null : reader.GetString(7)
+                                });
+                            }
+                            ProductsList.ItemsSource = products;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка під час завантаження товарів: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -930,10 +963,14 @@ namespace ElmirClone
         private void UpdateCourierService_Click(object sender, RoutedEventArgs e)
         {
             int serviceId = (int)((Button)sender).Tag;
-            var stackPanel = ((Button)sender).Parent as StackPanel;
-            var isActiveCheckBox = stackPanel.Children[1] as CheckBox;
+            var selectedRow = CourierServicesList.SelectedItem as CourierService;
+            if (selectedRow == null)
+            {
+                MessageBox.Show("Оберіть службу для оновлення.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
-            bool isActive = isActiveCheckBox.IsChecked ?? false;
+            bool isActive = selectedRow.IsActive;
 
             try
             {
@@ -1245,6 +1282,8 @@ namespace ElmirClone
         public double Rating { get; internal set; }
         public int Reviews { get; internal set; }
         public string SubcategoryName { get; internal set; }
+        public object StoreName { get; internal set; }
+        public object StoreDescription { get; internal set; }
     }
 
     public class PaymentMethod

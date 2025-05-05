@@ -6,6 +6,7 @@ using Npgsql;
 using System.Configuration;
 using Microsoft.Win32; // Для OpenFileDialog
 using ElmirClone.Models; // Используем модели из Models.cs
+using System.IO;
 
 namespace ElmirClone
 {
@@ -135,6 +136,7 @@ namespace ElmirClone
                 if (selectedCategoryId == null)
                 {
                     ProductSubcategory.ItemsSource = null;
+                    ProductSubcategory.SelectedValue = null; // Очищаем выбор подкатегории
                     return;
                 }
 
@@ -159,6 +161,7 @@ namespace ElmirClone
                             ProductSubcategory.ItemsSource = subcategories;
                             ProductSubcategory.DisplayMemberPath = "Name";
                             ProductSubcategory.SelectedValuePath = "SubcategoryId";
+                            ProductSubcategory.SelectedValue = null; // Сбрасываем выбор подкатегории при изменении категории
                         }
                     }
                 }
@@ -184,6 +187,7 @@ namespace ElmirClone
                             var products = new List<DbProduct>();
                             while (reader.Read())
                             {
+                                string imageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7);
                                 products.Add(new DbProduct
                                 {
                                     ProductId = reader.GetInt32(0),
@@ -193,7 +197,7 @@ namespace ElmirClone
                                     Brand = reader.GetString(4),
                                     CategoryName = reader.GetString(5),
                                     SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl = reader.IsDBNull(7) ? "Немає зображення" : reader.GetString(7)
+                                    ImageUrl = imageUrl
                                 });
                             }
                             ProductsList.ItemsSource = products;
@@ -231,6 +235,51 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
+
+                    // Проверяем, существует ли subcategoryId в таблице categories, если он выбран
+                    if (subcategoryId.HasValue)
+                    {
+                        using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM categories WHERE categoryid = @subcategoryid", connection))
+                        {
+                            checkCommand.Parameters.AddWithValue("subcategoryid", subcategoryId.Value);
+                            long count = (long)checkCommand.ExecuteScalar();
+                            if (count == 0)
+                            {
+                                MessageBox.Show("Вибрана підкатегорія не існує в базі даних. Будь ласка, оберіть іншу підкатегорію або залиште поле порожнім.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+                        }
+
+                        // Дополнительно проверяем, принадлежит ли subcategoryId к выбранной категории
+                        using (var parentCheckCommand = new NpgsqlCommand("SELECT COUNT(*) FROM categories WHERE categoryid = @subcategoryid AND parentcategoryid = @categoryid", connection))
+                        {
+                            parentCheckCommand.Parameters.AddWithValue("subcategoryid", subcategoryId.Value);
+                            parentCheckCommand.Parameters.AddWithValue("categoryid", categoryId.Value);
+                            long parentCount = (long)parentCheckCommand.ExecuteScalar();
+                            if (parentCount == 0)
+                            {
+                                MessageBox.Show("Вибрана підкатегорія не належить до обраної категорії. Будь ласка, перевірте вибір.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+                        }
+                    }
+
+                    // Проверяем, существует ли categoryId в таблице categories
+                    using (var categoryCheckCommand = new NpgsqlCommand("SELECT COUNT(*) FROM categories WHERE categoryid = @categoryid", connection))
+                    {
+                        categoryCheckCommand.Parameters.AddWithValue("categoryid", categoryId.Value);
+                        long categoryCount = (long)categoryCheckCommand.ExecuteScalar();
+                        if (categoryCount == 0)
+                        {
+                            MessageBox.Show("Вибрана категорія не існує в базі даних. Будь ласка, оберіть іншу категорію.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                    }
+
+                    // Загружаем изображение на сервер или используем локальный путь
+                    string imageUrl = string.IsNullOrWhiteSpace(selectedImagePath) ? "https://via.placeholder.com/150" : UploadImageToServer(selectedImagePath);
+
+                    // Вставляем продукт
                     using (var command = new NpgsqlCommand("INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url) VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl)", connection))
                     {
                         command.Parameters.AddWithValue("name", name);
@@ -240,7 +289,7 @@ namespace ElmirClone
                         command.Parameters.AddWithValue("categoryid", categoryId);
                         command.Parameters.AddWithValue("subcategoryid", subcategoryId ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("sellerid", sellerId);
-                        command.Parameters.AddWithValue("imageurl", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
+                        command.Parameters.AddWithValue("imageurl", imageUrl);
                         command.ExecuteNonQuery();
                     }
                 }
@@ -252,6 +301,29 @@ namespace ElmirClone
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка при додаванні товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private string UploadImageToServer(string localPath)
+        {
+            try
+            {
+                // Здесь предполагается, что у вас есть сервер для загрузки изображений
+                // Пример: загружаем изображение на сервер и возвращаем URL
+                string serverPath = "http://yourserver.com/images/"; // Замените на реальный URL вашего сервера
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(localPath);
+                string fullServerPath = serverPath + fileName;
+
+                // Копируем файл на сервер (нужно реализовать серверную часть)
+                // Это пример, замените на реальную логику загрузки (например, через FTP или API)
+                File.Copy(localPath, @"C:\YourServerPath\" + fileName, true); // Локальный пример, замените на серверную загрузку
+
+                return fullServerPath;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при завантаженні зображення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return "https://via.placeholder.com/150"; // Возвращаем заглушку в случае ошибки
             }
         }
 
@@ -267,7 +339,7 @@ namespace ElmirClone
             NewProductDescription.Text = product.Description;
             NewProductPrice.Text = product.Price.ToString();
             NewProductBrand.Text = product.Brand;
-            selectedImagePath = product.ImageUrl == "Немає зображення" ? null : product.ImageUrl;
+            selectedImagePath = product.ImageUrl == "https://via.placeholder.com/150" ? null : product.ImageUrl;
             NewProductImagePath.Text = selectedImagePath ?? "Шлях до зображення";
 
             if (product.SubcategoryName != "Не вказано")
@@ -389,7 +461,7 @@ namespace ElmirClone
                             command.Parameters.AddWithValue("brand", brandBox.Text.Trim());
                             command.Parameters.AddWithValue("categoryid", (int)categoryBox.SelectedValue);
                             command.Parameters.AddWithValue("subcategoryid", subcategoryBox.SelectedValue ?? (object)DBNull.Value);
-                            command.Parameters.AddWithValue("imageurl", string.IsNullOrWhiteSpace(selectedImagePath) ? (object)DBNull.Value : selectedImagePath);
+                            command.Parameters.AddWithValue("imageurl", string.IsNullOrWhiteSpace(selectedImagePath) ? product.ImageUrl : UploadImageToServer(selectedImagePath));
                             command.Parameters.AddWithValue("productid", productId);
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.ExecuteNonQuery();
@@ -537,7 +609,7 @@ namespace ElmirClone
                         }
                         else
                         {
-                            MessageBox.Show("Не вдалося оновити статус замовлення.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Не вдалося оновити статус замовления.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                 }

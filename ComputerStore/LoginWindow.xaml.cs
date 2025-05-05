@@ -441,23 +441,18 @@ namespace ElmirClone
                     return;
                 }
 
+                // Перевіряємо, чи email закінчується на @gmail.com або @outlook.com
+                if (!(email.EndsWith("@gmail.com") || email.EndsWith("@outlook.com")))
+                {
+                    MessageBox.Show("Електронна пошта повинна закінчуватися на @gmail.com або @outlook.com.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
                 try
                 {
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-
-                        // Перевіряємо, чи існує користувач з таким Username
-                        using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserCredentials WHERE Username = @username", connection))
-                        {
-                            checkCommand.Parameters.AddWithValue("username", username);
-                            long count = (long)checkCommand.ExecuteScalar();
-                            if (count > 0)
-                            {
-                                MessageBox.Show("Користувач з таким ім'ям уже існує. Будь ласка, виберіть інше ім'я.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
-                        }
 
                         // Перевіряємо, чи існує користувач з таким Email
                         using (var checkEmailCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserDetails WHERE Email = @email", connection))
@@ -466,7 +461,7 @@ namespace ElmirClone
                             long emailCount = (long)checkEmailCommand.ExecuteScalar();
                             if (emailCount > 0)
                             {
-                                MessageBox.Show("Користувач з такою поштою уже існує. Будь ласка, використовуйте іншу пошту.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show("Користувач з такою поштою вже є в базі даних.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return;
                             }
                         }

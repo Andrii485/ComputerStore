@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="ElitePC" Height="700" Width="1200" Background="#F5F5F5">
+        Title="ElitePC" Height="900" Width="1200" Background="#F5F5F5">
     <Window.Resources>
         <Style TargetType="Button" x:Key="OrderButtonStyle">
             <Setter Property="Background" Value="#FF5722"/>
@@ -60,6 +60,8 @@
         </Style>
         <Style TargetType="Border" x:Key="SubCategoryBorderStyle">
             <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Width" Value="300"/>
+            <Setter Property="Height" Value="300"/>
         </Style>
         <Style TargetType="Button" x:Key="SubCategoryButtonStyle">
             <Setter Property="Background" Value="Transparent"/>
