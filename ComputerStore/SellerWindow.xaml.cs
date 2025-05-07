@@ -15,7 +15,6 @@ namespace ElmirClone
         private string connectionString;
         private int sellerId;
         private string selectedImagePath;
-        private string selectedImageUrl;
         private object userId;
 
         public SellerWindow(int sellerId)
@@ -103,56 +102,20 @@ namespace ElmirClone
             }
         }
 
-        private void SelectImageButton_Click(object sender, RoutedEventArgs e)
+        private void SelectImage_Click(object sender, RoutedEventArgs e)
         {
             if (Dispatcher.CheckAccess())
             {
                 OpenFileDialog openFileDialog = new OpenFileDialog
                 {
-                    Filter = "Image files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
-                    Title = "Виберіть зображення товару"
+                    Filter = "Файли зображень (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|Усі файли (*.*)|*.*",
+                    Title = "Оберіть зображення для товару"
                 };
 
                 if (openFileDialog.ShowDialog() == true)
                 {
                     selectedImagePath = openFileDialog.FileName;
-                    selectedImageUrl = null; // Сбрасываем URL, если выбран локальный файл
                     NewProductImagePath.Text = selectedImagePath;
-                    NewProductImageUrl.Text = "Введіть URL зображення";
-                }
-            }
-        }
-
-        private void AddImageUrlButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (Dispatcher.CheckAccess())
-            {
-                string imageUrl = NewProductImageUrl.Text.Trim();
-                if (string.IsNullOrWhiteSpace(imageUrl) || imageUrl == "Введіть URL зображення")
-                {
-                    MessageBox.Show("Будь ласка, введіть дійсний URL зображення.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                try
-                {
-                    // Проверяем, является ли URL действительным
-                    Uri uriResult;
-                    bool isValidUrl = Uri.TryCreate(imageUrl, UriKind.Absolute, out uriResult) && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
-                    if (!isValidUrl)
-                    {
-                        MessageBox.Show("Введений URL недійсний. Переконайтеся, що він починається з http:// або https://", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    selectedImageUrl = imageUrl;
-                    selectedImagePath = null; // Сбрасываем локальный путь, если выбран URL
-                    NewProductImagePath.Text = "Зображення з URL";
-                    MessageBox.Show("URL зображення успішно додано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Помилка при додаванні URL зображення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -295,14 +258,14 @@ namespace ElmirClone
         {
             if (Dispatcher.CheckAccess())
             {
-                string name = NewProductName.Text.Trim();
-                string description = NewProductDescription.Text.Trim();
+                string name = NewProductName.Text?.Trim();
+                string description = NewProductDescription.Text?.Trim();
                 if (!decimal.TryParse(NewProductPrice.Text, out decimal price))
                 {
                     MessageBox.Show("Введіть коректну ціну.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                string brand = NewProductBrand.Text.Trim();
+                string brand = NewProductBrand.Text?.Trim();
                 int? categoryId = ProductCategory.SelectedValue as int?;
                 int? subcategoryId = ProductSubcategory.SelectedValue as int?;
 
@@ -310,6 +273,16 @@ namespace ElmirClone
                 {
                     MessageBox.Show("Заповніть усі обов'язкові поля (назва, бренд, категорія).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
+                }
+
+                string imageUrl = null;
+                if (!string.IsNullOrEmpty(selectedImagePath))
+                {
+                    imageUrl = UploadImageToServer(selectedImagePath);
+                }
+                else
+                {
+                    imageUrl = "https://via.placeholder.com/150"; // Заглушка, если изображение не выбрано
                 }
 
                 try
@@ -332,7 +305,7 @@ namespace ElmirClone
                                 }
                             }
 
-                            // Дополнительно проверяем, принадлежит ли subcategoryId к выбранной категории
+                            // Проверяем, принадлежит ли subcategoryId к выбранной категории
                             using (var parentCheckCommand = new NpgsqlCommand("SELECT COUNT(*) FROM categories WHERE categoryid = @subcategoryid AND parentcategoryid = @categoryid", connection))
                             {
                                 parentCheckCommand.Parameters.AddWithValue("subcategoryid", subcategoryId.Value);
@@ -358,14 +331,7 @@ namespace ElmirClone
                             }
                         }
 
-                        // Если выбран URL, используем его напрямую, иначе загружаем локальный файл
-                        string imageUrl = selectedImageUrl;
-                        if (string.IsNullOrEmpty(imageUrl))
-                        {
-                            imageUrl = string.IsNullOrWhiteSpace(selectedImagePath) ? "https://via.placeholder.com/150" : UploadImageToServer(selectedImagePath);
-                        }
-
-                        // Вставляем продукт с установленным ishidden = false, чтобы он сразу был виден покупателям
+                        // Вставляем продукт с установленным ishidden = false
                         using (var command = new NpgsqlCommand("INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url, ishidden) VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl, false)", connection))
                         {
                             command.Parameters.AddWithValue("name", name);
@@ -380,9 +346,13 @@ namespace ElmirClone
                         }
                     }
                     selectedImagePath = null;
-                    selectedImageUrl = null;
-                    NewProductImagePath.Text = "Шлях до зображення";
-                    NewProductImageUrl.Text = "Введіть URL зображення";
+                    NewProductImagePath.Text = "";
+                    NewProductName.Text = "";
+                    NewProductDescription.Text = "";
+                    NewProductPrice.Text = "";
+                    NewProductBrand.Text = "";
+                    ProductCategory.SelectedValue = null;
+                    ProductSubcategory.SelectedValue = null;
                     LoadProducts();
                     MessageBox.Show("Товар успішно додано і доступний покупцям!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -397,27 +367,23 @@ namespace ElmirClone
         {
             try
             {
-                // Создаем директорию Images в каталоге приложения, если она не существует
                 string imagesDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images");
                 if (!Directory.Exists(imagesDirectory))
                 {
                     Directory.CreateDirectory(imagesDirectory);
                 }
 
-                // Генерируем уникальное имя файла
                 string fileName = Guid.NewGuid().ToString() + Path.GetExtension(localPath);
                 string destinationPath = Path.Combine(imagesDirectory, fileName);
 
-                // Копируем файл в директорию Images
                 File.Copy(localPath, destinationPath, true);
 
-                // Возвращаем относительный путь для использования в приложении
                 return destinationPath;
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка при завантаженні зображення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return "https://via.placeholder.com/150"; // Возвращаем заглушку в случае ошибки
+                return "https://via.placeholder.com/150";
             }
         }
 
@@ -436,9 +402,7 @@ namespace ElmirClone
                 NewProductPrice.Text = product.Price.ToString();
                 NewProductBrand.Text = product.Brand;
                 selectedImagePath = null;
-                selectedImageUrl = product.ImageUrl == "https://via.placeholder.com/150" ? null : product.ImageUrl;
-                NewProductImagePath.Text = selectedImageUrl ?? "Шлях до зображення";
-                NewProductImageUrl.Text = selectedImageUrl ?? "Введіть URL зображення";
+                NewProductImagePath.Text = product.ImageUrl == "https://via.placeholder.com/150" ? "" : product.ImageUrl;
 
                 if (product.SubcategoryName != "Не вказано")
                 {
@@ -453,7 +417,7 @@ namespace ElmirClone
                 {
                     Title = "Редагувати товар",
                     Width = 400,
-                    Height = 700,
+                    Height = 600,
                     WindowStartupLocation = WindowStartupLocation.CenterScreen
                 };
 
@@ -527,72 +491,36 @@ namespace ElmirClone
                 panel.Children.Add(new TextBlock { Text = "Зображення:", Margin = new Thickness(0, 0, 0, 5) });
                 TextBox imagePathBox = new TextBox { Text = NewProductImagePath.Text, IsReadOnly = true, Margin = new Thickness(0, 0, 0, 5) };
                 panel.Children.Add(imagePathBox);
-                Button selectImageButton = new Button { Content = "Вибрати зображення", Margin = new Thickness(0, 0, 0, 5) };
+                Button selectImageButton = new Button { Content = "Вибрати зображення", Margin = new Thickness(0, 0, 0, 10) };
                 selectImageButton.Click += (s, ev) =>
                 {
                     OpenFileDialog openFileDialog = new OpenFileDialog
                     {
-                        Filter = "Image files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*",
-                        Title = "Виберіть зображення товару"
+                        Filter = "Файли зображень (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|Усі файли (*.*)|*.*",
+                        Title = "Оберіть зображення для товару"
                     };
                     if (openFileDialog.ShowDialog() == true)
                     {
                         selectedImagePath = openFileDialog.FileName;
-                        selectedImageUrl = null;
                         imagePathBox.Text = selectedImagePath;
                     }
                 };
                 panel.Children.Add(selectImageButton);
-
-                panel.Children.Add(new TextBlock { Text = "Або введіть URL зображення:", Margin = new Thickness(0, 0, 0, 5) });
-                TextBox imageUrlBox = new TextBox { Text = selectedImageUrl ?? "Введіть URL зображення", Margin = new Thickness(0, 0, 0, 5) };
-                panel.Children.Add(imageUrlBox);
-                Button addImageUrlButton = new Button { Content = "Додати URL", Margin = new Thickness(0, 0, 0, 10) };
-                addImageUrlButton.Click += (s, ev) =>
-                {
-                    string imageUrl = imageUrlBox.Text.Trim();
-                    if (string.IsNullOrWhiteSpace(imageUrl) || imageUrl == "Введіть URL зображення")
-                    {
-                        MessageBox.Show("Будь ласка, введіть дійсний URL зображення.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    try
-                    {
-                        Uri uriResult;
-                        bool isValidUrl = Uri.TryCreate(imageUrl, UriKind.Absolute, out uriResult) && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
-                        if (!isValidUrl)
-                        {
-                            MessageBox.Show("Введений URL недійсний. Переконайтеся, что він починається з http:// або https://", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
-
-                        selectedImageUrl = imageUrl;
-                        selectedImagePath = null;
-                        imagePathBox.Text = "Зображення з URL";
-                        MessageBox.Show("URL зображення успішно додано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Помилка при додаванні URL зображення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                };
-                panel.Children.Add(addImageUrlButton);
 
                 Button saveButton = new Button { Content = "Зберегти", Width = 100, Margin = new Thickness(0, 10, 0, 0) };
                 saveButton.Click += (s, ev) =>
                 {
                     try
                     {
+                        string imageUrl = product.ImageUrl;
+                        if (!string.IsNullOrEmpty(selectedImagePath))
+                        {
+                            imageUrl = UploadImageToServer(selectedImagePath);
+                        }
+
                         using (var connection = new NpgsqlConnection(connectionString))
                         {
                             connection.Open();
-                            string imageUrl = selectedImageUrl;
-                            if (string.IsNullOrEmpty(imageUrl))
-                            {
-                                imageUrl = string.IsNullOrWhiteSpace(selectedImagePath) ? product.ImageUrl : UploadImageToServer(selectedImagePath);
-                            }
-
                             using (var command = new NpgsqlCommand("UPDATE products SET name = @name, description = @description, price = @price, brand = @brand, categoryid = @categoryid, subcategoryid = @subcategoryid, image_url = @imageurl WHERE productid = @productid AND sellerid = @sellerid", connection))
                             {
                                 command.Parameters.AddWithValue("name", nameBox.Text.Trim());
@@ -608,9 +536,7 @@ namespace ElmirClone
                             }
                         }
                         selectedImagePath = null;
-                        selectedImageUrl = null;
-                        NewProductImagePath.Text = "Шлях до зображення";
-                        NewProductImageUrl.Text = "Введіть URL зображення";
+                        NewProductImagePath.Text = "";
                         LoadProducts();
                         MessageBox.Show("Товар успішно оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                         editWindow.Close();
@@ -691,7 +617,7 @@ namespace ElmirClone
                                         ContactPhone = reader.IsDBNull(9) ? "Не вказано" : reader.GetString(9),
                                         ShippingRegion = reader.IsDBNull(10) ? "Не вказано" : reader.GetString(10),
                                         PickupPointAddress = reader.IsDBNull(11) ? "Не вказано" : reader.GetString(11),
-                                        ProductId = reader.GetInt32(0) // Используем OrderId как ProductId (можно уточнить логику)
+                                        ProductId = reader.GetInt32(0)
                                     });
                                 }
                                 OrdersList.ItemsSource = orders;
@@ -763,7 +689,7 @@ namespace ElmirClone
                             }
                             else
                             {
-                                MessageBox.Show("Не вдалося оновити статус замовления.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show("Не вдалося оновити статус замовлення.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             }
                         }
                     }

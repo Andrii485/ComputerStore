@@ -394,14 +394,14 @@ namespace ElmirClone
                             {
                                 products.Add(new DbProduct
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price = reader.GetDecimal(3),
-                                    Brand = reader.GetString(4),
-                                    CategoryName = reader.GetString(5),
-                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl = reader.IsDBNull(7) ? null : reader.GetString(7)
+                                    ProductId1 = reader.GetInt32(0),
+                                    Name1 = reader.GetString(1),
+                                    Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price1 = reader.GetDecimal(3),
+                                    Brand1 = reader.GetString(4),
+                                    CategoryName1 = reader.GetString(5),
+                                    SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl1 = reader.IsDBNull(7) ? null : reader.GetString(7)
                                 });
                             }
                             ProductsList.ItemsSource = products;
@@ -1227,7 +1227,7 @@ namespace ElmirClone
         public string ImageUrl { get; set; }
     }
 
-    public class DbProduct
+    public class DbProduct1
     {
         internal string? ImagePath;
         internal int DiscountedPrice;
@@ -1251,6 +1251,14 @@ namespace ElmirClone
         public string SubcategoryName { get; internal set; }
         public object StoreName { get; internal set; }
         public object StoreDescription { get; internal set; }
+        public int ProductId1 { get; internal set; }
+        public string Name1 { get; internal set; }
+        public string Description1 { get; internal set; }
+        public decimal Price1 { get; internal set; }
+        public string Brand1 { get; internal set; }
+        public string SubcategoryName1 { get; internal set; }
+        public string CategoryName1 { get; internal set; }
+        public string? ImageUrl1 { get; internal set; }
     }
 
     public class PaymentMethod

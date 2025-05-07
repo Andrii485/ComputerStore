@@ -206,7 +206,7 @@ namespace ElmirClone
         }
     }
 
-    public class UserProfile
+    public class UserProfile1
     {
         internal decimal Balance;
 

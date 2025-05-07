@@ -49,6 +49,7 @@ namespace ElmirClone
 
             DataContext = userProfile;
             LoadCategories();
+            LoadCartItemsFromDatabase(); // Загружаем корзину из базы данных
             LoadProducts(); // Начальная загрузка товаров
             UpdateNavigationButtons();
 
@@ -364,8 +365,8 @@ namespace ElmirClone
                         FilterPanel.Visibility = Visibility.Visible;
                         LoadFilters(subCategoryId.Value);
 
-                        string query = "SELECT p.ProductId, p.Name, p.Price, p.ImageUrl, p.Rating, s.storename, s.description AS store_description " +
-                                      "FROM Products p " +
+                        string query = "SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description " +
+                                      "FROM products p " +
                                       "JOIN categories sc ON p.subcategoryid = sc.categoryid " +
                                       "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
                                       "WHERE sc.categoryid = @subCategoryId AND p.ishidden = false";
@@ -453,8 +454,8 @@ namespace ElmirClone
                                 };
                                 ContentPanel.Children.Add(categoryHeader);
 
-                                string catQuery = "SELECT p.ProductId, p.Name, p.Price, p.ImageUrl, p.Rating, s.storename, s.description AS store_description " +
-                                                 "FROM Products p " +
+                                string catQuery = "SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description " +
+                                                 "FROM products p " +
                                                  "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
                                                  "WHERE p.categoryid = @categoryId AND p.subcategoryid IS NULL AND p.ishidden = false LIMIT 5";
                                 var catParams = new List<NpgsqlParameter>
@@ -494,6 +495,7 @@ namespace ElmirClone
                                 while (reader.Read())
                                 {
                                     string imageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3);
+                                    int reviewCount = GetReviewCount(reader.GetInt32(0)); // Получаем количество отзывов
                                     products.Add(new DbProduct
                                     {
                                         ProductId = reader.GetInt32(0),
@@ -502,7 +504,8 @@ namespace ElmirClone
                                         ImageUrl = imageUrl,
                                         Rating = reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
                                         StoreName = reader.IsDBNull(5) ? "Невідомий магазин" : reader.GetString(5),
-                                        StoreDescription = reader.IsDBNull(6) ? "Немає опису" : reader.GetString(6)
+                                        StoreDescription = reader.IsDBNull(6) ? "Немає опису" : reader.GetString(6),
+                                        ReviewCount = reviewCount
                                     });
                                 }
 
@@ -538,29 +541,33 @@ namespace ElmirClone
                                         HorizontalAlignment = HorizontalAlignment.Center
                                     };
                                     productPanel.Children.Add(productImage);
+
+                                    // Динамический размер шрифта для названия
                                     TextBlock productName = new TextBlock
                                     {
                                         Text = product.Name,
-                                        FontSize = 16,
+                                        TextAlignment = TextAlignment.Center,
+                                        TextWrapping = TextWrapping.Wrap,
+                                        Height = 50,
+                                        Margin = new Thickness(5),
+                                        TextTrimming = TextTrimming.CharacterEllipsis
+                                    };
+                                    double fontSize = Math.Max(10, 16 - (product.Name.Length - 20) * 0.2); // Уменьшаем шрифт при длинных названиях
+                                    productName.FontSize = Math.Min(16, Math.Max(10, fontSize)); // Ограничиваем диапазон 10-16
+                                    productName.FontWeight = FontWeights.Medium;
+                                    productPanel.Children.Add(productName);
+
+                                    // Отображение только количества отзывов в скобках
+                                    TextBlock reviewCountText = new TextBlock
+                                    {
+                                        Text = $"({product.ReviewCount} відгуків)",
+                                        FontSize = 14,
                                         Margin = new Thickness(5),
                                         TextAlignment = TextAlignment.Center,
-                                        FontWeight = FontWeights.Medium,
-                                        TextWrapping = TextWrapping.Wrap,
-                                        Height = 50
+                                        Foreground = Brushes.Gray
                                     };
-                                    productPanel.Children.Add(productName);
-                                    StackPanel ratingPanel = new StackPanel
-                                    {
-                                        Orientation = Orientation.Horizontal,
-                                        Margin = new Thickness(5),
-                                        HorizontalAlignment = HorizontalAlignment.Center
-                                    };
-                                    ratingPanel.Children.Add(new TextBlock { Text = "★", Foreground = Brushes.Orange, FontSize = 14 });
-                                    ratingPanel.Children.Add(new TextBlock { Text = product.Rating.ToString(), FontSize = 14, Margin = new Thickness(2, 0, 0, 0) });
-                                    ratingPanel.Children.Add(new TextBlock { Text = "(", Foreground = Brushes.Gray });
-                                    ratingPanel.Children.Add(new TextBlock { Text = "0", Foreground = Brushes.Gray });
-                                    ratingPanel.Children.Add(new TextBlock { Text = " відгуків)", Foreground = Brushes.Gray });
-                                    productPanel.Children.Add(ratingPanel);
+                                    productPanel.Children.Add(reviewCountText);
+
                                     TextBlock priceText = new TextBlock
                                     {
                                         Text = $"{product.Price:F2} грн",
@@ -615,6 +622,26 @@ namespace ElmirClone
                 {
                     MessageBox.Show($"Помилка при завантаженні товарів: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private int GetReviewCount(int productId)
+        {
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM product_reviews WHERE productid = @productId", connection))
+                    {
+                        command.Parameters.AddWithValue("productId", productId);
+                        return Convert.ToInt32(command.ExecuteScalar());
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return 0; // Возвращаем 0 в случае ошибки
             }
         }
 
@@ -675,25 +702,25 @@ namespace ElmirClone
                     FilterPanel.Visibility = Visibility.Collapsed;
 
                     string query = @"
-                        SELECT p.ProductId, p.Name, p.Price, p.ImageUrl, p.Rating, s.storename, s.description AS store_description
-                        FROM Products p
+                        SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description
+                        FROM products p
                         JOIN sellerprofiles s ON p.sellerid = s.sellerid
                         JOIN categories c ON p.categoryid = c.categoryid
                         LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid
                         WHERE p.ishidden = false
                         AND (
-                            SIMILARITY(LOWER(p.Name), LOWER(@searchText)) > 0.3
-                            OR SIMILARITY(LOWER(p.Description), LOWER(@searchText)) > 0.3
-                            OR SIMILARITY(LOWER(p.Brand), LOWER(@searchText)) > 0.3
-                            OR SIMILARITY(LOWER(c.Name), LOWER(@searchText)) > 0.3
-                            OR (sc.Name IS NOT NULL AND SIMILARITY(LOWER(sc.Name), LOWER(@searchText)) > 0.3)
+                            SIMILARITY(LOWER(p.name), LOWER(@searchText)) > 0.3
+                            OR SIMILARITY(LOWER(p.description), LOWER(@searchText)) > 0.3
+                            OR SIMILARITY(LOWER(p.brand), LOWER(@searchText)) > 0.3
+                            OR SIMILARITY(LOWER(c.name), LOWER(@searchText)) > 0.3
+                            OR (sc.name IS NOT NULL AND SIMILARITY(LOWER(sc.name), LOWER(@searchText)) > 0.3)
                         )
                         ORDER BY GREATEST(
-                            SIMILARITY(LOWER(p.Name), LOWER(@searchText)),
-                            SIMILARITY(LOWER(p.Description), LOWER(@searchText)),
-                            SIMILARITY(LOWER(p.Brand), LOWER(@searchText)),
-                            SIMILARITY(LOWER(c.Name), LOWER(@searchText)),
-                            COALESCE(SIMILARITY(LOWER(sc.Name), LOWER(@searchText)), 0)
+                            SIMILARITY(LOWER(p.name), LOWER(@searchText)),
+                            SIMILARITY(LOWER(p.description), LOWER(@searchText)),
+                            SIMILARITY(LOWER(p.brand), LOWER(@searchText)),
+                            SIMILARITY(LOWER(c.name), LOWER(@searchText)),
+                            COALESCE(SIMILARITY(LOWER(sc.name), LOWER(@searchText)), 0)
                         ) DESC
                         LIMIT 20";
 
@@ -854,11 +881,11 @@ namespace ElmirClone
                     {
                         connection.Open();
                         using (var command = new NpgsqlCommand(
-                            "SELECT p.ProductId, p.Name, p.Description, p.Price, p.Brand, c.Name AS CategoryName, p.ImageUrl, s.storename, s.description AS store_description " +
-                            "FROM Products p " +
-                            "JOIN Categories c ON p.CategoryId = c.CategoryId " +
+                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, p.image_url, s.storename, s.description AS store_description " +
+                            "FROM products p " +
+                            "JOIN categories c ON p.categoryid = c.categoryid " +
                             "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
-                            "WHERE p.ProductId = @productId AND p.ishidden = false", connection))
+                            "WHERE p.productid = @productId AND p.ishidden = false", connection))
                         {
                             command.Parameters.AddWithValue("productId", productId);
                             using (var reader = command.ExecuteReader())
@@ -934,14 +961,13 @@ namespace ElmirClone
                             }
                         }
                     }
-                    }
-                    catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
                     MessageBox.Show($"Помилка при завантаженні деталей товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
-        
 
         private void SaveReview(int productId, int userId, string reviewText)
         {
@@ -1002,39 +1028,38 @@ namespace ElmirClone
             }
         }
 
-        private void AddToCart_Click(object sender, RoutedEventArgs e)
+        private void LoadCartItemsFromDatabase()
         {
-            if (Dispatcher.CheckAccess() && (sender as Button)?.Tag is int productId)
+            if (Dispatcher.CheckAccess())
             {
                 try
                 {
+                    if (!(userProfile?.UserId is int buyerId) || buyerId <= 0) return;
+
+                    cartItems.Clear();
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("SELECT ProductId, Name, Price, ImageUrl FROM Products WHERE ProductId = @productId AND ishidden = false", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT c.productid, p.name, p.price, p.image_url, c.quantity " +
+                            "FROM cart c " +
+                            "JOIN products p ON c.productid = p.productid " +
+                            "WHERE c.buyerid = @buyerid AND p.ishidden = false", connection))
                         {
-                            command.Parameters.AddWithValue("productId", productId);
+                            command.Parameters.AddWithValue("buyerid", buyerId);
                             using (var reader = command.ExecuteReader())
                             {
-                                if (reader.Read())
+                                while (reader.Read())
                                 {
                                     var product = new DbProduct
                                     {
                                         ProductId = reader.GetInt32(0),
                                         Name = reader.GetString(1),
                                         Price = reader.GetDecimal(2),
-                                        ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3)
+                                        ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3),
+                                        Quantity = reader.GetInt32(4)
                                     };
-                                    if (cartItems == null) cartItems = new List<DbProduct>();
-                                    if (!cartItems.Any(p => p.ProductId == product.ProductId))
-                                    {
-                                        cartItems.Add(product);
-                                        MessageBox.Show($"{product.Name} додано до кошика!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show($"{product.Name} вже є в кошику.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
-                                    }
+                                    cartItems.Add(product);
                                 }
                             }
                         }
@@ -1042,7 +1067,100 @@ namespace ElmirClone
                 }
                 catch (Exception ex)
                 {
+                    MessageBox.Show($"Помилка при завантаженні кошика з бази даних: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void AddToCart_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess() && (sender as Button)?.Tag is int productId)
+            {
+                try
+                {
+                    if (!(userProfile?.UserId is int buyerId) || buyerId <= 0)
+                    {
+                        MessageBox.Show("Для додавання товару до кошика необхідно авторизуватися.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+
+                        // Проверяем, есть ли уже товар в корзине
+                        int currentQuantity = 0;
+                        using (var checkCommand = new NpgsqlCommand(
+                            "SELECT quantity FROM cart WHERE buyerid = @buyerid AND productid = @productid", connection))
+                        {
+                            checkCommand.Parameters.AddWithValue("buyerid", buyerId);
+                            checkCommand.Parameters.AddWithValue("productid", productId);
+                            var result = checkCommand.ExecuteScalar();
+                            if (result != null)
+                            {
+                                currentQuantity = Convert.ToInt32(result);
+                            }
+                        }
+
+                        if (currentQuantity > 0)
+                        {
+                            // Товар уже есть в корзине, обновляем количество
+                            using (var updateCommand = new NpgsqlCommand(
+                                "UPDATE cart SET quantity = quantity + 1 WHERE buyerid = @buyerid AND productid = @productid", connection))
+                            {
+                                updateCommand.Parameters.AddWithValue("buyerid", buyerId);
+                                updateCommand.Parameters.AddWithValue("productid", productId);
+                                updateCommand.ExecuteNonQuery();
+                            }
+                            MessageBox.Show("Кількість товару в кошику оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            // Добавляем новый товар в корзину
+                            using (var insertCommand = new NpgsqlCommand(
+                                "INSERT INTO cart (buyerid, productid, quantity) VALUES (@buyerid, @productid, 1)", connection))
+                            {
+                                insertCommand.Parameters.AddWithValue("buyerid", buyerId);
+                                insertCommand.Parameters.AddWithValue("productid", productId);
+                                insertCommand.ExecuteNonQuery();
+                            }
+                            MessageBox.Show("Товар додано до кошика!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+
+                        // Обновляем список cartItems
+                        LoadCartItemsFromDatabase();
+                    }
+                }
+                catch (Exception ex)
+                {
                     MessageBox.Show($"Помилка при додаванні товару до кошика: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ClearCartInDatabase()
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                try
+                {
+                    if (!(userProfile?.UserId is int buyerId) || buyerId <= 0) return;
+
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand(
+                            "DELETE FROM cart WHERE buyerid = @buyerid", connection))
+                        {
+                            command.Parameters.AddWithValue("buyerid", buyerId);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                    cartItems.Clear();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при очищенні кошика: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -1063,12 +1181,64 @@ namespace ElmirClone
                         MessageBox.Show("Для перегляду кошика необхідно авторизуватися.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
+
+                    // Открываем окно корзины
                     CartWindow cartWindow = new CartWindow(cartItems, userProfile);
-                    if (cartWindow.CanShowDialog()) cartWindow.ShowDialog();
+                    if (cartWindow.CanShowDialog())
+                    {
+                        bool? result = cartWindow.ShowDialog();
+                        if (result == true)
+                        {
+                            // Если заказ успешно оформлен, очищаем корзину в базе данных
+                            ClearCartInDatabase();
+                            ContentPanel.Visibility = Visibility.Visible;
+                            LoadProducts(); // Возвращаемся к списку товаров
+                            LoadOrders(); // Обновляем список заказов
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Помилка при відкритті кошика: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void PlaceOrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                try
+                {
+                    if (cartItems == null || !cartItems.Any())
+                    {
+                        MessageBox.Show("Кошик порожній. Додайте товари до кошика.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                    if (userProfile == null)
+                    {
+                        MessageBox.Show("Для оформлення замовлення необхідно авторизуватися.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Открываем окно корзины для оформления заказа
+                    CartWindow cartWindow = new CartWindow(cartItems, userProfile);
+                    if (cartWindow.CanShowDialog())
+                    {
+                        bool? result = cartWindow.ShowDialog();
+                        if (result == true)
+                        {
+                            // Если заказ успешно оформлен, очи obtenido
+                            ClearCartInDatabase();
+                            ContentPanel.Visibility = Visibility.Visible;
+                            LoadProducts(); // Возвращаемся к списку товаров
+                            LoadOrders(); // Обновляем список заказов
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при оформленні замовлення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -1078,6 +1248,7 @@ namespace ElmirClone
             if (Dispatcher.CheckAccess())
             {
                 ProfilePanel.Visibility = ProfilePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+                ContentPanel.Visibility = ProfilePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             }
         }
 
@@ -1171,6 +1342,7 @@ namespace ElmirClone
                 {
                     LoadOrders();
                 }
+                ContentPanel.Visibility = OrderPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             }
         }
 
@@ -1197,7 +1369,7 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("UPDATE UserDetails SET FirstName = @firstName, MiddleName = @middleName, Phone = @phone, Email = @email WHERE UserId = (SELECT UserId FROM UserCredentials WHERE Email = @email)", connection))
+                        using (var command = new NpgsqlCommand("UPDATE userdetails SET firstname = @firstName, middlename = @middleName, phone = @phone, email = @email WHERE userid = (SELECT userid FROM usercredentials WHERE email = @email)", connection))
                         {
                             command.Parameters.AddWithValue("firstName", userProfile.FirstName ?? (object)DBNull.Value);
                             command.Parameters.AddWithValue("middleName", string.IsNullOrWhiteSpace(userProfile.MiddleName) ? (object)DBNull.Value : userProfile.MiddleName);
@@ -1247,5 +1419,41 @@ namespace ElmirClone
                 CategoryPanel.Visibility = CategoryPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             }
         }
+    }
+
+    public class DbProduct
+    {
+        public int ProductId { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public string ImageUrl { get; set; }
+        public double Rating { get; set; }
+        public string StoreName { get; set; }
+        public string StoreDescription { get; set; }
+        public int ReviewCount { get; set; }
+        public int Quantity { get; set; } // Добавлено поле для количества
+        public int ProductId1 { get; internal set; }
+        public string Name1 { get; internal set; }
+        public string Description1 { get; internal set; }
+        public decimal Price1 { get; internal set; }
+        public string Brand1 { get; internal set; }
+        public string CategoryName1 { get; internal set; }
+        public string SubcategoryName1 { get; internal set; }
+        public string? ImageUrl1 { get; internal set; }
+        public string Description { get; internal set; }
+        public string Brand { get; internal set; }
+        public string CategoryName { get; internal set; }
+        public string SubcategoryName { get; internal set; }
+    }
+
+    public class UserProfile
+    {
+        public int? UserId { get; set; }
+        public string FirstName { get; set; }
+        public string MiddleName { get; set; }
+        public string Phone { get; set; }
+        public string Email { get; set; }
+        public string? LastName { get; internal set; }
+        public decimal Balance { get; internal set; }
     }
 }

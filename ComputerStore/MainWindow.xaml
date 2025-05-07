@@ -10,10 +10,11 @@
             <Setter Property="Background" Value="#FF5722"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Height" Value="40"/>
-            <Setter Property="Width" Value="120"/>
+            <Setter Property="Width" Value="40"/>
             <Setter Property="Margin" Value="5"/>
             <Setter Property="Padding" Value="10,0"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="20"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -150,6 +151,34 @@
             <Setter Property="BorderBrush" Value="#444444"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
+        <!-- Новый стиль для текстовых кнопок -->
+        <Style TargetType="Button" x:Key="ActionButtonStyle">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Width" Value="150"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#444444">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#444444"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#555555"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -180,9 +209,9 @@
                     <Button x:Name="SearchButton" Content="🔍" Width="40" Height="30" Margin="5,0" Click="SearchButton_Click" Background="#4CAF50" Foreground="White"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0">
-                    <Button x:Name="CartButton" Content="Корзина" Click="CartButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="ProfileButton" Content="Профиль" Click="ProfileButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="LogoutButton" Content="Выйти" Click="LogoutButton_Click" Style="{StaticResource OrderButtonStyle}"/>
+                    <Button x:Name="CartButton" Content="🛒" Click="CartButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
+                    <Button x:Name="ProfileButton" Content="👤" Click="ProfileButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
+                    <Button x:Name="OrdersButton" Content="📜" Click="OrdersButton_Click" Style="{StaticResource OrderButtonStyle}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -204,7 +233,11 @@
                     <TextBlock Text="До:" Margin="0,0,5,0" VerticalAlignment="Center"/>
                     <TextBox x:Name="PriceToTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
                 </StackPanel>
-                <Button x:Name="ApplyFiltersButton" Content="Застосувати" Click="ApplyFiltersButton_Click" Style="{StaticResource OrderButtonStyle}"/>
+                <Button x:Name="ApplyFiltersButton" Content="Застосувати" Click="ApplyFiltersButton_Click" Style="{StaticResource ActionButtonStyle}">
+                    <Button.Background>
+                        <SolidColorBrush Color="#4CAF50"/>
+                    </Button.Background>
+                </Button>
             </StackPanel>
         </StackPanel>
 
@@ -217,7 +250,7 @@
             <StackPanel x:Name="OrderPanel" Grid.Row="0" Visibility="Collapsed" Orientation="Vertical" Margin="0,0,0,10">
                 <TextBlock Text="Статуси замовлень" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
                 <ListBox x:Name="OrdersList" Height="100" Margin="0,0,0,10"/>
-                <Button x:Name="ReturnButton" Content="Повернення товару" Click="ReturnButton_Click" Margin="0,10,0,0" Style="{StaticResource OrderButtonStyle}"/>
+                <Button x:Name="ReturnButton" Content="Повернення товару" Click="ReturnButton_Click" Margin="0,10,0,0" Style="{StaticResource ActionButtonStyle}"/>
                 <TextBlock Margin="0,10,0,0">
                     <Hyperlink NavigateUri="/MainWindow.xaml" RequestNavigate="Hyperlink_RequestNavigate">
                         Перейти на головну сторінку товарів
@@ -230,12 +263,27 @@
             <StackPanel x:Name="ProfilePanel" Orientation="Vertical" Background="White" Visibility="Collapsed" Margin="0,0,0,10">
                 <TextBlock Text="Профіль" FontSize="18" FontWeight="SemiBold" Margin="10"/>
                 <StackPanel Margin="10">
+                    <TextBlock Text="Ім'я:" FontSize="14" FontWeight="Medium" Margin="0,0,0,5"/>
                     <TextBox x:Name="FirstNameTextBox" Text="{Binding FirstName}" Margin="0,5"/>
+                    <TextBlock Text="По батькові:" FontSize="14" FontWeight="Medium" Margin="0,0,0,5"/>
                     <TextBox x:Name="MiddleNameTextBox" Text="{Binding MiddleName}" Margin="0,5"/>
+                    <TextBlock Text="Телефон:" FontSize="14" FontWeight="Medium" Margin="0,0,0,5"/>
                     <TextBox x:Name="PhoneTextBox" Text="{Binding Phone}" Margin="0,5"/>
+                    <TextBlock Text="Email:" FontSize="14" FontWeight="Medium" Margin="0,0,0,5"/>
                     <TextBox x:Name="EmailTextBox" Text="{Binding Email}" Margin="0,5"/>
-                    <Button x:Name="SaveProfileButton" Content="Зберегти" Click="SaveProfileButton_Click" Margin="0,10,0,0" Style="{StaticResource OrderButtonStyle}"/>
+                    <Button x:Name="SaveProfileButton" Content="Зберегти" Click="SaveProfileButton_Click" Margin="0,10,0,0" Style="{StaticResource ActionButtonStyle}"/>
+                    <Button x:Name="LogoutButton" Content="Вийти" Click="LogoutButton_Click" Margin="0,10,0,0" Style="{StaticResource ActionButtonStyle}">
+                        <Button.Background>
+                            <SolidColorBrush Color="#FF5722"/>
+                        </Button.Background>
+                    </Button>
                 </StackPanel>
+            </StackPanel>
+            <StackPanel x:Name="CartPanel" Orientation="Vertical" Background="White" Visibility="Collapsed" Margin="0,0,0,10">
+                <TextBlock Text="Кошик" FontSize="18" FontWeight="SemiBold" Margin="10"/>
+                <ListBox x:Name="CartItemsList" Height="200" Margin="10"/>
+                <TextBlock x:Name="CartTotalText" FontSize="16" FontWeight="Bold" Margin="10"/>
+                <Button x:Name="PlaceOrderButton" Content="Оформити замовлення" Margin="10" Style="{StaticResource ActionButtonStyle}"/>
             </StackPanel>
         </Grid>
     </Grid>
