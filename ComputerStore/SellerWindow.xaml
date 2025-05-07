@@ -77,6 +77,8 @@
                             <ComboBox x:Name="ProductSubcategory" Width="120" Margin="0,0,5,0" DisplayMemberPath="Name" SelectedValuePath="SubcategoryId"/>
                             <TextBox x:Name="NewProductImagePath" Width="150" Margin="0,0,5,0" Text="Шлях до зображення" IsReadOnly="True"/>
                             <Button Content="Вибрати зображення" Click="SelectImageButton_Click" Width="120"/>
+                            <TextBox x:Name="NewProductImageUrl" Width="150" Margin="0,0,5,0" Text="Введіть URL зображення"/>
+                            <Button Content="Додати URL" Click="AddImageUrlButton_Click" Width="120"/>
                             <Button Content="Додати товар" Click="AddProduct_Click" Width="120"/>
                         </StackPanel>
                         <DataGrid x:Name="ProductsList" AutoGenerateColumns="False" IsReadOnly="True">
@@ -88,7 +90,6 @@
                                 <DataGridTextColumn Header="Категорія" Binding="{Binding CategoryName}" Width="120"/>
                                 <DataGridTextColumn Header="Підкатегорія" Binding="{Binding SubcategoryName}" Width="120"/>
                                 <DataGridTextColumn Header="Зображення" Binding="{Binding ImageUrl}" Width="150"/>
-                                <!-- Заменили ImagePath на ImageUrl -->
                                 <DataGridTemplateColumn Header="Дії" Width="180">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>

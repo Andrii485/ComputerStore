@@ -27,7 +27,6 @@ namespace ElmirClone
                 throw;
             }
 
-            // Ініціалізація рядка підключення
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -36,10 +35,9 @@ namespace ElmirClone
                 return;
             }
 
-            // Встановлюємо початковий стан
             if (LoginRadioButton != null)
             {
-                LoginRadioButton.IsChecked = true; // Встановлюємо режим "Вхід" за замовчуванням
+                LoginRadioButton.IsChecked = true;
             }
             else
             {
@@ -103,7 +101,6 @@ namespace ElmirClone
         {
             isResetPasswordMode = true;
 
-            // Перевірка TitleTextBlock
             if (TitleTextBlock == null)
             {
                 MessageBox.Show("TitleTextBlock є null. Перевірте x:Name у XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -111,7 +108,6 @@ namespace ElmirClone
             }
             TitleTextBlock.Text = "Скидання пароля";
 
-            // Перевіряємо наявність усіх елементів
             if (LoginFields == null)
             {
                 MessageBox.Show("LoginFields є null. Перевірте x:Name у XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -128,7 +124,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Виконуємо перемикання видимості
             LoginFields.Visibility = Visibility.Collapsed;
             RegisterFieldsScrollViewer.Visibility = Visibility.Collapsed;
             ResetPasswordFields.Visibility = Visibility.Visible;
@@ -136,13 +131,11 @@ namespace ElmirClone
 
         private void ConfirmResetButton_Click(object sender, RoutedEventArgs e)
         {
-            // Отримуємо дані з полів
             string email = EmailResetTextBox?.Text?.Trim();
             string securityCode = SecurityCodeTextBox?.Text?.Trim();
             string newPassword = NewPasswordBox?.Password;
             string confirmNewPassword = ConfirmNewPasswordBox?.Password;
 
-            // Перевірка на порожні поля
             if (string.IsNullOrWhiteSpace(email))
             {
                 MessageBox.Show("Будь ласка, введіть вашу пошту.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -167,7 +160,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Перевірка збігу паролів
             if (newPassword != confirmNewPassword)
             {
                 MessageBox.Show("Паролі не збігаються.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -180,7 +172,6 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Перевіряємо, чи існує користувач з вказаною поштою та кодом
                     int userId;
                     using (var command = new NpgsqlCommand("SELECT uc.UserId FROM UserCredentials uc JOIN UserDetails ud ON uc.UserId = ud.UserId WHERE ud.Email = @email AND uc.securitycode = @securityCode", connection))
                     {
@@ -195,10 +186,8 @@ namespace ElmirClone
                         userId = (int)result;
                     }
 
-                    // Хешуємо новий пароль
                     string hashedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
-                    // Оновлюємо пароль у таблиці UserCredentials
                     using (var command = new NpgsqlCommand("UPDATE UserCredentials SET Password = @password WHERE UserId = @userId", connection))
                     {
                         command.Parameters.AddWithValue("password", hashedPassword);
@@ -209,7 +198,6 @@ namespace ElmirClone
                         {
                             MessageBox.Show("Пароль успішно скинуто! Тепер ви можете увійти з новим паролем.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                            // Перемикаємося назад у режим входу
                             if (LoginRadioButton != null)
                             {
                                 LoginRadioButton.IsChecked = true;
@@ -236,11 +224,9 @@ namespace ElmirClone
         {
             if (isLoginMode)
             {
-                // Режим входу
                 string username = UsernameTextBox?.Text?.Trim();
                 string password = PasswordBox?.Password;
 
-                // Перевірка на порожні поля
                 if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
                 {
                     MessageBox.Show("Будь ласка, заповніть усі поля для входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -257,7 +243,6 @@ namespace ElmirClone
                     string securityCode = null;
                     bool passwordVerified = false;
 
-                    // 1. Перевіряємо, чи є користувач адміністратором (таблиця AdminCredentials)
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
@@ -275,11 +260,10 @@ namespace ElmirClone
                                     {
                                         MessageBox.Show($"Вхід успішний! Ласкаво просимо, адміністраторе {username}!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                                        // Відкриваємо вікно адміністратора
                                         AdminWindow adminWindow = new AdminWindow();
                                         adminWindow.Show();
                                         this.Close();
-                                        return; // Виходимо з методу, оскільки адміністратор успішно увійшов
+                                        return;
                                     }
                                     else
                                     {
@@ -291,7 +275,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // 2. Якщо користувач не адміністратор, перевіряємо в таблиці UserCredentials
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
@@ -324,10 +307,8 @@ namespace ElmirClone
 
                     if (passwordVerified)
                     {
-                        // Перевіряємо, чи встановлений securitycode
                         if (securityCode == null)
                         {
-                            // Запитуємо 4-значний код, якщо він не встановлений
                             string inputSecurityCode = Microsoft.VisualBasic.Interaction.InputBox("Це ваш перший вхід. Придумайте 4-значний код безпеки (тільки цифри). Запам'ятайте його, він знадобиться для скидання пароля:", "Налаштування коду безпеки", "");
                             if (string.IsNullOrWhiteSpace(inputSecurityCode) || inputSecurityCode.Length != 4 || !inputSecurityCode.All(char.IsDigit))
                             {
@@ -335,7 +316,6 @@ namespace ElmirClone
                                 return;
                             }
 
-                            // Зберігаємо введений код у базі даних
                             using (var connection = new NpgsqlConnection(connectionString))
                             {
                                 connection.Open();
@@ -351,7 +331,6 @@ namespace ElmirClone
 
                         MessageBox.Show($"Вхід успішний! Ласкаво просимо, {firstName}!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                        // Створюємо об'єкт профілю користувача
                         var userProfile = new UserProfile
                         {
                             UserId = userId,
@@ -359,10 +338,9 @@ namespace ElmirClone
                             LastName = lastName,
                             Phone = "+38 (050) 244 75 49",
                             Email = email,
-                            Balance = 1000000m // Встановлюємо баланс (для Buyer)
+                            Balance = 1000000m
                         };
 
-                        // Перевіряємо роль користувача
                         if (role == "Seller")
                         {
                             SellerWindow sellerWindow = new SellerWindow(userId);
@@ -388,16 +366,14 @@ namespace ElmirClone
             }
             else
             {
-                // Режим реєстрації
                 string firstName = FirstNameTextBox?.Text?.Trim();
                 string lastName = LastNameTextBox?.Text?.Trim();
                 string email = EmailTextBox?.Text?.Trim();
                 string password = PasswordBoxRegister?.Password;
                 string confirmPassword = ConfirmPasswordBox?.Password;
                 string securityCode = SecurityCodeRegisterTextBox?.Text?.Trim();
-                string username = firstName; // Використовуємо ім'я як username
+                string username = firstName;
 
-                // Перевірка на порожні поля
                 if (FirstNameTextBox == null || LastNameTextBox == null || EmailTextBox == null || PasswordBoxRegister == null || ConfirmPasswordBox == null || SecurityCodeRegisterTextBox == null)
                 {
                     MessageBox.Show("Помилка: одне з полів форми реєстрації не ініціалізовано. Перевірте XAML.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -434,14 +410,12 @@ namespace ElmirClone
                     return;
                 }
 
-                // Перевірка збігу паролів
                 if (password != confirmPassword)
                 {
                     MessageBox.Show("Паролі не збігаються.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // Перевіряємо, чи email закінчується на @gmail.com або @outlook.com
                 if (!(email.EndsWith("@gmail.com") || email.EndsWith("@outlook.com")))
                 {
                     MessageBox.Show("Електронна пошта повинна закінчуватися на @gmail.com або @outlook.com.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -454,7 +428,17 @@ namespace ElmirClone
                     {
                         connection.Open();
 
-                        // Перевіряємо, чи існує користувач з таким Email
+                        using (var checkUsernameCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserCredentials WHERE Username = @username", connection))
+                        {
+                            checkUsernameCommand.Parameters.AddWithValue("username", username);
+                            long usernameCount = (long)checkUsernameCommand.ExecuteScalar();
+                            if (usernameCount > 0)
+                            {
+                                MessageBox.Show("Користувач з таким ім'ям вже існує.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+                        }
+
                         using (var checkEmailCommand = new NpgsqlCommand("SELECT COUNT(*) FROM UserDetails WHERE Email = @email", connection))
                         {
                             checkEmailCommand.Parameters.AddWithValue("email", email);
@@ -466,14 +450,12 @@ namespace ElmirClone
                             }
                         }
 
-                        // Починаємо транзакцію
                         using (var transaction = connection.BeginTransaction())
                         {
                             try
                             {
-                                // 1. Вставляємо дані в таблицю UserDetails з початковим балансом для ролі Buyer
                                 int userId;
-                                decimal initialBalance = 1000000m; // Початковий баланс для Buyer
+                                decimal initialBalance = 1000000m;
                                 using (var command = new NpgsqlCommand("INSERT INTO UserDetails (FirstName, LastName, Email, Balance) VALUES (@firstName, @lastName, @email, @balance) RETURNING UserId", connection))
                                 {
                                     command.Parameters.AddWithValue("firstName", firstName);
@@ -485,8 +467,7 @@ namespace ElmirClone
                                     userId = (int)command.ExecuteScalar();
                                 }
 
-                                // 2. Вставляємо дані в таблицю UserCredentials з роллю Buyer і SecurityCode
-                                string role = "Buyer"; // Усі нові користувачі отримують роль Buyer
+                                string role = "Buyer";
                                 using (var command = new NpgsqlCommand("INSERT INTO UserCredentials (UserId, Username, Password, Role, securitycode) VALUES (@userId, @username, @password, @role, @securityCode)", connection))
                                 {
                                     command.Parameters.AddWithValue("userId", userId);
@@ -499,13 +480,11 @@ namespace ElmirClone
                                     command.ExecuteNonQuery();
                                 }
 
-                                // Підтверджуємо транзакцію
                                 transaction.Commit();
 
                                 string message = "Реєстрація успішна! Тепер ви можете увійти.";
                                 MessageBox.Show(message, "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                                // Перемикаємося в режим входу та очищаємо поля
                                 if (LoginRadioButton != null)
                                 {
                                     LoginRadioButton.IsChecked = true;
@@ -516,11 +495,10 @@ namespace ElmirClone
                                 PasswordBoxRegister.Password = "";
                                 ConfirmPasswordBox.Password = "";
                                 SecurityCodeRegisterTextBox.Text = "";
-                                if (UsernameTextBox != null) UsernameTextBox.Text = firstName; // Заповнюємо поле входу ім'ям користувача
+                                if (UsernameTextBox != null) UsernameTextBox.Text = firstName;
                             }
                             catch (Exception ex)
                             {
-                                // Відкотимо транзакцію
                                 transaction.Rollback();
                                 MessageBox.Show($"Помилка при реєстрації: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             }
@@ -542,7 +520,7 @@ namespace ElmirClone
         {
             if (!char.IsDigit(e.Text, e.Text.Length - 1))
             {
-                e.Handled = true; // Блокуємо введення не цифр
+                e.Handled = true;
             }
         }
     }

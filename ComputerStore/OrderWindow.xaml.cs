@@ -216,5 +216,7 @@ namespace ElmirClone
         public string Phone { get; set; }
         public object UserId { get; internal set; }
         public string LastName { get; internal set; }
+        public object Username { get; internal set; }
+        public bool IsSeller { get; internal set; }
     }
 }

@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using Npgsql;
 using System.Configuration;
 using BCrypt.Net;
-using Microsoft.Win32; // Для OpenFileDialog
+using Microsoft.Win32;
 
 namespace ElmirClone
 {
@@ -22,7 +22,7 @@ namespace ElmirClone
             "Хмельницька область", "Черкаська область", "Чернігівська область", "Чернівецька область",
             "Автономна Республіка Крим"
         };
-        private string selectedImagePath; // Для зберігання шляху до обраного зображення
+        private string selectedImagePath;
 
         public AdminWindow()
         {
@@ -59,7 +59,6 @@ namespace ElmirClone
             }
         }
 
-        // Перемикання панелей
         private void ShowUsersPanel_Click(object sender, RoutedEventArgs e)
         {
             UsersPanel.Visibility = Visibility.Visible;
@@ -99,7 +98,6 @@ namespace ElmirClone
             this.Close();
         }
 
-        // Керування користувачами
         private void LoadUsers()
         {
             try
@@ -149,7 +147,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Перевіряємо, чи email закінчується на @gmail.com або @outlook.com
             if (!(email.EndsWith("@gmail.com") || email.EndsWith("@outlook.com")))
             {
                 MessageBox.Show("Електронна пошта повинна закінчуватися на @gmail.com або @outlook.com.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -162,7 +159,17 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Перевіряємо, чи існує користувач з таким Email
+                    using (var checkUsernameCommand = new NpgsqlCommand("SELECT COUNT(*) FROM usercredentials WHERE username = @username", connection))
+                    {
+                        checkUsernameCommand.Parameters.AddWithValue("username", username);
+                        long usernameCount = (long)checkUsernameCommand.ExecuteScalar();
+                        if (usernameCount > 0)
+                        {
+                            MessageBox.Show("Користувач з таким ім'ям вже існує.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                    }
+
                     using (var checkEmailCommand = new NpgsqlCommand("SELECT COUNT(*) FROM userdetails WHERE email = @email", connection))
                     {
                         checkEmailCommand.Parameters.AddWithValue("email", email);
@@ -178,7 +185,6 @@ namespace ElmirClone
                     {
                         try
                         {
-                            // Реєстрація користувача
                             int userId;
                             using (var command = new NpgsqlCommand("INSERT INTO userdetails (firstname, email) VALUES (@firstName, @email) RETURNING userid", connection))
                             {
@@ -199,7 +205,6 @@ namespace ElmirClone
                                 command.ExecuteNonQuery();
                             }
 
-                            // Якщо роль Seller, створюємо профіль магазину
                             if (role == "Seller")
                             {
                                 using (var command = new NpgsqlCommand("INSERT INTO sellerprofiles (sellerid, storename, description, contactinfo) VALUES (@sellerId, @storeName, @description, @contactInfo)", connection))
@@ -265,7 +270,6 @@ namespace ElmirClone
                     {
                         try
                         {
-                            // Отримуємо роль користувача
                             string role = "";
                             using (var command = new NpgsqlCommand("SELECT role FROM usercredentials WHERE userid = @userId", connection))
                             {
@@ -278,7 +282,6 @@ namespace ElmirClone
                                 }
                             }
 
-                            // Якщо роль Seller, видаляємо пов'язані записи з sellerfees
                             if (role == "Seller")
                             {
                                 using (var command = new NpgsqlCommand("DELETE FROM sellerfees WHERE sellerid = @userId", connection))
@@ -289,7 +292,6 @@ namespace ElmirClone
                                 }
                             }
 
-                            // Видаляємо профіль магазину, якщо він існує
                             using (var command = new NpgsqlCommand("DELETE FROM sellerprofiles WHERE sellerid = @userId", connection))
                             {
                                 command.Parameters.AddWithValue("userId", userId);
@@ -297,7 +299,6 @@ namespace ElmirClone
                                 command.ExecuteNonQuery();
                             }
 
-                            // Видаляємо користувача з usercredentials
                             using (var command = new NpgsqlCommand("DELETE FROM usercredentials WHERE userid = @userId", connection))
                             {
                                 command.Parameters.AddWithValue("userId", userId);
@@ -305,7 +306,6 @@ namespace ElmirClone
                                 command.ExecuteNonQuery();
                             }
 
-                            // Видаляємо деталі користувача
                             using (var command = new NpgsqlCommand("DELETE FROM userdetails WHERE userid = @userId", connection))
                             {
                                 command.Parameters.AddWithValue("userId", userId);
@@ -331,7 +331,6 @@ namespace ElmirClone
             }
         }
 
-        // Керування каталогом
         private void LoadCategories()
         {
             try
@@ -356,12 +355,11 @@ namespace ElmirClone
                             }
                             CategoriesList.ItemsSource = categories;
 
-                            // Заповнюємо ComboBox для вибору батьківської категорії
                             ParentCategory.Items.Clear();
                             ParentCategory.Items.Add(new ComboBoxItem { Content = "Немає", Tag = null });
                             foreach (var category in categories)
                             {
-                                if (category.ParentCategoryName == "Немає") // Тільки кореневі категорії як батьківські
+                                if (category.ParentCategoryName == "Немає")
                                 {
                                     ParentCategory.Items.Add(new ComboBoxItem { Content = category.Name, Tag = category.CategoryId });
                                 }
@@ -419,7 +417,6 @@ namespace ElmirClone
 
         private void SelectImage_Click(object sender, RoutedEventArgs e)
         {
-            // Перевіряємо, чи обрано батьківську категорію
             int? parentCategoryId = (ParentCategory.SelectedItem as ComboBoxItem)?.Tag as int?;
             if (!parentCategoryId.HasValue)
             {
@@ -451,7 +448,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Перевіряємо, чи є категорія підкатегорією
             string imageUrl = null;
             if (parentCategoryId.HasValue)
             {
@@ -496,7 +492,6 @@ namespace ElmirClone
         {
             int categoryId = (int)((Button)sender).Tag;
 
-            // Отримуємо поточну категорію
             Category categoryToEdit = null;
             foreach (Category category in CategoriesList.Items)
             {
@@ -513,7 +508,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо нову назву
             string newName = Microsoft.VisualBasic.Interaction.InputBox("Введіть нову назву категорії:", "Редагування категорії", categoryToEdit.Name);
             if (string.IsNullOrWhiteSpace(newName))
             {
@@ -521,7 +515,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо нове зображення (якщо це підкатегорія)
             string newImageUrl = categoryToEdit.ImageUrl;
             bool isSubCategory = categoryToEdit.ParentCategoryName != "Немає";
             if (isSubCategory)
@@ -541,7 +534,7 @@ namespace ElmirClone
                     }
                     else
                     {
-                        return; // Якщо користувач скасував вибір зображення, перериваємо редагування
+                        return;
                     }
                 }
             }
@@ -551,7 +544,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Оновлюємо категорію в базі даних
             try
             {
                 using (var connection = new NpgsqlConnection(connectionString))
@@ -596,7 +588,6 @@ namespace ElmirClone
             }
         }
 
-        // Фінансові налаштування
         private void LoadPaymentMethods()
         {
             try
@@ -644,7 +635,6 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    // Перевіряємо, чи не існує вже спосіб оплати з такою назвою
                     using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM payment_methods WHERE name = @name", connection))
                     {
                         checkCommand.Parameters.AddWithValue("name", name);
@@ -677,7 +667,6 @@ namespace ElmirClone
         {
             int methodId = (int)((Button)sender).Tag;
 
-            // Отримуємо поточний спосіб оплати
             PaymentMethod methodToEdit = null;
             foreach (PaymentMethod method in PaymentMethodsList.Items)
             {
@@ -694,7 +683,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо нову назву
             string newName = Microsoft.VisualBasic.Interaction.InputBox("Введіть нову назву способу оплати:", "Редагування способу оплати", methodToEdit.Name);
             if (string.IsNullOrWhiteSpace(newName))
             {
@@ -702,7 +690,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо стан активності
             MessageBoxResult result = MessageBox.Show("Спосіб оплати активний?", "Редагування стану", MessageBoxButton.YesNo, MessageBoxImage.Question);
             bool isActive = (result == MessageBoxResult.Yes);
 
@@ -711,7 +698,6 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    // Перевіряємо, чи не існує вже спосіб оплати з такою назвою
                     using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM payment_methods WHERE name = @name AND methodid != @methodId", connection))
                     {
                         checkCommand.Parameters.AddWithValue("name", newName);
@@ -757,14 +743,12 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Перевіряємо, чи є замовлення з цим способом оплати
                     using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM orders WHERE payment_method_id = @methodId", connection))
                     {
                         checkCommand.Parameters.AddWithValue("methodId", methodId);
                         long orderCount = (long)checkCommand.ExecuteScalar();
                         if (orderCount > 0)
                         {
-                            // Шукаємо активний альтернативний спосіб оплати
                             int? newMethodId = null;
                             using (var selectCommand = new NpgsqlCommand("SELECT methodid FROM payment_methods WHERE is_active = TRUE AND methodid != @methodId LIMIT 1", connection))
                             {
@@ -782,7 +766,6 @@ namespace ElmirClone
                                 return;
                             }
 
-                            // Оновлюємо всі замовлення з новим payment_method_id
                             using (var updateCommand = new NpgsqlCommand("UPDATE orders SET payment_method_id = @newMethodId WHERE payment_method_id = @methodId", connection))
                             {
                                 updateCommand.Parameters.AddWithValue("newMethodId", newMethodId);
@@ -792,7 +775,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Виконуємо видалення способу оплати
                     using (var command = new NpgsqlCommand("DELETE FROM payment_methods WHERE methodid = @methodId", connection))
                     {
                         command.Parameters.AddWithValue("methodId", methodId);
@@ -808,7 +790,6 @@ namespace ElmirClone
             }
         }
 
-        // Логістика та доставка
         private void LoadCourierServices()
         {
             try
@@ -877,7 +858,6 @@ namespace ElmirClone
         {
             int serviceId = (int)((Button)sender).Tag;
 
-            // Отримуємо поточну службу
             CourierService serviceToEdit = null;
             foreach (CourierService service in CourierServicesList.Items)
             {
@@ -894,7 +874,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо нову назву
             string newName = Microsoft.VisualBasic.Interaction.InputBox("Введіть нову назву служби:", "Редагування служби", serviceToEdit.Name);
             if (string.IsNullOrWhiteSpace(newName))
             {
@@ -902,7 +881,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо новий стан активності
             MessageBoxResult result = MessageBox.Show("Служба активна?", "Редагування стану", MessageBoxButton.YesNo, MessageBoxImage.Question);
             bool isActive = (result == MessageBoxResult.Yes);
 
@@ -944,7 +922,6 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Виконуємо видалення служби
                     using (var command = new NpgsqlCommand("DELETE FROM courierservices WHERE serviceid = @serviceId", connection))
                     {
                         command.Parameters.AddWithValue("serviceId", serviceId);
@@ -1040,7 +1017,6 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    // Перевіряємо, чи не існує вже пункт самовивозу з такою адресою
                     using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM pickup_points WHERE address = @address", connection))
                     {
                         checkCommand.Parameters.AddWithValue("address", address);
@@ -1074,7 +1050,6 @@ namespace ElmirClone
         {
             int pickupPointId = (int)((Button)sender).Tag;
 
-            // Отримуємо поточний пункт самовивозу
             PickupPoint pointToEdit = null;
             foreach (PickupPoint point in PickupPointsList.Items)
             {
@@ -1091,7 +1066,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо нову адресу
             string newAddress = Microsoft.VisualBasic.Interaction.InputBox("Введіть нову адресу пункту самовивозу:", "Редагування пункту самовивозу", pointToEdit.Address);
             if (string.IsNullOrWhiteSpace(newAddress))
             {
@@ -1099,7 +1073,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Запитуємо новий регіон через діалогове вікно
             var regionWindow = new Window
             {
                 Title = "Оберіть регіон",
@@ -1135,7 +1108,7 @@ namespace ElmirClone
             }
             else
             {
-                return; // Якщо користувач скасував вибір регіону, перериваємо редагування
+                return;
             }
 
             try
@@ -1143,7 +1116,6 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    // Перевіряємо, чи не існує вже пункт самовивозу з такою адресою
                     using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM pickup_points WHERE address = @address AND pickup_point_id != @pickupPointId", connection))
                     {
                         checkCommand.Parameters.AddWithValue("address", newAddress);
@@ -1189,14 +1161,12 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Перевіряємо, чи є замовлення, пов'язані з цим пунктом самовивозу
                     using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM orders WHERE pickup_point_id = @pickupPointId", connection))
                     {
                         checkCommand.Parameters.AddWithValue("pickupPointId", pickupPointId);
                         long orderCount = (long)checkCommand.ExecuteScalar();
                         if (orderCount > 0)
                         {
-                            // Шукаємо альтернативний пункт самовивозу
                             int? newPickupPointId = null;
                             using (var selectCommand = new NpgsqlCommand("SELECT pickup_point_id FROM pickup_points WHERE pickup_point_id != @pickupPointId LIMIT 1", connection))
                             {
@@ -1214,7 +1184,6 @@ namespace ElmirClone
                                 return;
                             }
 
-                            // Оновлюємо всі замовлення, замінюючи pickup_point_id на новий
                             using (var updateCommand = new NpgsqlCommand("UPDATE orders SET pickup_point_id = @newPickupPointId WHERE pickup_point_id = @pickupPointId", connection))
                             {
                                 updateCommand.Parameters.AddWithValue("newPickupPointId", newPickupPointId);
@@ -1224,7 +1193,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Виконуємо видалення пункту самовивозу
                     using (var command = new NpgsqlCommand("DELETE FROM pickup_points WHERE pickup_point_id = @pickupPointId", connection))
                     {
                         command.Parameters.AddWithValue("pickupPointId", pickupPointId);
@@ -1242,7 +1210,6 @@ namespace ElmirClone
         }
     }
 
-    // Моделі даних
     public class User
     {
         public int UserId { get; set; }

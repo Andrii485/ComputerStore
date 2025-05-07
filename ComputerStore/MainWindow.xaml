@@ -70,6 +70,86 @@
             <Setter Property="Margin" Value="5"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <Style TargetType="Button" x:Key="CategoryToggleButtonStyle">
+            <Setter Property="Content" Value="Каталог"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Width" Value="157"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#444444">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#444444"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#555555"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button" x:Key="NavigationButtonStyle">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#444444">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#444444"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#555555"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBox" x:Key="SearchBoxStyle">
+            <Setter Property="Width" Value="354"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="Gray"/>
+            <Setter Property="Text" Value="Я шукаю..."/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#444444"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="TextBox" x:Key="PriceFilterTextBoxStyle">
+            <Setter Property="Width" Value="80"/>
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="BorderBrush" Value="#444444"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -85,27 +165,47 @@
         <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#2C2F33">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0">
-                    <Image Source="https://i.postimg.cc/02SPKrX0/2025-04-17-000603.png" Width="40" Height="40" Cursor="Hand" MouseLeftButtonDown="Logo_Click"/>
-                    <TextBox x:Name="SearchBox" Width="300" Height="30" Margin="10,0,0,0" VerticalAlignment="Center" Text="Пошук..." Foreground="Gray"
-                             GotFocus="SearchBox_GotFocus" LostFocus="SearchBox_LostFocus" KeyDown="SearchBox_KeyDown"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                    <Image Source="https://i.postimg.cc/02SPKrX0/2025-04-17-000603.png" Width="85" Height="56" Cursor="Hand" MouseLeftButtonDown="Logo_Click"/>
+                    <Button x:Name="BackButton" Content="←" Click="BackButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
+                    <Button x:Name="ForwardButton" Content="→" Click="ForwardButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0">
-                    <Button x:Name="OrdersButton" Content="Замовлення" Click="OrdersButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="CartButton" Content="Кошик" Click="CartButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="ProfileButton" Content="Профіль" Click="ProfileButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
-                    <Button x:Name="LogoutButton" Content="Вийти" Click="LogoutButton_Click" Style="{StaticResource OrderButtonStyle}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBox x:Name="SearchBox" Style="{StaticResource SearchBoxStyle}"
+                             GotFocus="SearchBox_GotFocus" LostFocus="SearchBox_LostFocus" KeyDown="SearchBox_KeyDown"/>
+                    <Button x:Name="SearchButton" Content="🔍" Width="40" Height="30" Margin="5,0" Click="SearchButton_Click" Background="#4CAF50" Foreground="White"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0">
+                    <Button x:Name="CartButton" Content="Корзина" Click="CartButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
+                    <Button x:Name="ProfileButton" Content="Профиль" Click="ProfileButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,10,0"/>
+                    <Button x:Name="LogoutButton" Content="Выйти" Click="LogoutButton_Click" Style="{StaticResource OrderButtonStyle}"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Бічна панель із категоріями -->
+        <!-- Бічна панель із категоріями та фільтрами -->
         <StackPanel Grid.Row="1" Grid.Column="0" Background="#E0E0E0" Margin="5">
-            <TextBlock Text="Категорії" FontSize="16" FontWeight="SemiBold" Margin="10,10,0,5" Foreground="#333"/>
-            <StackPanel x:Name="CategoryPanel" Margin="5"/>
+            <Button x:Name="CategoryToggleButton" Click="CategoryToggleButton_Click" Style="{StaticResource CategoryToggleButtonStyle}"/>
+            <StackPanel x:Name="CategoryPanel" Margin="5" Visibility="Collapsed"/>
+            <StackPanel x:Name="FilterPanel" Margin="5" Visibility="Collapsed">
+                <TextBlock Text="Фільтри" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <TextBlock Text="Бренди" FontSize="14" FontWeight="Medium" Margin="0,0,0,5"/>
+                <StackPanel x:Name="BrandsPanel" Margin="0,0,0,10"/>
+                <TextBlock Text="Ціна" FontSize="14" FontWeight="Medium" Margin="0,0,0,5"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                    <TextBlock Text="Від:" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                    <TextBox x:Name="PriceFromTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="До:" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                    <TextBox x:Name="PriceToTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
+                </StackPanel>
+                <Button x:Name="ApplyFiltersButton" Content="Застосувати" Click="ApplyFiltersButton_Click" Style="{StaticResource OrderButtonStyle}"/>
+            </StackPanel>
         </StackPanel>
 
         <!-- Основний контент -->
