@@ -201,6 +201,7 @@
                         <TextBox x:Name="NewProductDescription" Style="{StaticResource ModernInputStyle}" Text="Опис"/>
                         <TextBox x:Name="NewProductPrice" Style="{StaticResource ModernInputStyle}" Text="Ціна"/>
                         <TextBox x:Name="NewProductBrand" Style="{StaticResource ModernInputStyle}" Text="Бренд"/>
+                        <TextBox x:Name="NewProductStockQuantity" Style="{StaticResource ModernInputStyle}" Text="Кількість"/>
                         <ComboBox x:Name="ProductCategory" Style="{StaticResource ModernComboBoxStyle}" DisplayMemberPath="Name" SelectedValuePath="CategoryId"/>
                         <ComboBox x:Name="ProductSubcategory" Style="{StaticResource ModernComboBoxStyle}" DisplayMemberPath="Name" SelectedValuePath="SubcategoryId"/>
                         <TextBox x:Name="NewProductImagePath" Style="{StaticResource ModernInputStyle}" Text="Шлях до зображення" IsReadOnly="True"/>
@@ -219,6 +220,7 @@
                             <DataGridTextColumn Header="Опис" Binding="{Binding Description}" Width="150"/>
                             <DataGridTextColumn Header="Ціна" Binding="{Binding Price}" Width="80"/>
                             <DataGridTextColumn Header="Бренд" Binding="{Binding Brand}" Width="100"/>
+                            <DataGridTextColumn Header="Кількість" Binding="{Binding StockQuantity}" Width="80"/>
                             <DataGridTextColumn Header="Категорія" Binding="{Binding CategoryName}" Width="120"/>
                             <DataGridTextColumn Header="Підкатегорія" Binding="{Binding SubcategoryName}" Width="120"/>
                             <DataGridTextColumn Header="Зображення" Binding="{Binding ImageUrl}" Width="150"/>

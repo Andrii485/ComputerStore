@@ -37,9 +37,6 @@ namespace ElmirClone
             LoadStoreProfile();
         }
 
-        // Removed unused constructor to avoid confusion
-        // public SellerWindow(object userId) { ... }
-
         private void ShowProductsPanel_Click(object sender, RoutedEventArgs e)
         {
             if (Dispatcher.CheckAccess())
@@ -227,7 +224,7 @@ namespace ElmirClone
                     {
                         connection.Open();
                         using (var command = new NpgsqlCommand(
-                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden " +
+                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden, p.stock_quantity " +
                             "FROM products p " +
                             "JOIN categories c ON p.categoryid = c.categoryid " +
                             "LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid " +
@@ -250,7 +247,8 @@ namespace ElmirClone
                                         CategoryName = reader.GetString(5),
                                         SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
                                         ImageUrl = imageUrl,
-                                        IsHidden = reader.GetBoolean(8)
+                                        IsHidden = reader.GetBoolean(8),
+                                        StockQuantity = reader.GetInt32(9)
                                     });
                                 }
                                 ProductsList.ItemsSource = products;
@@ -282,7 +280,7 @@ namespace ElmirClone
                     {
                         connection.Open();
                         using (var command = new NpgsqlCommand(
-                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden " +
+                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden, p.stock_quantity " +
                             "FROM products p " +
                             "JOIN categories c ON p.categoryid = c.categoryid " +
                             "LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid " +
@@ -306,7 +304,8 @@ namespace ElmirClone
                                         CategoryName = reader.GetString(5),
                                         SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
                                         ImageUrl = imageUrl,
-                                        IsHidden = reader.GetBoolean(8)
+                                        IsHidden = reader.GetBoolean(8),
+                                        StockQuantity = reader.GetInt32(9)
                                     });
                                 }
                                 else
@@ -383,6 +382,11 @@ namespace ElmirClone
                 string brand = NewProductBrand.Text?.Trim();
                 int? categoryId = ProductCategory.SelectedValue as int?;
                 int? subcategoryId = ProductSubcategory.SelectedValue as int?;
+                if (!int.TryParse(NewProductStockQuantity.Text, out int stockQuantity) || stockQuantity < 0)
+                {
+                    MessageBox.Show("Введіть коректну кількість товару (ціле число, не менше 0).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
                 if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(brand) || categoryId == null)
                 {
@@ -444,8 +448,8 @@ namespace ElmirClone
                         }
 
                         using (var command = new NpgsqlCommand(
-                            "INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url, ishidden) " +
-                            "VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl, false)", connection))
+                            "INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url, ishidden, stock_quantity) " +
+                            "VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl, false, @stockquantity)", connection))
                         {
                             command.Parameters.AddWithValue("name", name);
                             command.Parameters.AddWithValue("description", description);
@@ -455,6 +459,7 @@ namespace ElmirClone
                             command.Parameters.AddWithValue("subcategoryid", subcategoryId ?? (object)DBNull.Value);
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.Parameters.AddWithValue("imageurl", imageUrl);
+                            command.Parameters.AddWithValue("stockquantity", stockQuantity);
                             command.ExecuteNonQuery();
                         }
                     }
@@ -464,6 +469,7 @@ namespace ElmirClone
                     NewProductDescription.Text = "";
                     NewProductPrice.Text = "";
                     NewProductBrand.Text = "";
+                    NewProductStockQuantity.Text = "";
                     ProductCategory.SelectedValue = null;
                     ProductSubcategory.SelectedValue = null;
                     LoadProducts();
@@ -514,6 +520,7 @@ namespace ElmirClone
                 NewProductDescription.Text = product.Description;
                 NewProductPrice.Text = product.Price.ToString();
                 NewProductBrand.Text = product.Brand;
+                NewProductStockQuantity.Text = product.StockQuantity.ToString();
                 selectedImagePath = null;
                 NewProductImagePath.Text = product.ImageUrl == "https://via.placeholder.com/150" ? "" : product.ImageUrl;
 
@@ -530,7 +537,7 @@ namespace ElmirClone
                 {
                     Title = "Редагувати товар",
                     Width = 400,
-                    Height = 600,
+                    Height = 650,
                     WindowStartupLocation = WindowStartupLocation.CenterScreen
                 };
 
@@ -550,6 +557,10 @@ namespace ElmirClone
                 panel.Children.Add(new TextBlock { Text = "Бренд:", Margin = new Thickness(0, 0, 0, 5) });
                 TextBox brandBox = new TextBox { Text = product.Brand, Margin = new Thickness(0, 0, 0, 10) };
                 panel.Children.Add(brandBox);
+
+                panel.Children.Add(new TextBlock { Text = "Кількість:", Margin = new Thickness(0, 0, 0, 5) });
+                TextBox stockQuantityBox = new TextBox { Text = product.StockQuantity.ToString(), Margin = new Thickness(0, 0, 0, 10) };
+                panel.Children.Add(stockQuantityBox);
 
                 panel.Children.Add(new TextBlock { Text = "Категорія:", Margin = new Thickness(0, 0, 0, 5) });
                 ComboBox categoryBox = new ComboBox { ItemsSource = ProductCategory.ItemsSource, DisplayMemberPath = "Name", SelectedValuePath = "CategoryId", SelectedValue = ProductCategory.SelectedValue, Margin = new Thickness(0, 0, 0, 10) };
@@ -625,6 +636,12 @@ namespace ElmirClone
                 {
                     try
                     {
+                        if (!int.TryParse(stockQuantityBox.Text, out int newStockQuantity) || newStockQuantity < 0)
+                        {
+                            MessageBox.Show("Введіть коректну кількість товару (ціле число, не менше 0).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+
                         string imageUrl = product.ImageUrl;
                         if (!string.IsNullOrEmpty(selectedImagePath))
                         {
@@ -636,7 +653,7 @@ namespace ElmirClone
                             connection.Open();
                             using (var command = new NpgsqlCommand(
                                 "UPDATE products SET name = @name, description = @description, price = @price, brand = @brand, " +
-                                "categoryid = @categoryid, subcategoryid = @subcategoryid, image_url = @imageurl " +
+                                "categoryid = @categoryid, subcategoryid = @subcategoryid, image_url = @imageurl, stock_quantity = @stockquantity " +
                                 "WHERE productid = @productid AND sellerid = @sellerid", connection))
                             {
                                 command.Parameters.AddWithValue("name", nameBox.Text.Trim());
@@ -646,6 +663,7 @@ namespace ElmirClone
                                 command.Parameters.AddWithValue("categoryid", (int)categoryBox.SelectedValue);
                                 command.Parameters.AddWithValue("subcategoryid", subcategoryBox.SelectedValue ?? (object)DBNull.Value);
                                 command.Parameters.AddWithValue("imageurl", imageUrl);
+                                command.Parameters.AddWithValue("stockquantity", newStockQuantity);
                                 command.Parameters.AddWithValue("productid", productId);
                                 command.Parameters.AddWithValue("sellerid", sellerId);
                                 command.ExecuteNonQuery();
