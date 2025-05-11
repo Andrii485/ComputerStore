@@ -240,14 +240,14 @@ namespace ElmirClone
                                     string imageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7);
                                     products.Add(new DbProduct
                                     {
-                                        ProductId = reader.GetInt32(0),
-                                        Name = reader.GetString(1),
-                                        Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                        Price = reader.GetDecimal(3),
-                                        Brand = reader.GetString(4),
-                                        CategoryName = reader.GetString(5),
-                                        SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                        ImageUrl = imageUrl,
+                                        ProductId1 = reader.GetInt32(0),
+                                        Name1 = reader.GetString(1),
+                                        Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                        Price1 = reader.GetDecimal(3),
+                                        Brand1 = reader.GetString(4),
+                                        CategoryName1 = reader.GetString(5),
+                                        SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                        ImageUrl1 = imageUrl,
                                         IsHidden = reader.GetBoolean(8)
                                     });
                                 }

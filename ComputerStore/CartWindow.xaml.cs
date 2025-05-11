@@ -64,6 +64,11 @@ namespace ElmirClone
             }
         }
 
+        public CartWindow(UserProfile userProfile)
+        {
+            this.userProfile = userProfile;
+        }
+
         private void RedirectToLogin()
         {
             try
@@ -80,7 +85,7 @@ namespace ElmirClone
 
         private void CalculateTotalPrice()
         {
-            totalPrice = (cartItems != null) ? cartItems.Sum(item => item.Price * item.Quantity) : 0;
+            totalPrice = (cartItems != null) ? cartItems.Sum(item => item.Price1 * item.Quantity) : 0;
             if (TotalPriceText != null)
             {
                 TotalPriceText.Text = $"Загальна сума: {totalPrice:F2} грн";

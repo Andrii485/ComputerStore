@@ -23,5 +23,18 @@ namespace ElmirClone
         public int Quantity { get; set; }
         public int StockQuantity { get; set; } // Новое свойство для количества на складе
         public bool IsHidden { get; internal set; }
+        public int ProductId1 { get; internal set; }
+        public string Name1 { get; internal set; }
+        public decimal Price1 { get; internal set; }
+        public string ImageUrl1 { get; internal set; }
+        public double Rating1 { get; internal set; }
+        public int ReviewCount1 { get; internal set; }
+        public string StoreDescription1 { get; internal set; }
+        public string StoreName1 { get; internal set; }
+        public string SubcategoryName1 { get; internal set; }
+        public string CategoryName1 { get; internal set; }
+        public string Brand1 { get; internal set; }
+        public string Description1 { get; internal set; }
+        public bool IsHidden1 { get; internal set; }
     }
 }

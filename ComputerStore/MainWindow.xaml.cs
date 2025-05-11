@@ -16,7 +16,7 @@ namespace ElmirClone
     {
         private UserProfile userProfile;
         private string connectionString;
-        private List<DbProduct> cartItems;
+        private List<ProductDetails> cartItems;
         private DispatcherTimer orderStatusTimer;
         private List<int> notifiedOrders;
         private int? selectedCategoryId;
@@ -33,7 +33,7 @@ namespace ElmirClone
         {
             InitializeComponent();
             this.userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
-            cartItems = new List<DbProduct>();
+            cartItems = new List<ProductDetails>();
             notifiedOrders = new List<int>();
             navigationHistory = new List<(string, int?, int?)>();
             navigationIndex = -1;
@@ -192,6 +192,12 @@ namespace ElmirClone
                                     int subCategoryId = reader.GetInt32(0);
                                     string subCategoryName = reader.GetString(1);
                                     string imageUrl = reader.IsDBNull(2) ? "https://via.placeholder.com/200" : reader.GetString(2);
+
+                                    // Validate imageUrl
+                                    if (string.IsNullOrWhiteSpace(imageUrl) || !Uri.TryCreate(imageUrl, UriKind.RelativeOrAbsolute, out _))
+                                    {
+                                        imageUrl = "https://via.placeholder.com/200";
+                                    }
 
                                     Border subCategoryBorder = new Border
                                     {
@@ -491,12 +497,19 @@ namespace ElmirClone
                             }
                             using (var reader = command.ExecuteReader())
                             {
-                                var products = new List<DbProduct>();
+                                var products = new List<ProductDetails>();
                                 while (reader.Read())
                                 {
                                     string imageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3);
+
+                                    // Validate imageUrl
+                                    if (string.IsNullOrWhiteSpace(imageUrl) || !Uri.TryCreate(imageUrl, UriKind.RelativeOrAbsolute, out _))
+                                    {
+                                        imageUrl = "https://via.placeholder.com/150";
+                                    }
+
                                     int reviewCount = GetReviewCount(reader.GetInt32(0)); // Получаем количество отзывов
-                                    products.Add(new DbProduct
+                                    products.Add(new ProductDetails
                                     {
                                         ProductId = reader.GetInt32(0),
                                         Name = reader.GetString(1),
@@ -892,7 +905,13 @@ namespace ElmirClone
                             {
                                 if (reader.Read())
                                 {
-                                    var product = new DbProduct
+                                    string imageUrl = reader.IsDBNull(6) ? "https://via.placeholder.com/150" : reader.GetString(6);
+                                    if (string.IsNullOrWhiteSpace(imageUrl) || !Uri.TryCreate(imageUrl, UriKind.RelativeOrAbsolute, out _))
+                                    {
+                                        imageUrl = "https://via.placeholder.com/150";
+                                    }
+
+                                    var product = new ProductDetails
                                     {
                                         ProductId = reader.GetInt32(0),
                                         Name = reader.GetString(1),
@@ -900,7 +919,7 @@ namespace ElmirClone
                                         Price = reader.GetDecimal(3),
                                         Brand = reader.GetString(4),
                                         CategoryName = reader.GetString(5),
-                                        ImageUrl = reader.IsDBNull(6) ? "https://via.placeholder.com/150" : reader.GetString(6),
+                                        ImageUrl = imageUrl,
                                         StoreName = reader.GetString(7),
                                         StoreDescription = reader.IsDBNull(8) ? "Немає опису" : reader.GetString(8)
                                     };
@@ -1051,12 +1070,18 @@ namespace ElmirClone
                             {
                                 while (reader.Read())
                                 {
-                                    var product = new DbProduct
+                                    string imageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3);
+                                    if (string.IsNullOrWhiteSpace(imageUrl) || !Uri.TryCreate(imageUrl, UriKind.RelativeOrAbsolute, out _))
+                                    {
+                                        imageUrl = "https://via.placeholder.com/150";
+                                    }
+
+                                    var product = new ProductDetails
                                     {
                                         ProductId = reader.GetInt32(0),
                                         Name = reader.GetString(1),
                                         Price = reader.GetDecimal(2),
-                                        ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3),
+                                        ImageUrl = imageUrl,
                                         Quantity = reader.GetInt32(4)
                                     };
                                     cartItems.Add(product);
@@ -1064,11 +1089,27 @@ namespace ElmirClone
                             }
                         }
                     }
+                    UpdateCartDisplay();
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Помилка при завантаженні кошика з бази даних: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private void UpdateCartDisplay()
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                CartItemsList.Items.Clear();
+                decimal total = 0;
+                foreach (var item in cartItems)
+                {
+                    CartItemsList.Items.Add($"{item.Name} - {item.Price:F2} грн x {item.Quantity}");
+                    total += item.Price * item.Quantity;
+                }
+                CartTotalText.Text = $"Загальна сума: {total:F2} грн";
             }
         }
 
@@ -1157,6 +1198,7 @@ namespace ElmirClone
                         }
                     }
                     cartItems.Clear();
+                    UpdateCartDisplay();
                 }
                 catch (Exception ex)
                 {
@@ -1182,19 +1224,13 @@ namespace ElmirClone
                         return;
                     }
 
-                    // Открываем окно корзины
-                    CartWindow cartWindow = new CartWindow(cartItems, userProfile);
-                    if (cartWindow.CanShowDialog())
+                    // Toggle CartOverlay visibility
+                    bool isVisible = CartOverlay.Visibility == Visibility.Visible;
+                    CartOverlay.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
+                    ContentScrollViewer.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+                    if (!isVisible)
                     {
-                        bool? result = cartWindow.ShowDialog();
-                        if (result == true)
-                        {
-                            // Если заказ успешно оформлен, очищаем корзину в базе данных
-                            ClearCartInDatabase();
-                            ContentPanel.Visibility = Visibility.Visible;
-                            LoadProducts(); // Возвращаемся к списку товаров
-                            LoadOrders(); // Обновляем список заказов
-                        }
+                        UpdateCartDisplay();
                     }
                 }
                 catch (Exception ex)
@@ -1221,20 +1257,11 @@ namespace ElmirClone
                         return;
                     }
 
-                    // Открываем окно корзины для оформления заказа
-                    CartWindow cartWindow = new CartWindow(cartItems, userProfile);
-                    if (cartWindow.CanShowDialog())
-                    {
-                        bool? result = cartWindow.ShowDialog();
-                        if (result == true)
-                        {
-                            // Если заказ успешно оформлен, очи obtenido
-                            ClearCartInDatabase();
-                            ContentPanel.Visibility = Visibility.Visible;
-                            LoadProducts(); // Возвращаемся к списку товаров
-                            LoadOrders(); // Обновляем список заказов
-                        }
-                    }
+                    // Здесь можно добавить логику оформления заказа
+                    ClearCartInDatabase();
+                    CartOverlay.Visibility = Visibility.Collapsed;
+                    ContentScrollViewer.Visibility = Visibility.Visible;
+                    LoadOrders();
                 }
                 catch (Exception ex)
                 {
@@ -1247,8 +1274,23 @@ namespace ElmirClone
         {
             if (Dispatcher.CheckAccess())
             {
-                ProfilePanel.Visibility = ProfilePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-                ContentPanel.Visibility = ProfilePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+                bool isVisible = ProfileBorder.Visibility == Visibility.Visible;
+                ProfileBorder.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
+                ContentScrollViewer.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private void OrdersButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                bool isVisible = OrderBorder.Visibility == Visibility.Visible;
+                OrderBorder.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
+                ContentScrollViewer.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
+                if (!isVisible)
+                {
+                    LoadOrders();
+                }
             }
         }
 
@@ -1328,21 +1370,9 @@ namespace ElmirClone
                 selectedSubCategoryId = null;
                 FilterPanel.Visibility = Visibility.Collapsed;
                 LoadProducts();
-                OrderPanel.Visibility = Visibility.Collapsed;
+                OrderBorder.Visibility = Visibility.Collapsed;
+                ContentScrollViewer.Visibility = Visibility.Visible;
                 e.Handled = true;
-            }
-        }
-
-        private void OrdersButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (Dispatcher.CheckAccess())
-            {
-                OrderPanel.Visibility = OrderPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-                if (OrderPanel.Visibility == Visibility.Visible)
-                {
-                    LoadOrders();
-                }
-                ContentPanel.Visibility = OrderPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             }
         }
 
@@ -1419,9 +1449,36 @@ namespace ElmirClone
                 CategoryPanel.Visibility = CategoryPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             }
         }
+
+        private void CloseProfileButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                ProfileBorder.Visibility = Visibility.Collapsed;
+                ContentScrollViewer.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void CloseCartButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                CartOverlay.Visibility = Visibility.Collapsed;
+                ContentScrollViewer.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void CloseOrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                OrderBorder.Visibility = Visibility.Collapsed;
+                ContentScrollViewer.Visibility = Visibility.Visible;
+            }
+        }
     }
 
-    public class DbProduct1
+    public class ProductDetails
     {
         public int ProductId { get; set; }
         public string Name { get; set; }
@@ -1431,15 +1488,7 @@ namespace ElmirClone
         public string StoreName { get; set; }
         public string StoreDescription { get; set; }
         public int ReviewCount { get; set; }
-        public int Quantity { get; set; } // Добавлено поле для количества
-        public int ProductId1 { get; internal set; }
-        public string Name1 { get; internal set; }
-        public string Description1 { get; internal set; }
-        public decimal Price1 { get; internal set; }
-        public string Brand1 { get; internal set; }
-        public string CategoryName1 { get; internal set; }
-        public string SubcategoryName1 { get; internal set; }
-        public string? ImageUrl1 { get; internal set; }
+        public int Quantity { get; set; }
         public string Description { get; internal set; }
         public string Brand { get; internal set; }
         public string CategoryName { get; internal set; }

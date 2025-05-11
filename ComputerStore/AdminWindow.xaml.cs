@@ -490,17 +490,17 @@ namespace ElmirClone
                             var products = new List<DbProduct2>();
                             while (reader.Read())
                             {
-                                products.Add(new DbProduct2
+                                products.Add(new DbProduct1
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price = reader.GetDecimal(3),
-                                    Brand = reader.GetString(4),
-                                    CategoryName = reader.GetString(5),
-                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl = reader.IsDBNull(7) ? null : reader.GetString(7),
-                                    IsHidden = reader.GetBoolean(8)
+                                    ProductId1 = reader.GetInt32(0),
+                                    Name1 = reader.GetString(1),
+                                    Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price1 = reader.GetDecimal(3),
+                                    Brand1 = reader.GetString(4),
+                                    CategoryName1 = reader.GetString(5),
+                                    SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl1 = reader.IsDBNull(7) ? null : reader.GetString(7),
+                                    IsHidden1 = reader.GetBoolean(8)
                                 });
                             }
                             ProductsList.ItemsSource = products;
@@ -1353,7 +1353,7 @@ namespace ElmirClone
         public string ImageUrl { get; set; }
     }
 
-    public class DbProduct2
+    public class DbProducts1
     {
         public int ProductId { get; set; }
         public string Name { get; set; }
@@ -1364,6 +1364,15 @@ namespace ElmirClone
         public string SubcategoryName { get; set; }
         public string ImageUrl { get; set; }
         public bool IsHidden { get; set; }
+        public int ProductId1 { get; internal set; }
+        public string Description1 { get; internal set; }
+        public string Brand1 { get; internal set; }
+        public decimal Price1 { get; internal set; }
+        public string Name1 { get; internal set; }
+        public string CategoryName1 { get; internal set; }
+        public string SubcategoryName1 { get; internal set; }
+        public string? ImageUrl1 { get; internal set; }
+        public bool IsHidden1 { get; internal set; }
     }
 
     public class PaymentMethod
