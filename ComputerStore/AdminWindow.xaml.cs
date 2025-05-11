@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using Npgsql;
 using System.Configuration;
 using BCrypt.Net;
 using Microsoft.Win32;
+using ElmirClone.Models;
 
 namespace ElmirClone
 {
@@ -133,6 +135,54 @@ namespace ElmirClone
             }
         }
 
+        private void SearchUserByEmail_Click(object sender, RoutedEventArgs e)
+        {
+            string email = SearchUserEmail.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                MessageBox.Show("Введіть електронну пошту для пошуку.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                LoadUsers(); // Сбрасываем список, показывая всех пользователей
+                return;
+            }
+
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT uc.userid, uc.username, ud.email, uc.role, uc.isblocked FROM usercredentials uc JOIN userdetails ud ON uc.userid = ud.userid WHERE uc.role != 'Admin' AND ud.email ILIKE @email", connection))
+                    {
+                        command.Parameters.AddWithValue("email", $"%{email}%");
+                        using (var reader = command.ExecuteReader())
+                        {
+                            var users = new List<User>();
+                            while (reader.Read())
+                            {
+                                string role = reader.GetString(3);
+                                users.Add(new User
+                                {
+                                    UserId = reader.GetInt32(0),
+                                    Username = reader.GetString(1),
+                                    Email = reader.GetString(2),
+                                    Role = role == "Buyer" ? "Покупець" : role == "Seller" ? "Продавець" : role,
+                                    IsBlocked = reader.GetBoolean(4)
+                                });
+                            }
+                            UsersList.ItemsSource = users;
+                            if (!users.Any())
+                            {
+                                MessageBox.Show("Користувача з такою електронною поштою не знайдено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка під час пошуку користувача: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void RegisterUser_Click(object sender, RoutedEventArgs e)
         {
             string username = NewUserUsername.Text?.Trim();
@@ -251,6 +301,7 @@ namespace ElmirClone
                     }
                 }
                 LoadUsers();
+                MessageBox.Show("Статус блокування користувача змінено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -385,23 +436,24 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid", connection))
+                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid", connection))
                     {
                         using (var reader = command.ExecuteReader())
                         {
-                            var products = new List<DbProduct>();
+                            var products = new List<DbProduct2>();
                             while (reader.Read())
                             {
-                                products.Add(new DbProduct
+                                products.Add(new DbProduct2
                                 {
-                                    ProductId1 = reader.GetInt32(0),
-                                    Name1 = reader.GetString(1),
-                                    Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price1 = reader.GetDecimal(3),
-                                    Brand1 = reader.GetString(4),
-                                    CategoryName1 = reader.GetString(5),
-                                    SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl1 = reader.IsDBNull(7) ? null : reader.GetString(7)
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price = reader.GetDecimal(3),
+                                    Brand = reader.GetString(4),
+                                    CategoryName = reader.GetString(5),
+                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl = reader.IsDBNull(7) ? null : reader.GetString(7),
+                                    IsHidden = reader.GetBoolean(8)
                                 });
                             }
                             ProductsList.ItemsSource = products;
@@ -412,6 +464,80 @@ namespace ElmirClone
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка під час завантаження товарів: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SearchProductById_Click(object sender, RoutedEventArgs e)
+        {
+            string productIdText = SearchProductId.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(productIdText) || !int.TryParse(productIdText, out int productId))
+            {
+                MessageBox.Show("Введіть коректний ID товару (числовий формат).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                LoadProducts(); // Сбрасываем список, показывая все товары
+                return;
+            }
+
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid WHERE p.productid = @productId", connection))
+                    {
+                        command.Parameters.AddWithValue("productId", productId);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            var products = new List<DbProduct2>();
+                            while (reader.Read())
+                            {
+                                products.Add(new DbProduct2
+                                {
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price = reader.GetDecimal(3),
+                                    Brand = reader.GetString(4),
+                                    CategoryName = reader.GetString(5),
+                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl = reader.IsDBNull(7) ? null : reader.GetString(7),
+                                    IsHidden = reader.GetBoolean(8)
+                                });
+                            }
+                            ProductsList.ItemsSource = products;
+                            if (!products.Any())
+                            {
+                                MessageBox.Show("Товар з таким ID не знайдено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка під час пошуку товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ToggleProductVisibility_Click(object sender, RoutedEventArgs e)
+        {
+            int productId = (int)((Button)sender).Tag;
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("UPDATE products SET ishidden = NOT ishidden WHERE productid = @productId", connection))
+                    {
+                        command.Parameters.AddWithValue("productId", productId);
+                        command.ExecuteNonQuery();
+                    }
+                }
+                LoadProducts();
+                MessageBox.Show("Статус видимості товару змінено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка під час зміни статусу товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1227,38 +1353,17 @@ namespace ElmirClone
         public string ImageUrl { get; set; }
     }
 
-    public class DbProduct1
+    public class DbProduct2
     {
-        internal string? ImagePath;
-        internal int DiscountedPrice;
-        internal int Quantity;
-        internal object SellerId;
-        internal decimal OriginalPrice;
-        internal bool HasDiscount;
-        internal string SellerName;
-
         public int ProductId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; }
         public string Brand { get; set; }
-        public decimal Discount { get; set; }
         public string CategoryName { get; set; }
+        public string SubcategoryName { get; set; }
+        public string ImageUrl { get; set; }
         public bool IsHidden { get; set; }
-        public string ImageUrl { get; internal set; }
-        public double Rating { get; internal set; }
-        public int Reviews { get; internal set; }
-        public string SubcategoryName { get; internal set; }
-        public object StoreName { get; internal set; }
-        public object StoreDescription { get; internal set; }
-        public int ProductId1 { get; internal set; }
-        public string Name1 { get; internal set; }
-        public string Description1 { get; internal set; }
-        public decimal Price1 { get; internal set; }
-        public string Brand1 { get; internal set; }
-        public string SubcategoryName1 { get; internal set; }
-        public string CategoryName1 { get; internal set; }
-        public string? ImageUrl1 { get; internal set; }
     }
 
     public class PaymentMethod
@@ -1281,5 +1386,61 @@ namespace ElmirClone
         public int PickupPointId { get; set; }
         public string Address { get; set; }
         public string Region { get; set; }
+    }
+
+    // Конвертер для отображения статуса блокировки пользователя
+    public class BooleanToBlockedConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (bool)value ? "Заблоковано" : "Активний";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    // Конвертер для текста кнопки блокировки пользователя
+    public class BooleanToBlockButtonConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (bool)value ? "Розблокувати" : "Заблокувати";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    // Конвертер для отображения статуса видимости товара
+    public class BooleanToHiddenConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (bool)value ? "Приховано" : "Видимий";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    // Конвертер для текста кнопки скрытия/показа товара
+    public class BooleanToHideButtonConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (bool)value ? "Показати" : "Приховати";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

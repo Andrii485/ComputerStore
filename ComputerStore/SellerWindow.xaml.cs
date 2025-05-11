@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Npgsql;
@@ -16,6 +17,7 @@ namespace ElmirClone
         private int sellerId;
         private string selectedImagePath;
         private object userId;
+        private bool currentStatus;
 
         public SellerWindow(int sellerId)
         {
@@ -49,6 +51,8 @@ namespace ElmirClone
                 OrdersPanel.Visibility = Visibility.Collapsed;
                 FinancePanel.Visibility = Visibility.Collapsed;
                 ProfilePanel.Visibility = Visibility.Collapsed;
+                SearchProductId.Text = "Введіть ID"; // Reset search field
+                LoadProducts(); // Reload all products
             }
         }
 
@@ -60,6 +64,8 @@ namespace ElmirClone
                 OrdersPanel.Visibility = Visibility.Visible;
                 FinancePanel.Visibility = Visibility.Collapsed;
                 ProfilePanel.Visibility = Visibility.Collapsed;
+                SearchOrderId.Text = "Введіть ID"; // Reset search field
+                LoadOrders(); // Reload all orders
             }
         }
 
@@ -71,6 +77,8 @@ namespace ElmirClone
                 OrdersPanel.Visibility = Visibility.Collapsed;
                 FinancePanel.Visibility = Visibility.Visible;
                 ProfilePanel.Visibility = Visibility.Collapsed;
+                SearchSoldProductId.Text = "Введіть ID"; // Reset search field
+                LoadFinancials(); // Reload all financials
             }
         }
 
@@ -221,7 +229,7 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid WHERE p.sellerid = @sellerid", connection))
+                        using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid WHERE p.sellerid = @sellerid", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             using (var reader = command.ExecuteReader())
@@ -239,7 +247,8 @@ namespace ElmirClone
                                         Brand = reader.GetString(4),
                                         CategoryName = reader.GetString(5),
                                         SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                        ImageUrl = imageUrl
+                                        ImageUrl = imageUrl,
+                                        IsHidden = reader.GetBoolean(8)
                                     });
                                 }
                                 ProductsList.ItemsSource = products;
@@ -250,6 +259,99 @@ namespace ElmirClone
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Помилка при завантаженні товарів: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void SearchProductById_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                string searchText = SearchProductId.Text.Trim();
+                if (!int.TryParse(searchText, out int productId) || productId <= 0)
+                {
+                    MessageBox.Show("Введіть коректний ID товару (ціле число).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid WHERE p.sellerid = @sellerid AND p.productid = @productid", connection))
+                        {
+                            command.Parameters.AddWithValue("sellerid", sellerId);
+                            command.Parameters.AddWithValue("productid", productId);
+                            using (var reader = command.ExecuteReader())
+                            {
+                                var products = new List<DbProduct>();
+                                if (reader.Read())
+                                {
+                                    string imageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7);
+                                    products.Add(new DbProduct
+                                    {
+                                        ProductId = reader.GetInt32(0),
+                                        Name = reader.GetString(1),
+                                        Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                        Price = reader.GetDecimal(3),
+                                        Brand = reader.GetString(4),
+                                        CategoryName = reader.GetString(5),
+                                        SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                        ImageUrl = imageUrl,
+                                        IsHidden = reader.GetBoolean(8)
+                                    });
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Товар з таким ID не знайдено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                ProductsList.ItemsSource = products;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при пошуку товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ToggleProductBlock_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                int productId = (int)((Button)sender).Tag;
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        // Get current ishidden status
+                        bool currentStatus;
+                        using (var statusCommand = new NpgsqlCommand("SELECT ishidden FROM products WHERE productid = @productid AND sellerid = @sellerid", connection))
+                        {
+                            statusCommand.Parameters.AddWithValue("productid", productId);
+                            statusCommand.Parameters.AddWithValue("sellerid", sellerId);
+                            currentStatus = (bool)statusCommand.ExecuteScalar();
+                        }
+
+                        // Toggle the ishidden status
+                        using (var command = new NpgsqlCommand("UPDATE products SET ishidden = @ishidden WHERE productid = @productid AND sellerid = @sellerid", connection))
+                        {
+                            command.Parameters.AddWithValue("ishidden", !currentStatus);
+                            command.Parameters.AddWithValue("productid", productId);
+                            command.Parameters.AddWithValue("sellerid", sellerId);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                    LoadProducts();
+                    MessageBox.Show($"Товар успішно {(currentStatus ? "розблоковано" : "заблоковано")}!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при зміні статусу товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -282,7 +384,7 @@ namespace ElmirClone
                 }
                 else
                 {
-                    imageUrl = "https://via.placeholder.com/150"; // Заглушка, если изображение не выбрано
+                    imageUrl = "https://via.placeholder.com/150";
                 }
 
                 try
@@ -291,7 +393,6 @@ namespace ElmirClone
                     {
                         connection.Open();
 
-                        // Проверяем, существует ли subcategoryId в таблице categories, если он выбран
                         if (subcategoryId.HasValue)
                         {
                             using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM categories WHERE categoryid = @subcategoryid", connection))
@@ -305,7 +406,6 @@ namespace ElmirClone
                                 }
                             }
 
-                            // Проверяем, принадлежит ли subcategoryId к выбранной категории
                             using (var parentCheckCommand = new NpgsqlCommand("SELECT COUNT(*) FROM categories WHERE categoryid = @subcategoryid AND parentcategoryid = @categoryid", connection))
                             {
                                 parentCheckCommand.Parameters.AddWithValue("subcategoryid", subcategoryId.Value);
@@ -319,7 +419,6 @@ namespace ElmirClone
                             }
                         }
 
-                        // Проверяем, существует ли categoryId в таблице categories
                         using (var categoryCheckCommand = new NpgsqlCommand("SELECT COUNT(*) FROM categories WHERE categoryid = @categoryid", connection))
                         {
                             categoryCheckCommand.Parameters.AddWithValue("categoryid", categoryId.Value);
@@ -331,7 +430,6 @@ namespace ElmirClone
                             }
                         }
 
-                        // Вставляем продукт с установленным ishidden = false
                         using (var command = new NpgsqlCommand("INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url, ishidden) VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl, false)", connection))
                         {
                             command.Parameters.AddWithValue("name", name);
@@ -632,6 +730,70 @@ namespace ElmirClone
             }
         }
 
+        private void SearchOrderById_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                string searchText = SearchOrderId.Text.Trim();
+                if (!int.TryParse(searchText, out int orderId) || orderId <= 0)
+                {
+                    MessageBox.Show("Введіть коректний ID замовлення (ціле число).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand(
+                            "SELECT o.orderid, p.name AS productname, o.quantity, o.totalprice, o.orderdate, o.status, " +
+                            "o.contact_last_name, o.contact_first_name, o.contact_middle_name, o.contact_phone, o.shipping_region, pp.address " +
+                            "FROM orders o " +
+                            "JOIN products p ON o.productid = p.productid " +
+                            "JOIN pickup_points pp ON o.pickup_point_id = pp.pickup_point_id " +
+                            "WHERE o.sellerid = @sellerid AND o.orderid = @orderid", connection))
+                        {
+                            command.Parameters.AddWithValue("sellerid", sellerId);
+                            command.Parameters.AddWithValue("orderid", orderId);
+                            using (var reader = command.ExecuteReader())
+                            {
+                                var orders = new List<Order>();
+                                if (reader.Read())
+                                {
+                                    orders.Add(new Order
+                                    {
+                                        OrderId = reader.GetInt32(0),
+                                        ProductName = reader.GetString(1),
+                                        Quantity = reader.GetInt32(2),
+                                        TotalPrice = (decimal)reader.GetDouble(3),
+                                        OrderDate = reader.GetDateTime(4),
+                                        Status = reader.GetString(5),
+                                        ContactLastName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                        ContactFirstName = reader.IsDBNull(7) ? "Не вказано" : reader.GetString(7),
+                                        ContactMiddleName = reader.IsDBNull(8) ? "Не вказано" : reader.GetString(8),
+                                        ContactPhone = reader.IsDBNull(9) ? "Не вказано" : reader.GetString(9),
+                                        ShippingRegion = reader.IsDBNull(10) ? "Не вказано" : reader.GetString(10),
+                                        PickupPointAddress = reader.IsDBNull(11) ? "Не вказано" : reader.GetString(11),
+                                        ProductId = reader.GetInt32(0)
+                                    });
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Замовлення з таким ID не знайдено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                OrdersList.ItemsSource = orders;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при пошуку замовлення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
         private void UpdateOrderStatus_Click(object sender, RoutedEventArgs e)
         {
             if (Dispatcher.CheckAccess())
@@ -724,7 +886,7 @@ namespace ElmirClone
                             }
                         }
 
-                        using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid AND o.status = 'Доставлено'", connection))
+                        using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid AND o.status = 'Доставлено'", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             using (var reader = command.ExecuteReader())
@@ -741,7 +903,8 @@ namespace ElmirClone
                                         ProductName = reader.GetString(1),
                                         TotalPrice = totalPrice,
                                         SellerRevenue = sellerRevenue,
-                                        OrderDate = reader.GetDateTime(3)
+                                        OrderDate = reader.GetDateTime(3),
+                                        ProductId = reader.GetInt32(4)
                                     });
                                 }
                             }
@@ -754,6 +917,77 @@ namespace ElmirClone
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Помилка при завантаженні фінансової інформації: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void SearchSoldProductById_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                string searchText = SearchSoldProductId.Text.Trim();
+                if (!int.TryParse(searchText, out int productId) || productId <= 0)
+                {
+                    MessageBox.Show("Введіть коректний ID товару (ціле число).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        decimal totalRevenue = 0;
+                        decimal feePercentage = 0;
+                        var sales = new List<Sale>();
+
+                        using (var command = new NpgsqlCommand("SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
+                        {
+                            command.Parameters.AddWithValue("sellerid", sellerId);
+                            var result = command.ExecuteScalar();
+                            if (result != null)
+                            {
+                                feePercentage = (decimal)result / 100;
+                            }
+                        }
+
+                        using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid AND o.status = 'Доставлено' AND o.productid = @productid", connection))
+                        {
+                            command.Parameters.AddWithValue("sellerid", sellerId);
+                            command.Parameters.AddWithValue("productid", productId);
+                            using (var reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    decimal totalPrice = (decimal)reader.GetDouble(2);
+                                    decimal sellerRevenue = totalPrice * (1 - feePercentage);
+                                    totalRevenue += sellerRevenue;
+
+                                    sales.Add(new Sale
+                                    {
+                                        OrderId = reader.GetInt32(0),
+                                        ProductName = reader.GetString(1),
+                                        TotalPrice = totalPrice,
+                                        SellerRevenue = sellerRevenue,
+                                        OrderDate = reader.GetDateTime(3),
+                                        ProductId = reader.GetInt32(4)
+                                    });
+                                }
+                            }
+                        }
+
+                        if (sales.Count == 0)
+                        {
+                            MessageBox.Show("Продажі з таким ID товару не знайдено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+
+                        TotalRevenueText.Text = $"{totalRevenue:F2} грн";
+                        SalesHistoryList.ItemsSource = sales;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при пошуку проданого товару: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

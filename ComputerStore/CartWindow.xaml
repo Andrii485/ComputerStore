@@ -33,6 +33,15 @@
         <Style x:Key="CheckoutButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="#00C853"/>
         </Style>
+        <Style x:Key="CancelButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FF4444"/>
+        </Style>
+        <Style x:Key="QuantityButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
         <Style TargetType="TextBox">
             <Setter Property="Margin" Value="5"/>
             <Setter Property="Padding" Value="5"/>
@@ -72,8 +81,14 @@
                                         </Style>
                                     </Image.Style>
                                 </Image>
-                                <TextBlock Text="{Binding Name}" Width="300" VerticalAlignment="Center" FontSize="14"/>
-                                <TextBlock Text="{Binding Price, StringFormat={}{0:F2} грн}" Width="100" VerticalAlignment="Center" FontSize="14"/>
+                                <TextBlock Text="{Binding Name}" Width="200" VerticalAlignment="Center" FontSize="14" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding Price, StringFormat={}{0:F2} грн}" Width="80" VerticalAlignment="Center" FontSize="14"/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                                    <Button Content="-" Style="{StaticResource QuantityButtonStyle}" Tag="{Binding ProductId}" Click="DecreaseQuantity_Click"/>
+                                    <TextBlock Text="{Binding Quantity}" Width="40" TextAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                                    <Button Content="+" Style="{StaticResource QuantityButtonStyle}" Tag="{Binding ProductId}" Click="IncreaseQuantity_Click"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding TotalPrice, StringFormat=Вартість: {0:F2} грн}" Width="100" VerticalAlignment="Center" FontSize="14"/>
                                 <Button Content="Видалити" Click="RemoveFromCart_Click" Tag="{Binding ProductId}" Width="80"/>
                             </StackPanel>
                         </DataTemplate>
@@ -145,8 +160,11 @@
                 </StackPanel>
             </Border>
 
-            <!-- Кнопка оформлення -->
-            <Button x:Name="CheckoutButton" Content="Оформити замовлення" Style="{StaticResource CheckoutButtonStyle}" Click="Checkout_Click" Width="200" Margin="0,20,0,0" HorizontalAlignment="Right"/>
+            <!-- Кнопки -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button Content="Відміна" Style="{StaticResource CancelButtonStyle}" Click="Cancel_Click" Width="200"/>
+                <Button x:Name="CheckoutButton" Content="Оформити замовлення" Style="{StaticResource CheckoutButtonStyle}" Click="Checkout_Click" Width="200"/>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Window>

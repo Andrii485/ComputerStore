@@ -1421,7 +1421,7 @@ namespace ElmirClone
         }
     }
 
-    public class DbProduct
+    public class DbProduct1
     {
         public int ProductId { get; set; }
         public string Name { get; set; }
@@ -1444,6 +1444,7 @@ namespace ElmirClone
         public string Brand { get; internal set; }
         public string CategoryName { get; internal set; }
         public string SubcategoryName { get; internal set; }
+        public int StockQuantity { get; internal set; }
     }
 
     public class UserProfile

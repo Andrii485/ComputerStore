@@ -33,7 +33,7 @@ namespace ElmirClone
             isInitializedSuccessfully = false;
             InitializeComponent();
             this.cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
-            this.userProfile = userProfile;
+            this.userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
 
             if (string.IsNullOrEmpty(connectionString))
@@ -55,6 +55,7 @@ namespace ElmirClone
                 LoadContactDetails();
                 LoadRegions();
                 LoadPaymentMethods();
+                DataContext = userProfile;
                 isInitializedSuccessfully = true;
             }
             catch (Exception ex)
@@ -79,8 +80,15 @@ namespace ElmirClone
 
         private void CalculateTotalPrice()
         {
-            totalPrice = (cartItems != null) ? cartItems.Sum(item => item.Price) : 0;
-            TotalPriceText.Text = $"Загальна сума: {totalPrice:F2} грн";
+            totalPrice = (cartItems != null) ? cartItems.Sum(item => item.Price * item.Quantity) : 0;
+            if (TotalPriceText != null)
+            {
+                TotalPriceText.Text = $"Загальна сума: {totalPrice:F2} грн";
+            }
+            if (UserBalanceText != null)
+            {
+                UserBalanceText.Text = $"Ваш баланс: {userProfile.Balance:F2} грн";
+            }
         }
 
         private void LoadContactDetails()
@@ -91,10 +99,11 @@ namespace ElmirClone
                 return;
             }
 
-            ContactLastName.Text = userProfile.LastName ?? "";
-            ContactFirstName.Text = userProfile.FirstName ?? "";
-            ContactMiddleName.Text = userProfile.MiddleName ?? "";
-            ContactPhone.Text = userProfile.Phone ?? "";
+            if (ContactLastName != null) ContactLastName.Text = userProfile.LastName ?? "";
+            if (ContactFirstName != null) ContactFirstName.Text = userProfile.FirstName ?? "";
+            if (ContactMiddleName != null) ContactMiddleName.Text = userProfile.MiddleName ?? "";
+            if (ContactPhone != null) ContactPhone.Text = userProfile.Phone ?? "";
+            if (UserBalanceText != null) UserBalanceText.Text = $"Ваш баланс: {userProfile.Balance:F2} грн";
         }
 
         private void LoadRegions()
@@ -225,7 +234,6 @@ namespace ElmirClone
         private void PaymentMethodsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var selectedPaymentMethod = (PaymentMethodsComboBox?.SelectedItem as PaymentMethod)?.Name?.ToLower();
-            // Припускаємо, що способи оплати, які містять "карт", "оплатити зараз" або "онлайн", потребують введення даних картки
             if (selectedPaymentMethod != null &&
                 (selectedPaymentMethod.Contains("карт") ||
                  selectedPaymentMethod.Contains("оплатити зараз") ||
@@ -241,6 +249,43 @@ namespace ElmirClone
                 if (CardDetailsPanel != null)
                 {
                     CardDetailsPanel.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        private void IncreaseQuantity_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.Tag is int productId)
+            {
+                var product = cartItems.FirstOrDefault(p => p.ProductId == productId);
+                if (product != null)
+                {
+                    if (product.Quantity < product.StockQuantity)
+                    {
+                        product.Quantity++;
+                        CartItemsList.ItemsSource = null;
+                        CartItemsList.ItemsSource = cartItems;
+                        CalculateTotalPrice();
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Неможливо додати більше товару {product.Name}. На складі доступно лише {product.StockQuantity} шт.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+            }
+        }
+
+        private void DecreaseQuantity_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.Tag is int productId)
+            {
+                var product = cartItems.FirstOrDefault(p => p.ProductId == productId);
+                if (product != null && product.Quantity > 1)
+                {
+                    product.Quantity--;
+                    CartItemsList.ItemsSource = null;
+                    CartItemsList.ItemsSource = cartItems;
+                    CalculateTotalPrice();
                 }
             }
         }
@@ -261,9 +306,45 @@ namespace ElmirClone
             }
         }
 
-        private UserProfile GetUserProfile()
+        private void CancelOrder_Click(object sender, RoutedEventArgs e)
         {
-            return userProfile;
+            cartItems.Clear();
+            CartItemsList.ItemsSource = null;
+            CalculateTotalPrice();
+            MessageBox.Show("Замовлення скасовано. Кошик очищено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+            this.Close();
+        }
+
+        private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            this.DialogResult = false;
+            this.Close();
+        }
+
+        private bool CheckProductAvailability(int productId, int quantity)
+        {
+            try
+            {
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("SELECT stock_quantity FROM products WHERE productid = @productId", connection))
+                    {
+                        command.Parameters.AddWithValue("productId", productId);
+                        var result = command.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            int availableQuantity = Convert.ToInt32(result);
+                            return availableQuantity >= quantity;
+                        }
+                        return false;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private void Checkout_Click(object sender, RoutedEventArgs e)
@@ -311,7 +392,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Перевірка даних картки, якщо потрібно
             bool requiresCardDetails = paymentMethodName.ToLower().Contains("карт") ||
                                        paymentMethodName.ToLower().Contains("оплатити зараз") ||
                                        paymentMethodName.ToLower().Contains("онлайн");
@@ -345,10 +425,19 @@ namespace ElmirClone
                     return;
                 }
 
-                // Перевірка балансу користувача
-                if (userProfile.Balance < totalPrice)
+                if ((decimal)userProfile.Balance < totalPrice)
+
                 {
                     MessageBox.Show($"Недостатньо коштів для здійснення покупки. Ваш баланс: {userProfile.Balance:F2} грн, потрібно: {totalPrice:F2} грн.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+
+            foreach (var item in cartItems)
+            {
+                if (!CheckProductAvailability(item.ProductId, item.Quantity))
+                {
+                    MessageBox.Show($"Товар {item.Name} недоступний у достатній кількості ({item.Quantity} од.).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
@@ -391,6 +480,13 @@ namespace ElmirClone
                                     return;
                                 }
 
+                                if (!sellerId.HasValue)
+                                {
+                                    MessageBox.Show($"Не вдалося визначити продавця для товару {item.Name}.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    transaction.Rollback();
+                                    return;
+                                }
+
                                 try
                                 {
                                     using (var command = new NpgsqlCommand(
@@ -398,12 +494,12 @@ namespace ElmirClone
                                         "VALUES (@buyerid, @sellerid, @productid, @quantity, @totalprice, @orderdate, @status, @pickup_point_id, @payment_method_id, @shipping_region, @contact_first_name, @contact_middle_name, @contact_phone, @contact_last_name)", connection))
                                     {
                                         command.Parameters.AddWithValue("buyerid", buyerIdValue);
-                                        command.Parameters.AddWithValue("sellerid", sellerId.HasValue ? (object)sellerId.Value : DBNull.Value);
+                                        command.Parameters.AddWithValue("sellerid", sellerId.Value);
                                         command.Parameters.AddWithValue("productid", item.ProductId);
-                                        command.Parameters.AddWithValue("quantity", 1);
-                                        command.Parameters.AddWithValue("totalprice", (double)item.Price);
+                                        command.Parameters.AddWithValue("quantity", item.Quantity);
+                                        command.Parameters.AddWithValue("totalprice", (double)(item.Price * item.Quantity));
                                         command.Parameters.AddWithValue("orderdate", DateTime.Now);
-                                        command.Parameters.AddWithValue("status", "Pending");
+                                        command.Parameters.AddWithValue("status", "Ожидает отправки");
                                         command.Parameters.AddWithValue("pickup_point_id", pickupPointId.Value);
                                         command.Parameters.AddWithValue("payment_method_id", paymentMethodId.Value);
                                         command.Parameters.AddWithValue("shipping_region", shippingRegion);
@@ -414,6 +510,14 @@ namespace ElmirClone
                                         command.Transaction = transaction;
                                         command.ExecuteNonQuery();
                                     }
+
+                                    using (var updateCommand = new NpgsqlCommand("UPDATE products SET stock_quantity = stock_quantity - @quantity WHERE productid = @productId", connection))
+                                    {
+                                        updateCommand.Parameters.AddWithValue("quantity", item.Quantity);
+                                        updateCommand.Parameters.AddWithValue("productId", item.ProductId);
+                                        updateCommand.Transaction = transaction;
+                                        updateCommand.ExecuteNonQuery();
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
@@ -423,12 +527,11 @@ namespace ElmirClone
                                 }
                             }
 
-                            // Якщо потрібна оплата з картки, оновлюємо баланс користувача
                             if (requiresCardDetails)
                             {
                                 try
                                 {
-                                    using (var command = new NpgsqlCommand("UPDATE UserDetails SET Balance = Balance - @amount WHERE UserId = @userId", connection))
+                                    using (var command = new NpgsqlCommand("UPDATE userdetails SET balance = balance - @amount WHERE userid = @userId", connection))
                                     {
                                         command.Parameters.AddWithValue("amount", totalPrice);
                                         command.Parameters.AddWithValue("userId", buyerIdValue);
@@ -439,9 +542,8 @@ namespace ElmirClone
                                             throw new Exception("Не вдалося оновити баланс користувача.");
                                         }
                                     }
+                                    userProfile.Balance = (decimal)userProfile.Balance - totalPrice;
 
-                                    // Оновлюємо баланс в об'єкті userProfile
-                                    userProfile.Balance -= totalPrice;
                                 }
                                 catch (Exception ex)
                                 {
@@ -470,6 +572,11 @@ namespace ElmirClone
             {
                 MessageBox.Show($"Сталася помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private bool CheckProductAvailability(int productId, decimal quantity)
+        {
+            throw new NotImplementedException();
         }
 
         internal bool CanShowDialog()

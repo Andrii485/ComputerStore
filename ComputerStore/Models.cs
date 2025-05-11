@@ -9,6 +9,9 @@ namespace ElmirClone.Models
         public string Phone { get; set; }
         public string Email { get; set; }
         public string Binding { get; set; }
+        public int UserId { get; internal set; }
+        public object Balance { get; internal set; }
+        public string? LastName { get; internal set; }
     }
 
     public class Category
@@ -17,6 +20,7 @@ namespace ElmirClone.Models
         public string Name { get; set; }
         public int? ParentCategoryId { get; set; } // Добавлено для поддержки иерархии
         public string ImageUrl { get; set; }
+        public string ParentCategoryName { get; internal set; }
     }
 
     public class Subcategory
@@ -39,6 +43,12 @@ namespace ElmirClone.Models
         public string ImageUrl { get; set; }
         public double Rating { get; set; }
         public int Reviews { get; set; }
+        public decimal Quantity { get; internal set; }
+        public decimal StockQuantity { get; internal set; }
+        public string StoreName { get; internal set; }
+        public string StoreDescription { get; internal set; }
+        public int ReviewCount { get; internal set; }
+        public decimal TotalPrice { get; internal set; }
     }
 
     public class Order
@@ -65,6 +75,7 @@ namespace ElmirClone.Models
         public decimal TotalPrice { get; set; }
         public decimal SellerRevenue { get; set; }
         public DateTime OrderDate { get; set; }
+        public int ProductId { get; internal set; }
     }
 
     public class PickupPoint
