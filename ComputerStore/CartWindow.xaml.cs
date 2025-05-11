@@ -12,9 +12,9 @@ namespace ElmirClone
 {
     public partial class CartWindow : Window
     {
-        private List<DbProduct> cartItems;
-        private UserProfile userProfile;
-        private string connectionString;
+        private List<ProductDetails> _cartItems;
+        private UserProfile _userProfile;
+        private string _connectionString;
         private decimal totalPrice;
         private bool isInitializedSuccessfully;
         private readonly List<string> regions = new List<string>
@@ -28,90 +28,58 @@ namespace ElmirClone
             "Автономна Республіка Крим"
         };
 
-        internal CartWindow(List<DbProduct> cartItems, UserProfile userProfile)
+        public CartWindow(List<ProductDetails> cartItems, UserProfile userProfile, string connectionString)
         {
-            isInitializedSuccessfully = false;
             InitializeComponent();
-            this.cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
-            this.userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
-            connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
+            _cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
+            _userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
+            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
 
-            if (string.IsNullOrEmpty(connectionString))
+            if (string.IsNullOrEmpty(_connectionString))
             {
                 MessageBox.Show("Рядок підключення до бази даних не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                isInitializedSuccessfully = false;
                 return;
             }
-
-            if (this.userProfile == null || !(this.userProfile.UserId is int id) || id <= 0)
+            if (_userProfile == null || !(_userProfile.UserId is int id) || id <= 0)
             {
                 MessageBox.Show("Користувач не авторизований або ідентифікатор користувача некоректний. Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                isInitializedSuccessfully = false;
                 return;
             }
 
-            try
-            {
-                CartItemsList.ItemsSource = cartItems;
-                CalculateTotalPrice();
-                LoadContactDetails();
-                LoadRegions();
-                LoadPaymentMethods();
-                DataContext = userProfile;
-                isInitializedSuccessfully = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка під час ініціалізації кошика: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        public CartWindow(UserProfile userProfile)
-        {
-            this.userProfile = userProfile;
-        }
-
-        private void RedirectToLogin()
-        {
-            try
-            {
-                LoginWindow loginWindow = new LoginWindow();
-                loginWindow.Show();
-                this.Close();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка під час перенаправлення на сторінку входу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            CartItemsList.ItemsSource = _cartItems;
+            CalculateTotalPrice();
+            LoadContactDetails();
+            LoadShippingRegions();
+            LoadPaymentMethods();
+            DataContext = _userProfile;
+            isInitializedSuccessfully = true;
         }
 
         private void CalculateTotalPrice()
         {
-            totalPrice = (cartItems != null) ? cartItems.Sum(item => item.Price1 * item.Quantity) : 0;
-            if (TotalPriceText != null)
-            {
-                TotalPriceText.Text = $"Загальна сума: {totalPrice:F2} грн";
-            }
-            if (UserBalanceText != null)
-            {
-                UserBalanceText.Text = $"Ваш баланс: {userProfile.Balance:F2} грн";
-            }
+            totalPrice = (_cartItems != null) ? _cartItems.Sum(item => item.Price * item.Quantity) : 0;
+            TotalPriceText.Text = $"Загальна сума: {totalPrice:F2} грн";
+            UserBalanceText.Text = $"Ваш баланс: {_userProfile.Balance:F2} грн";
         }
 
         private void LoadContactDetails()
         {
-            if (userProfile == null)
+            if (_userProfile == null)
             {
                 MessageBox.Show("Профіль користувача не завантажено. Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            if (ContactLastName != null) ContactLastName.Text = userProfile.LastName ?? "";
-            if (ContactFirstName != null) ContactFirstName.Text = userProfile.FirstName ?? "";
-            if (ContactMiddleName != null) ContactMiddleName.Text = userProfile.MiddleName ?? "";
-            if (ContactPhone != null) ContactPhone.Text = userProfile.Phone ?? "";
-            if (UserBalanceText != null) UserBalanceText.Text = $"Ваш баланс: {userProfile.Balance:F2} грн";
+            ContactLastName.Text = _userProfile.LastName ?? "";
+            ContactFirstName.Text = _userProfile.FirstName ?? "";
+            ContactMiddleName.Text = _userProfile.MiddleName ?? "";
+            ContactPhone.Text = _userProfile.Phone ?? "";
+            UserBalanceText.Text = $"Ваш баланс: {_userProfile.Balance:F2} грн";
         }
 
-        private void LoadRegions()
+        private void LoadShippingRegions()
         {
             if (ShippingRegion == null)
             {
@@ -135,7 +103,7 @@ namespace ElmirClone
         {
             try
             {
-                using (var connection = new NpgsqlConnection(connectionString))
+                using (var connection = new NpgsqlConnection(_connectionString))
                 {
                     connection.Open();
                     string selectedRegion = ShippingRegion?.SelectedItem?.ToString();
@@ -192,7 +160,7 @@ namespace ElmirClone
         {
             try
             {
-                using (var connection = new NpgsqlConnection(connectionString))
+                using (var connection = new NpgsqlConnection(_connectionString))
                 {
                     connection.Open();
                     var paymentMethods = new List<PaymentMethod>();
@@ -260,36 +228,29 @@ namespace ElmirClone
 
         private void IncreaseQuantity_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.Tag is int productId)
+            if (sender is Button button && button.Tag is int productId)
             {
-                var product = cartItems.FirstOrDefault(p => p.ProductId == productId);
-                if (product != null)
+                var item = _cartItems.FirstOrDefault(i => i.ProductId == productId);
+                if (item != null)
                 {
-                    if (product.Quantity < product.StockQuantity)
-                    {
-                        product.Quantity++;
-                        CartItemsList.ItemsSource = null;
-                        CartItemsList.ItemsSource = cartItems;
-                        CalculateTotalPrice();
-                    }
-                    else
-                    {
-                        MessageBox.Show($"Неможливо додати більше товару {product.Name}. На складі доступно лише {product.StockQuantity} шт.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    }
+                    item.Quantity++;
+                    CartItemsList.ItemsSource = null;
+                    CartItemsList.ItemsSource = _cartItems;
+                    CalculateTotalPrice();
                 }
             }
         }
 
         private void DecreaseQuantity_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.Tag is int productId)
+            if (sender is Button button && button.Tag is int productId)
             {
-                var product = cartItems.FirstOrDefault(p => p.ProductId == productId);
-                if (product != null && product.Quantity > 1)
+                var item = _cartItems.FirstOrDefault(i => i.ProductId == productId);
+                if (item != null && item.Quantity > 1)
                 {
-                    product.Quantity--;
+                    item.Quantity--;
                     CartItemsList.ItemsSource = null;
-                    CartItemsList.ItemsSource = cartItems;
+                    CartItemsList.ItemsSource = _cartItems;
                     CalculateTotalPrice();
                 }
             }
@@ -297,32 +258,22 @@ namespace ElmirClone
 
         private void RemoveFromCart_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as Button)?.Tag is int productId)
+            if (sender is Button button && button.Tag is int productId)
             {
-                var productToRemove = cartItems?.FirstOrDefault(p => p.ProductId == productId);
-                if (productToRemove != null)
+                var itemToRemove = _cartItems.FirstOrDefault(i => i.ProductId == productId);
+                if (itemToRemove != null)
                 {
-                    cartItems.Remove(productToRemove);
+                    _cartItems.Remove(itemToRemove);
                     CartItemsList.ItemsSource = null;
-                    CartItemsList.ItemsSource = cartItems;
+                    CartItemsList.ItemsSource = _cartItems;
                     CalculateTotalPrice();
-                    MessageBox.Show($"{productToRemove.Name} видалено з кошика.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"{itemToRemove.Name} видалено з кошика.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
 
-        private void CancelOrder_Click(object sender, RoutedEventArgs e)
-        {
-            cartItems.Clear();
-            CartItemsList.ItemsSource = null;
-            CalculateTotalPrice();
-            MessageBox.Show("Замовлення скасовано. Кошик очищено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
-            this.Close();
-        }
-
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false;
             this.Close();
         }
 
@@ -330,7 +281,7 @@ namespace ElmirClone
         {
             try
             {
-                using (var connection = new NpgsqlConnection(connectionString))
+                using (var connection = new NpgsqlConnection(_connectionString))
                 {
                     connection.Open();
                     using (var command = new NpgsqlCommand("SELECT stock_quantity FROM products WHERE productid = @productId", connection))
@@ -354,23 +305,21 @@ namespace ElmirClone
 
         private void Checkout_Click(object sender, RoutedEventArgs e)
         {
-            if (cartItems == null || !cartItems.Any())
+            if (_cartItems == null || !_cartItems.Any())
             {
                 MessageBox.Show("Кошик порожній.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            if (userProfile == null)
+            if (_userProfile == null)
             {
                 MessageBox.Show("Профіль користувача не завантажено. Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                RedirectToLogin();
                 return;
             }
 
-            if (!(userProfile.UserId is int buyerIdValue) || buyerIdValue <= 0)
+            if (!(_userProfile.UserId is int buyerIdValue) || buyerIdValue <= 0)
             {
-                MessageBox.Show($"Ідентифікатор користувача некоректний (UserId = {userProfile.UserId}). Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                RedirectToLogin();
+                MessageBox.Show($"Ідентифікатор користувача некоректний (UserId = {_userProfile.UserId}). Перенаправляємо на сторінку входу.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -430,15 +379,14 @@ namespace ElmirClone
                     return;
                 }
 
-                if ((decimal)userProfile.Balance < totalPrice)
-
+                if ((decimal)_userProfile.Balance < totalPrice)
                 {
-                    MessageBox.Show($"Недостатньо коштів для здійснення покупки. Ваш баланс: {userProfile.Balance:F2} грн, потрібно: {totalPrice:F2} грн.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Недостатньо коштів для здійснення покупки. Ваш баланс: {_userProfile.Balance:F2} грн, потрібно: {totalPrice:F2} грн.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
 
-            foreach (var item in cartItems)
+            foreach (var item in _cartItems)
             {
                 if (!CheckProductAvailability(item.ProductId, item.Quantity))
                 {
@@ -449,14 +397,14 @@ namespace ElmirClone
 
             try
             {
-                using (var connection = new NpgsqlConnection(connectionString))
+                using (var connection = new NpgsqlConnection(_connectionString))
                 {
                     connection.Open();
                     using (var transaction = connection.BeginTransaction())
                     {
                         try
                         {
-                            foreach (var item in cartItems)
+                            foreach (var item in _cartItems)
                             {
                                 if (item == null || item.ProductId <= 0 || item.Price < 0)
                                 {
@@ -547,8 +495,7 @@ namespace ElmirClone
                                             throw new Exception("Не вдалося оновити баланс користувача.");
                                         }
                                     }
-                                    userProfile.Balance = (decimal)userProfile.Balance - totalPrice;
-
+                                    _userProfile.Balance -= totalPrice;
                                 }
                                 catch (Exception ex)
                                 {
@@ -560,9 +507,8 @@ namespace ElmirClone
 
                             transaction.Commit();
                             MessageBox.Show($"Замовлення успішно оформлено!\nСпосіб оплати: {paymentMethodName}\nСума: {totalPrice:F2} грн\n" +
-                                            (requiresCardDetails ? $"Залишок на балансі: {userProfile.Balance:F2} грн" : ""),
+                                            (requiresCardDetails ? $"Залишок на балансі: {_userProfile.Balance:F2} грн" : ""),
                                             "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                            this.DialogResult = true;
                             Close();
                         }
                         catch (Exception ex)
@@ -577,16 +523,6 @@ namespace ElmirClone
             {
                 MessageBox.Show($"Сталася помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private bool CheckProductAvailability(int productId, decimal quantity)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal bool CanShowDialog()
-        {
-            return isInitializedSuccessfully;
         }
     }
 }

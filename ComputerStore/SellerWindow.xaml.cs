@@ -16,7 +16,6 @@ namespace ElmirClone
         private string connectionString;
         private int sellerId;
         private string selectedImagePath;
-        private object userId;
         private bool currentStatus;
 
         public SellerWindow(int sellerId)
@@ -38,10 +37,8 @@ namespace ElmirClone
             LoadStoreProfile();
         }
 
-        public SellerWindow(object userId)
-        {
-            this.userId = userId;
-        }
+        // Removed unused constructor to avoid confusion
+        // public SellerWindow(object userId) { ... }
 
         private void ShowProductsPanel_Click(object sender, RoutedEventArgs e)
         {
@@ -229,25 +226,30 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid WHERE p.sellerid = @sellerid", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden " +
+                            "FROM products p " +
+                            "JOIN categories c ON p.categoryid = c.categoryid " +
+                            "LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid " +
+                            "WHERE p.sellerid = @sellerid", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             using (var reader = command.ExecuteReader())
                             {
-                                var products = new List<DbProduct>();
+                                var products = new List<ProductDetails>();
                                 while (reader.Read())
                                 {
                                     string imageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7);
-                                    products.Add(new DbProduct
+                                    products.Add(new ProductDetails
                                     {
-                                        ProductId1 = reader.GetInt32(0),
-                                        Name1 = reader.GetString(1),
-                                        Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                        Price1 = reader.GetDecimal(3),
-                                        Brand1 = reader.GetString(4),
-                                        CategoryName1 = reader.GetString(5),
-                                        SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                        ImageUrl1 = imageUrl,
+                                        ProductId = reader.GetInt32(0),
+                                        Name = reader.GetString(1),
+                                        Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                        Price = reader.GetDecimal(3),
+                                        Brand = reader.GetString(4),
+                                        CategoryName = reader.GetString(5),
+                                        SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                        ImageUrl = imageUrl,
                                         IsHidden = reader.GetBoolean(8)
                                     });
                                 }
@@ -279,17 +281,22 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden FROM products p JOIN categories c ON p.categoryid = c.categoryid LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid WHERE p.sellerid = @sellerid AND p.productid = @productid", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden " +
+                            "FROM products p " +
+                            "JOIN categories c ON p.categoryid = c.categoryid " +
+                            "LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid " +
+                            "WHERE p.sellerid = @sellerid AND p.productid = @productid", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.Parameters.AddWithValue("productid", productId);
                             using (var reader = command.ExecuteReader())
                             {
-                                var products = new List<DbProduct>();
+                                var products = new List<ProductDetails>();
                                 if (reader.Read())
                                 {
                                     string imageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7);
-                                    products.Add(new DbProduct
+                                    products.Add(new ProductDetails
                                     {
                                         ProductId = reader.GetInt32(0),
                                         Name = reader.GetString(1),
@@ -334,7 +341,13 @@ namespace ElmirClone
                         {
                             statusCommand.Parameters.AddWithValue("productid", productId);
                             statusCommand.Parameters.AddWithValue("sellerid", sellerId);
-                            currentStatus = (bool)statusCommand.ExecuteScalar();
+                            var result = statusCommand.ExecuteScalar();
+                            if (result == null)
+                            {
+                                MessageBox.Show("Товар не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+                            currentStatus = (bool)result;
                         }
 
                         // Toggle the ishidden status
@@ -430,7 +443,9 @@ namespace ElmirClone
                             }
                         }
 
-                        using (var command = new NpgsqlCommand("INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url, ishidden) VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl, false)", connection))
+                        using (var command = new NpgsqlCommand(
+                            "INSERT INTO products (name, description, price, brand, categoryid, subcategoryid, sellerid, image_url, ishidden) " +
+                            "VALUES (@name, @description, @price, @brand, @categoryid, @subcategoryid, @sellerid, @imageurl, false)", connection))
                         {
                             command.Parameters.AddWithValue("name", name);
                             command.Parameters.AddWithValue("description", description);
@@ -490,7 +505,7 @@ namespace ElmirClone
             if (Dispatcher.CheckAccess())
             {
                 int productId = (int)((Button)sender).Tag;
-                var product = (DbProduct)ProductsList.Items.Cast<DbProduct>().First(p => p.ProductId == productId);
+                var product = (ProductDetails)ProductsList.Items.Cast<ProductDetails>().First(p => p.ProductId == productId);
 
                 ProductCategory.SelectedValue = ProductCategory.Items.Cast<Category>().First(c => c.Name == product.CategoryName).CategoryId;
                 LoadSubcategories();
@@ -619,7 +634,10 @@ namespace ElmirClone
                         using (var connection = new NpgsqlConnection(connectionString))
                         {
                             connection.Open();
-                            using (var command = new NpgsqlCommand("UPDATE products SET name = @name, description = @description, price = @price, brand = @brand, categoryid = @categoryid, subcategoryid = @subcategoryid, image_url = @imageurl WHERE productid = @productid AND sellerid = @sellerid", connection))
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE products SET name = @name, description = @description, price = @price, brand = @brand, " +
+                                "categoryid = @categoryid, subcategoryid = @subcategoryid, image_url = @imageurl " +
+                                "WHERE productid = @productid AND sellerid = @sellerid", connection))
                             {
                                 command.Parameters.AddWithValue("name", nameBox.Text.Trim());
                                 command.Parameters.AddWithValue("description", descBox.Text.Trim());
@@ -799,32 +817,72 @@ namespace ElmirClone
             if (Dispatcher.CheckAccess())
             {
                 int orderId = (int)((Button)sender).Tag;
-                var stackPanel = ((Button)sender).Parent as StackPanel;
-                var statusCombo = stackPanel.Children[6] as ComboBox;
-
-                string status = (statusCombo.SelectedItem as ComboBoxItem)?.Content.ToString();
-
-                try
+                Order selectedOrder = OrdersList.Items.Cast<Order>().FirstOrDefault(o => o.OrderId == orderId);
+                if (selectedOrder == null)
                 {
-                    using (var connection = new NpgsqlConnection(connectionString))
+                    MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Create a dialog to select the new status
+                Window statusWindow = new Window
+                {
+                    Title = "Оновити статус замовлення",
+                    Width = 300,
+                    Height = 200,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+                StackPanel panel = new StackPanel { Margin = new Thickness(10) };
+                panel.Children.Add(new TextBlock { Text = "Оберіть новий статус:", Margin = new Thickness(0, 0, 0, 10) });
+
+                ComboBox statusCombo = new ComboBox { Margin = new Thickness(0, 0, 0, 10) };
+                statusCombo.Items.Add(new ComboBoxItem { Content = "Новий" });
+                statusCombo.Items.Add(new ComboBoxItem { Content = "Обробляється" });
+                statusCombo.Items.Add(new ComboBoxItem { Content = "Відправлено" });
+                statusCombo.Items.Add(new ComboBoxItem { Content = "Доставлено" });
+                statusCombo.Items.Add(new ComboBoxItem { Content = "Скасовано" });
+                statusCombo.SelectedIndex = statusCombo.Items.Cast<ComboBoxItem>().ToList()
+                    .FindIndex(item => (string)item.Content == selectedOrder.Status);
+                panel.Children.Add(statusCombo);
+
+                Button saveButton = new Button { Content = "Зберегти", Width = 100, Margin = new Thickness(0, 10, 0, 0) };
+                saveButton.Click += (s, ev) =>
+                {
+                    string newStatus = (statusCombo.SelectedItem as ComboBoxItem)?.Content.ToString();
+                    if (string.IsNullOrEmpty(newStatus))
                     {
-                        connection.Open();
-                        using (var command = new NpgsqlCommand("UPDATE orders SET status = @status WHERE orderid = @orderid AND sellerid = @sellerid", connection))
-                        {
-                            command.Parameters.AddWithValue("status", status);
-                            command.Parameters.AddWithValue("orderid", orderId);
-                            command.Parameters.AddWithValue("sellerid", sellerId);
-                            command.ExecuteNonQuery();
-                        }
+                        MessageBox.Show("Оберіть статус.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
                     }
-                    LoadOrders();
-                    LoadFinancials();
-                    MessageBox.Show("Статус замовлення оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Помилка при оновленні статусу замовлення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connectionString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE orders SET status = @status WHERE orderid = @orderid AND sellerid = @sellerid", connection))
+                            {
+                                command.Parameters.AddWithValue("status", newStatus);
+                                command.Parameters.AddWithValue("orderid", orderId);
+                                command.Parameters.AddWithValue("sellerid", sellerId);
+                                command.ExecuteNonQuery();
+                            }
+                        }
+                        LoadOrders();
+                        LoadFinancials();
+                        MessageBox.Show("Статус замовлення оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                        statusWindow.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Помилка при оновленні статусу замовлення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                };
+                panel.Children.Add(saveButton);
+
+                statusWindow.Content = panel;
+                statusWindow.ShowDialog();
             }
         }
 
@@ -838,7 +896,8 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("UPDATE orders SET status = 'Відправлено' WHERE orderid = @orderid AND sellerid = @sellerid", connection))
+                        using (var command = new NpgsqlCommand(
+                            "UPDATE orders SET status = 'Відправлено' WHERE orderid = @orderid AND sellerid = @sellerid", connection))
                         {
                             command.Parameters.AddWithValue("orderid", orderId);
                             command.Parameters.AddWithValue("sellerid", sellerId);
@@ -876,7 +935,8 @@ namespace ElmirClone
                         decimal feePercentage = 0;
                         var sales = new List<Sale>();
 
-                        using (var command = new NpgsqlCommand("SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             var result = command.ExecuteScalar();
@@ -886,7 +946,11 @@ namespace ElmirClone
                             }
                         }
 
-                        using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid AND o.status = 'Доставлено'", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid " +
+                            "FROM orders o " +
+                            "JOIN products p ON o.productid = p.productid " +
+                            "WHERE o.sellerid = @sellerid AND o.status = 'Доставлено'", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             using (var reader = command.ExecuteReader())
@@ -941,7 +1005,8 @@ namespace ElmirClone
                         decimal feePercentage = 0;
                         var sales = new List<Sale>();
 
-                        using (var command = new NpgsqlCommand("SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             var result = command.ExecuteScalar();
@@ -951,7 +1016,11 @@ namespace ElmirClone
                             }
                         }
 
-                        using (var command = new NpgsqlCommand("SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid FROM orders o JOIN products p ON o.productid = p.productid WHERE o.sellerid = @sellerid AND o.status = 'Доставлено' AND o.productid = @productid", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid " +
+                            "FROM orders o " +
+                            "JOIN products p ON o.productid = p.productid " +
+                            "WHERE o.sellerid = @sellerid AND o.status = 'Доставлено' AND o.productid = @productid", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.Parameters.AddWithValue("productid", productId);
@@ -1001,7 +1070,8 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("SELECT storename, description, contactinfo FROM sellerprofiles WHERE sellerid = @sellerid", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT storename, description, contactinfo FROM sellerprofiles WHERE sellerid = @sellerid", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             using (var reader = command.ExecuteReader())
@@ -1042,7 +1112,10 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("INSERT INTO sellerprofiles (sellerid, storename, description, contactinfo) VALUES (@sellerid, @storename, @description, @contactinfo) ON CONFLICT (sellerid) DO UPDATE SET storename = @storename, description = @description, contactinfo = @contactinfo", connection))
+                        using (var command = new NpgsqlCommand(
+                            "INSERT INTO sellerprofiles (sellerid, storename, description, contactinfo) " +
+                            "VALUES (@sellerid, @storename, @description, @contactinfo) " +
+                            "ON CONFLICT (sellerid) DO UPDATE SET storename = @storename, description = @description, contactinfo = @contactinfo", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.Parameters.AddWithValue("storename", storeName);

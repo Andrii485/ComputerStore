@@ -445,14 +445,14 @@ namespace ElmirClone
                             {
                                 products.Add(new DbProduct2
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
+                                    ProductId1 = reader.GetInt32(0),
+                                    Name1 = reader.GetString(1),
                                     Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price = reader.GetDecimal(3),
+                                    Price1 = reader.GetDecimal(3),
                                     Brand = reader.GetString(4),
                                     CategoryName = reader.GetString(5),
                                     SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl = reader.IsDBNull(7) ? null : reader.GetString(7),
+                                    ImageUrl1 = reader.IsDBNull(7) ? null : reader.GetString(7),
                                     IsHidden = reader.GetBoolean(8)
                                 });
                             }
@@ -490,7 +490,7 @@ namespace ElmirClone
                             var products = new List<DbProduct2>();
                             while (reader.Read())
                             {
-                                products.Add(new DbProduct1
+                                products.Add(new DbProduct2
                                 {
                                     ProductId1 = reader.GetInt32(0),
                                     Name1 = reader.GetString(1),

@@ -1224,14 +1224,8 @@ namespace ElmirClone
                         return;
                     }
 
-                    // Toggle CartOverlay visibility
-                    bool isVisible = CartOverlay.Visibility == Visibility.Visible;
-                    CartOverlay.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
-                    ContentScrollViewer.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
-                    if (!isVisible)
-                    {
-                        UpdateCartDisplay();
-                    }
+                    CartWindow cartWindow = new CartWindow(cartItems, userProfile, connectionString);
+                    cartWindow.ShowDialog();
                 }
                 catch (Exception ex)
                 {
@@ -1494,6 +1488,9 @@ namespace ElmirClone
         public string CategoryName { get; internal set; }
         public string SubcategoryName { get; internal set; }
         public int StockQuantity { get; internal set; }
+        public decimal TotalPrice => Price * Quantity;
+
+        public bool IsHidden { get; internal set; }
     }
 
     public class UserProfile
