@@ -64,6 +64,7 @@ namespace ElmirClone
             StatusFilterComboBox.Items.Add("Обробляється");
             StatusFilterComboBox.Items.Add("Відправлено");
             StatusFilterComboBox.Items.Add("Доставлено");
+            StatusFilterComboBox.Items.Add("Завершено");
             StatusFilterComboBox.SelectedIndex = 0;
 
             SortOrderComboBox.Items.Add("Дата: новіші зверху");
@@ -89,7 +90,7 @@ namespace ElmirClone
                 {
                     connection.Open();
                     using (var command = new NpgsqlCommand(
-                        "SELECT o.orderid, o.orderdate, o.totalprice, o.status, pp.address, p.name, o.quantity, o.sellerid " +
+                        "SELECT o.orderid, o.orderdate, o.totalprice, o.status, pp.address, p.name, o.quantity, o.sellerid, o.productid " +
                         "FROM orders o " +
                         "JOIN products p ON o.productid = p.productid " +
                         "LEFT JOIN pickup_points pp ON o.pickup_point_id = pp.pickup_point_id " +
@@ -109,7 +110,8 @@ namespace ElmirClone
                                     DeliveryAddress = reader.IsDBNull(4) ? "Немає адреси" : reader.GetString(4),
                                     ProductName = reader.GetString(5),
                                     Quantity = reader.GetInt32(6),
-                                    SellerId = reader.GetInt32(7)
+                                    SellerId = reader.GetInt32(7),
+                                    ProductId = reader.GetInt32(8)
                                 });
                             }
                         }
@@ -214,11 +216,15 @@ namespace ElmirClone
                         connection.Open();
                         using (var transaction = connection.BeginTransaction())
                         {
-                            // Получаем информацию о заказе
+                            // Проверяем текущий статус заказа
+                            string currentStatus = "";
                             int sellerId = 0;
                             decimal totalPrice = 0;
+                            int productId = 0;
+                            int quantity = 0;
                             using (var command = new NpgsqlCommand(
-                                "SELECT sellerid, totalprice FROM orders WHERE orderid = @orderId AND buyerid = @buyerId", connection))
+                                "SELECT status, sellerid, totalprice, productid, quantity " +
+                                "FROM orders WHERE orderid = @orderId AND buyerid = @buyerId", connection))
                             {
                                 command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
                                 command.Parameters.AddWithValue("buyerId", buyerId);
@@ -226,8 +232,11 @@ namespace ElmirClone
                                 {
                                     if (reader.Read())
                                     {
-                                        sellerId = reader.GetInt32(0);
-                                        totalPrice = reader.GetDecimal(1);
+                                        currentStatus = reader.GetString(0);
+                                        sellerId = reader.GetInt32(1);
+                                        totalPrice = reader.GetDecimal(2);
+                                        productId = reader.GetInt32(3);
+                                        quantity = reader.GetInt32(4);
                                     }
                                     else
                                     {
@@ -238,16 +247,53 @@ namespace ElmirClone
                                 }
                             }
 
+                            // Проверяем, что статус "Доставлено"
+                            if (currentStatus != "Доставлено")
+                            {
+                                transaction.Rollback();
+                                MessageBox.Show("Замовлення ще не доставлено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+
                             // Обновляем баланс продавца
                             using (var command = new NpgsqlCommand(
                                 "UPDATE usercredentials SET balance = balance + @totalPrice WHERE userid = @sellerId", connection))
                             {
                                 command.Parameters.AddWithValue("totalPrice", totalPrice);
                                 command.Parameters.AddWithValue("sellerId", sellerId);
+                                int rowsAffected = command.ExecuteNonQuery();
+                                if (rowsAffected == 0)
+                                {
+                                    transaction.Rollback();
+                                    MessageBox.Show("Продавця не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                            }
+
+                            // Уменьшаем запас товара
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE products SET stock = stock - @quantity WHERE productid = @productId AND stock >= @quantity", connection))
+                            {
+                                command.Parameters.AddWithValue("quantity", quantity);
+                                command.Parameters.AddWithValue("productId", productId);
+                                int rowsAffected = command.ExecuteNonQuery();
+                                if (rowsAffected == 0)
+                                {
+                                    transaction.Rollback();
+                                    MessageBox.Show("Недостатньо товару на складі або товар не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                            }
+
+                            // Если товара больше нет, помечаем его как недоступный
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE products SET available = false WHERE productid = @productId AND stock = 0", connection))
+                            {
+                                command.Parameters.AddWithValue("productId", productId);
                                 command.ExecuteNonQuery();
                             }
 
-                            // Подтверждаем заказ
+                            // Обновляем статус заказа на "Завершено"
                             using (var command = new NpgsqlCommand(
                                 "UPDATE orders SET status = 'Завершено' WHERE orderid = @orderId AND buyerid = @buyerId", connection))
                             {
@@ -258,7 +304,7 @@ namespace ElmirClone
                                 {
                                     transaction.Commit();
                                     LoadOrders(buyerId);
-                                    MessageBox.Show("Замовлення підтверджено, кошти переведено продавцю.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                    MessageBox.Show("Замовлення підтверджено, кошти переведено продавцю, запас товару оновлено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                                 }
                                 else
                                 {
@@ -320,8 +366,8 @@ namespace ElmirClone
 
         private void RetryOrderLoad_Click(object sender, RoutedEventArgs e)
         {
-            OrdersList.ItemsSource = null; // Очищаем текущий список
-            LoadOrders(buyerId); // Загружаем заказы заново
+            OrdersList.ItemsSource = null;
+            LoadOrders(buyerId);
         }
 
         private async void CheckOrderStatus()
@@ -348,7 +394,7 @@ namespace ElmirClone
                                 int orderId = reader.GetInt32(0);
                                 string status = reader.GetString(1);
                                 var order = orders.FirstOrDefault(o => o.OrderId == orderId);
-                                if (order != null && !notifiedOrders.Contains(orderId))
+                                if (order != null && order.Status != status && !notifiedOrders.Contains(orderId))
                                 {
                                     switch (status)
                                     {
@@ -358,7 +404,7 @@ namespace ElmirClone
                                             break;
                                         case "Доставлено":
                                             notifiedOrders.Add(orderId);
-                                            MessageBox.Show($"Ваше замовлення #{orderId} доставлено!", "Оновлення статусу", MessageBoxButton.OK, MessageBoxImage.Information);
+                                            MessageBox.Show($"Ваше замовлення #{orderId} доставлено! Будь ласка, підтвердіть отримання.", "Оновлення статусу", MessageBoxButton.OK, MessageBoxImage.Information);
                                             break;
                                     }
                                     order.Status = status;
@@ -367,7 +413,7 @@ namespace ElmirClone
                         }
                     }
                 }
-                LoadOrders(buyerId);
+                FilterOrders(null, null);
             }
             catch (Exception ex)
             {
@@ -386,5 +432,6 @@ namespace ElmirClone
         public string ProductName { get; set; }
         public int Quantity { get; set; }
         public int SellerId { get; set; }
+        public int ProductId { get; set; }
     }
 }
