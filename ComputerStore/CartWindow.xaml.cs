@@ -28,7 +28,7 @@ namespace ElmirClone
             "Автономна Республіка Крим"
         };
 
-        public CartWindow(List<ProductDetails> cartItems, UserProfile userProfile, string connectionString)
+        public CartWindow(List<ProductDetails> cartItems, UserProfile userProfile, string connectionString, MainWindow mainWindow)
         {
             InitializeComponent();
             _cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
@@ -48,6 +48,18 @@ namespace ElmirClone
                 return;
             }
 
+            foreach (var item in _cartItems)
+            {
+                if (item.StockQuantity == 0)
+                {
+                    item.StockQuantity = GetAvailableStock(item.ProductId);
+                }
+                if (item.Quantity == 0)
+                {
+                    item.Quantity = 1;
+                }
+            }
+
             CartItemsList.ItemsSource = _cartItems;
             CalculateTotalPrice();
             LoadContactDetails();
@@ -55,6 +67,11 @@ namespace ElmirClone
             LoadPaymentMethods();
             DataContext = _userProfile;
             isInitializedSuccessfully = true;
+        }
+
+        public CartWindow(UserProfile userProfile)
+        {
+            _userProfile = userProfile;
         }
 
         private void CalculateTotalPrice()
@@ -233,6 +250,12 @@ namespace ElmirClone
                 var item = _cartItems.FirstOrDefault(i => i.ProductId == productId);
                 if (item != null)
                 {
+                    int availableQuantity = item.StockQuantity;
+                    if (item.Quantity + 1 > availableQuantity)
+                    {
+                        MessageBox.Show($"Неможливо збільшити кількість. Доступно лише {availableQuantity} одиниць товару {item.Name}.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
                     item.Quantity++;
                     CartItemsList.ItemsSource = null;
                     CartItemsList.ItemsSource = _cartItems;
@@ -256,6 +279,37 @@ namespace ElmirClone
             }
         }
 
+        private void QuantityTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox textBox && textBox.Tag is int productId)
+            {
+                var item = _cartItems.FirstOrDefault(i => i.ProductId == productId);
+                if (item == null) return;
+
+                if (!int.TryParse(textBox.Text, out int newQuantity) || newQuantity < 1)
+                {
+                    MessageBox.Show("Будь ласка, введіть коректне число (не менше 1).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    textBox.Text = item.Quantity.ToString();
+                    return;
+                }
+
+                if (newQuantity > item.StockQuantity)
+                {
+                    MessageBox.Show($"Неможливо встановити кількість. Доступно лише {item.StockQuantity} одиниць товару {item.Name}.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    textBox.Text = item.StockQuantity.ToString();
+                    item.Quantity = item.StockQuantity;
+                }
+                else
+                {
+                    item.Quantity = newQuantity;
+                }
+
+                CartItemsList.ItemsSource = null;
+                CartItemsList.ItemsSource = _cartItems;
+                CalculateTotalPrice();
+            }
+        }
+
         private void RemoveFromCart_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is int productId)
@@ -268,6 +322,24 @@ namespace ElmirClone
                     CartItemsList.ItemsSource = _cartItems;
                     CalculateTotalPrice();
                     MessageBox.Show($"{itemToRemove.Name} видалено з кошика.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(_connectionString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand("DELETE FROM cart WHERE buyerid = @buyerid AND productid = @productid", connection))
+                            {
+                                command.Parameters.AddWithValue("buyerid", _userProfile.UserId);
+                                command.Parameters.AddWithValue("productid", productId);
+                                command.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Помилка при видаленні товару з кошика в базі даних: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 }
             }
         }
@@ -277,7 +349,7 @@ namespace ElmirClone
             this.Close();
         }
 
-        private bool CheckProductAvailability(int productId, int quantity)
+        private int GetAvailableStock(int productId)
         {
             try
             {
@@ -290,16 +362,43 @@ namespace ElmirClone
                         var result = command.ExecuteScalar();
                         if (result != null && result != DBNull.Value)
                         {
-                            int availableQuantity = Convert.ToInt32(result);
-                            return availableQuantity >= quantity;
+                            return Convert.ToInt32(result);
                         }
-                        return false;
+                        return 0;
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return false;
+                MessageBox.Show($"Помилка при перевірці доступної кількості: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return 0;
+            }
+        }
+
+        private bool CheckProductAvailability(int productId, int quantity)
+        {
+            int availableQuantity = GetAvailableStock(productId);
+            return availableQuantity >= quantity;
+        }
+
+        private void ClearCartInDatabase()
+        {
+            try
+            {
+                using (var connection = new NpgsqlConnection(_connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand("DELETE FROM cart WHERE buyerid = @buyerid", connection))
+                    {
+                        command.Parameters.AddWithValue("buyerid", _userProfile.UserId);
+                        command.ExecuteNonQuery();
+                    }
+                }
+                _cartItems.Clear();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка при очищенні кошика в базі даних: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -495,7 +594,8 @@ namespace ElmirClone
                                             throw new Exception("Не вдалося оновити баланс користувача.");
                                         }
                                     }
-                                    _userProfile.Balance -= totalPrice;
+                                    _userProfile.Balance = (decimal)_userProfile.Balance - totalPrice;
+
                                 }
                                 catch (Exception ex)
                                 {
@@ -505,10 +605,21 @@ namespace ElmirClone
                                 }
                             }
 
+                            // Очищаємо кошик у базі даних після успішного оформлення замовлення
+                            using (var clearCartCommand = new NpgsqlCommand("DELETE FROM cart WHERE buyerid = @buyerid", connection))
+                            {
+                                clearCartCommand.Parameters.AddWithValue("buyerid", buyerIdValue);
+                                clearCartCommand.Transaction = transaction;
+                                clearCartCommand.ExecuteNonQuery();
+                            }
+
                             transaction.Commit();
                             MessageBox.Show($"Замовлення успішно оформлено!\nСпосіб оплати: {paymentMethodName}\nСума: {totalPrice:F2} грн\n" +
                                             (requiresCardDetails ? $"Залишок на балансі: {_userProfile.Balance:F2} грн" : ""),
                                             "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            // Очищаємо локальний список товарів у кошику
+                            _cartItems.Clear();
                             Close();
                         }
                         catch (Exception ex)
@@ -524,5 +635,21 @@ namespace ElmirClone
                 MessageBox.Show($"Сталася помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    }
+
+    public class PickupPoint
+    {
+        public int PickupPointId { get; set; }
+        public string Address { get; set; }
+        public string Region { get; set; }
+        public override string ToString() => Address;
+    }
+
+    public class PaymentMethod
+    {
+        public int PaymentMethodId { get; set; }
+        public string Name { get; set; }
+        public int MethodId { get; internal set; }
+        public bool IsActive { get; internal set; }
     }
 }

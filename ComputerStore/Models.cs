@@ -21,6 +21,8 @@ namespace ElmirClone.Models
         public int? ParentCategoryId { get; set; } // Добавлено для поддержки иерархии
         public string ImageUrl { get; set; }
         public string ParentCategoryName { get; internal set; }
+        public List<Category> Subcategories { get; internal set; }
+        public object Products { get; internal set; }
     }
 
     public class Subcategory
@@ -89,6 +91,8 @@ namespace ElmirClone.Models
     {
         public int PaymentMethodId { get; set; }
         public string Name { get; set; }
+        public int MethodId { get; internal set; }
+        public bool IsActive { get; internal set; }
     }
 
     public class User

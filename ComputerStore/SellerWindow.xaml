@@ -4,11 +4,10 @@
         xmlns:local="clr-namespace:ElmirClone"
         Title="Панель продавця - ElitePC" Height="800" Width="1000" Background="#E8ECEF">
     <Window.Resources>
-        <!-- Конвертеры -->
+        <!-- Исправленные ключи для конвертеров -->
         <local:BooleanToHiddenStatusConverter x:Key="BooleanToHiddenStatusConverter"/>
         <local:BooleanToBlockButtonConverter x:Key="BooleanToBlockButtonConverter"/>
 
-        <!-- Modern Button Style -->
         <Style TargetType="Button" x:Key="ModernButtonStyle">
             <Setter Property="Background" Value="#007BFF"/>
             <Setter Property="Foreground" Value="White"/>
@@ -39,7 +38,6 @@
             </Setter>
         </Style>
 
-        <!-- Danger Button Style (for Delete actions) -->
         <Style TargetType="Button" x:Key="DangerButtonStyle" BasedOn="{StaticResource ModernButtonStyle}">
             <Setter Property="Background" Value="#DC3545"/>
             <Setter Property="Template">
@@ -61,7 +59,6 @@
             </Setter>
         </Style>
 
-        <!-- Warning Button Style (for Block/Unblock actions) -->
         <Style TargetType="Button" x:Key="WarningButtonStyle" BasedOn="{StaticResource ModernButtonStyle}">
             <Setter Property="Background" Value="#FFC107"/>
             <Setter Property="Foreground" Value="Black"/>
@@ -84,7 +81,6 @@
             </Setter>
         </Style>
 
-        <!-- Sidebar Button Style -->
         <Style TargetType="Button" x:Key="SidebarButtonStyle">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#333"/>
@@ -114,7 +110,6 @@
             </Setter>
         </Style>
 
-        <!-- Input Style -->
         <Style TargetType="TextBox" x:Key="ModernInputStyle">
             <Setter Property="Width" Value="250"/>
             <Setter Property="Height" Value="32"/>
@@ -135,12 +130,10 @@
             </Setter>
         </Style>
 
-        <!-- Search Input Style (Smaller Width for Search) -->
         <Style TargetType="TextBox" x:Key="SearchInputStyle" BasedOn="{StaticResource ModernInputStyle}">
             <Setter Property="Width" Value="150"/>
         </Style>
 
-        <!-- ComboBox Style -->
         <Style TargetType="ComboBox" x:Key="ModernComboBoxStyle">
             <Setter Property="Width" Value="250"/>
             <Setter Property="Height" Value="32"/>
@@ -151,7 +144,6 @@
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
 
-        <!-- Panel Style -->
         <Style TargetType="StackPanel" x:Key="CardStyle">
             <Setter Property="Background" Value="White"/>
             <Setter Property="Margin" Value="0,0,0,15"/>
@@ -172,7 +164,6 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Header -->
         <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#343A40">
             <DockPanel Margin="10,0">
                 <Image Source="https://i.postimg.cc/02SPKrX0/2025-04-17-000603.png" Width="85" Height="40" DockPanel.Dock="Left" VerticalAlignment="Center"/>
@@ -181,7 +172,6 @@
             </DockPanel>
         </Border>
 
-        <!-- Sidebar -->
         <StackPanel Grid.Row="1" Grid.Column="0" Background="#F8F9FA" Margin="0,10">
             <Button Content="Керування товарами" Click="ShowProductsPanel_Click" Style="{StaticResource SidebarButtonStyle}"/>
             <Button Content="Керування замовленнями" Click="ShowOrdersPanel_Click" Style="{StaticResource SidebarButtonStyle}"/>
@@ -189,10 +179,8 @@
             <Button Content="Профіль магазину" Click="ShowProfilePanel_Click" Style="{StaticResource SidebarButtonStyle}"/>
         </StackPanel>
 
-        <!-- Main Content -->
         <ScrollViewer Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="10">
             <StackPanel>
-                <!-- Products Panel -->
                 <StackPanel x:Name="ProductsPanel" Visibility="Visible" Style="{StaticResource CardStyle}">
                     <TextBlock Text="Керування товарами" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
                     <TextBlock Text="Додати новий товар" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
@@ -200,8 +188,8 @@
                         <TextBox x:Name="NewProductName" Style="{StaticResource ModernInputStyle}" Text="Назва товару"/>
                         <TextBox x:Name="NewProductDescription" Style="{StaticResource ModernInputStyle}" Text="Опис"/>
                         <TextBox x:Name="NewProductPrice" Style="{StaticResource ModernInputStyle}" Text="Ціна"/>
-                        <TextBox x:Name="NewProductBrand" Style="{StaticResource ModernInputStyle}" Text="Бренд"/>
                         <TextBox x:Name="NewProductStockQuantity" Style="{StaticResource ModernInputStyle}" Text="Кількість"/>
+                        <TextBox x:Name="NewProductBrand" Style="{StaticResource ModernInputStyle}" Text="Бренд"/>
                         <ComboBox x:Name="ProductCategory" Style="{StaticResource ModernComboBoxStyle}" DisplayMemberPath="Name" SelectedValuePath="CategoryId"/>
                         <ComboBox x:Name="ProductSubcategory" Style="{StaticResource ModernComboBoxStyle}" DisplayMemberPath="Name" SelectedValuePath="SubcategoryId"/>
                         <TextBox x:Name="NewProductImagePath" Style="{StaticResource ModernInputStyle}" Text="Шлях до зображення" IsReadOnly="True"/>
@@ -219,8 +207,8 @@
                             <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="150"/>
                             <DataGridTextColumn Header="Опис" Binding="{Binding Description}" Width="150"/>
                             <DataGridTextColumn Header="Ціна" Binding="{Binding Price}" Width="80"/>
-                            <DataGridTextColumn Header="Бренд" Binding="{Binding Brand}" Width="100"/>
                             <DataGridTextColumn Header="Кількість" Binding="{Binding StockQuantity}" Width="80"/>
+                            <DataGridTextColumn Header="Бренд" Binding="{Binding Brand}" Width="100"/>
                             <DataGridTextColumn Header="Категорія" Binding="{Binding CategoryName}" Width="120"/>
                             <DataGridTextColumn Header="Підкатегорія" Binding="{Binding SubcategoryName}" Width="120"/>
                             <DataGridTextColumn Header="Зображення" Binding="{Binding ImageUrl}" Width="150"/>
@@ -240,7 +228,6 @@
                     </DataGrid>
                 </StackPanel>
 
-                <!-- Orders Panel -->
                 <StackPanel x:Name="OrdersPanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
                     <TextBlock Text="Керування замовленнями" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
                     <WrapPanel Margin="10,0,10,10">
@@ -259,12 +246,12 @@
                             <DataGridTemplateColumn Header="Оновити статус" Width="150">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <ComboBox Width="130" Margin="5,0">
-                                            <ComboBoxItem Content="Очікується"/>
-                                            <ComboBoxItem Content="Підтверджено"/>
-                                            <ComboBoxItem Content="Відправлено"/>
-                                            <ComboBoxItem Content="Доставлено"/>
-                                            <ComboBoxItem Content="Скасовано"/>
+                                        <ComboBox Width="130" Margin="5,0" SelectedItem="{Binding Status, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                            <ComboBoxItem Content="Pending"/>
+                                            <ComboBoxItem Content="Confirmed"/>
+                                            <ComboBoxItem Content="Shipped"/>
+                                            <ComboBoxItem Content="Delivered"/>
+                                            <ComboBoxItem Content="Cancelled"/>
                                         </ComboBox>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -289,7 +276,6 @@
                     </DataGrid>
                 </StackPanel>
 
-                <!-- Finance Panel -->
                 <StackPanel x:Name="FinancePanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
                     <TextBlock Text="Фінанси" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
                     <TextBlock Text="Загальний дохід (після комісії):" FontSize="14" FontWeight="Medium" Margin="10,0,10,5"/>
@@ -311,7 +297,6 @@
                     </DataGrid>
                 </StackPanel>
 
-                <!-- Profile Panel -->
                 <StackPanel x:Name="ProfilePanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
                     <TextBlock Text="Профіль магазину" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
                     <StackPanel Orientation="Horizontal" Margin="10,0,10,10">

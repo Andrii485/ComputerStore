@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using Npgsql;
 using System.Configuration;
 using BCrypt.Net;
 using Microsoft.Win32;
 using ElmirClone.Models;
 
-namespace ElmirClone
+namespace ElmirClone 
 {
     public partial class AdminWindow : Window
     {
@@ -26,7 +25,7 @@ namespace ElmirClone
             "Автономна Республіка Крим"
         };
         private string selectedImagePath;
-        private List<Category> allCategories; // Зберігаємо всі категорії для пошуку
+        private List<Category> allCategories;
 
         public AdminWindow()
         {
@@ -45,12 +44,6 @@ namespace ElmirClone
 
         private void AdminWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            if (CategoriesTree == null)
-            {
-                MessageBox.Show("Компонент CategoriesTree не знайдено в XAML. Перевірте розмітку.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
             LoadUsers();
             LoadCategories();
             LoadProducts();
@@ -67,9 +60,8 @@ namespace ElmirClone
                 MessageBox.Show("Елемент NewPickupPointRegion не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-
             NewPickupPointRegion.ItemsSource = regions;
-            if (regions.Any())
+            if (regions.Any() && NewPickupPointRegion.Items.Count > 0)
             {
                 NewPickupPointRegion.SelectedIndex = 0;
             }
@@ -77,34 +69,34 @@ namespace ElmirClone
 
         private void ShowUsersPanel_Click(object sender, RoutedEventArgs e)
         {
-            UsersPanel.Visibility = Visibility.Visible;
-            CatalogPanel.Visibility = Visibility.Collapsed;
-            FinancePanel.Visibility = Visibility.Collapsed;
-            LogisticsPanel.Visibility = Visibility.Collapsed;
+            if (UsersPanel != null) UsersPanel.Visibility = Visibility.Visible;
+            if (CatalogPanel != null) CatalogPanel.Visibility = Visibility.Collapsed;
+            if (FinancePanel != null) FinancePanel.Visibility = Visibility.Collapsed;
+            if (LogisticsPanel != null) LogisticsPanel.Visibility = Visibility.Collapsed;
         }
 
         private void ShowCatalogPanel_Click(object sender, RoutedEventArgs e)
         {
-            UsersPanel.Visibility = Visibility.Collapsed;
-            CatalogPanel.Visibility = Visibility.Visible;
-            FinancePanel.Visibility = Visibility.Collapsed;
-            LogisticsPanel.Visibility = Visibility.Collapsed;
+            if (UsersPanel != null) UsersPanel.Visibility = Visibility.Collapsed;
+            if (CatalogPanel != null) CatalogPanel.Visibility = Visibility.Visible;
+            if (FinancePanel != null) FinancePanel.Visibility = Visibility.Collapsed;
+            if (LogisticsPanel != null) LogisticsPanel.Visibility = Visibility.Collapsed;
         }
 
         private void ShowFinancePanel_Click(object sender, RoutedEventArgs e)
         {
-            UsersPanel.Visibility = Visibility.Collapsed;
-            CatalogPanel.Visibility = Visibility.Collapsed;
-            FinancePanel.Visibility = Visibility.Visible;
-            LogisticsPanel.Visibility = Visibility.Collapsed;
+            if (UsersPanel != null) UsersPanel.Visibility = Visibility.Collapsed;
+            if (CatalogPanel != null) CatalogPanel.Visibility = Visibility.Collapsed;
+            if (FinancePanel != null) FinancePanel.Visibility = Visibility.Visible;
+            if (LogisticsPanel != null) LogisticsPanel.Visibility = Visibility.Collapsed;
         }
 
         private void ShowLogisticsPanel_Click(object sender, RoutedEventArgs e)
         {
-            UsersPanel.Visibility = Visibility.Collapsed;
-            CatalogPanel.Visibility = Visibility.Collapsed;
-            FinancePanel.Visibility = Visibility.Collapsed;
-            LogisticsPanel.Visibility = Visibility.Visible;
+            if (UsersPanel != null) UsersPanel.Visibility = Visibility.Collapsed;
+            if (CatalogPanel != null) CatalogPanel.Visibility = Visibility.Collapsed;
+            if (FinancePanel != null) FinancePanel.Visibility = Visibility.Collapsed;
+            if (LogisticsPanel != null) LogisticsPanel.Visibility = Visibility.Visible;
         }
 
         private void Logout_Click(object sender, RoutedEventArgs e)
@@ -154,6 +146,11 @@ namespace ElmirClone
 
         private void SearchUserByEmail_Click(object sender, RoutedEventArgs e)
         {
+            if (SearchUserEmail == null)
+            {
+                MessageBox.Show("Елемент SearchUserEmail не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string email = SearchUserEmail.Text?.Trim();
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -205,6 +202,11 @@ namespace ElmirClone
 
         private void RegisterUser_Click(object sender, RoutedEventArgs e)
         {
+            if (NewUserUsername == null || NewUserEmail == null || NewUserPassword == null || NewUserRole == null)
+            {
+                MessageBox.Show("Одна або кілька полів для введення даних користувача не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string username = NewUserUsername.Text?.Trim();
             string email = NewUserEmail.Text?.Trim();
             string password = NewUserPassword.Password;
@@ -228,7 +230,6 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-
                     using (var checkUsernameCommand = new NpgsqlCommand("SELECT COUNT(*) FROM usercredentials WHERE username = @username", connection))
                     {
                         checkUsernameCommand.Parameters.AddWithValue("username", username);
@@ -408,7 +409,6 @@ namespace ElmirClone
             {
                 var categories = new List<Category>();
 
-                // Завантаження категорій
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
@@ -434,7 +434,6 @@ namespace ElmirClone
                     }
                 }
 
-                // Завантаження товарів для кожної категорії
                 foreach (var category in categories)
                 {
                     using (var connection = new NpgsqlConnection(connectionString))
@@ -452,7 +451,7 @@ namespace ElmirClone
                             {
                                 while (productReader.Read())
                                 {
-                                    category.Products.Add(new ProductDetails
+                                    ((List<ProductDetails>)category.Products).Add(new ProductDetails
                                     {
                                         ProductId = productReader.GetInt32(0),
                                         Name = productReader.GetString(1),
@@ -470,7 +469,6 @@ namespace ElmirClone
                     }
                 }
 
-                // Побудова ієрархії категорій
                 allCategories = categories;
 
                 var categoryIds = new HashSet<int>();
@@ -557,69 +555,67 @@ namespace ElmirClone
 
         private void SearchCategoryName_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (SearchCategoryName == null || CategoriesTree == null || allCategories == null)
+            {
+                MessageBox.Show("Елемент SearchCategoryName або CategoriesTree не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string searchText = SearchCategoryName.Text?.Trim().ToLower();
             if (string.IsNullOrWhiteSpace(searchText) || searchText == "пошук за назвою категорії")
             {
-                if (CategoriesTree != null && allCategories != null)
-                {
-                    CategoriesTree.ItemsSource = allCategories.Where(c => c.ParentCategoryId == null).ToList();
-                }
+                CategoriesTree.ItemsSource = allCategories.Where(c => c.ParentCategoryId == null).ToList();
                 return;
             }
 
             var filteredCategories = new List<Category>();
             var rootCategories = new List<Category>();
 
-            if (allCategories != null)
+            foreach (var category in allCategories)
             {
-                foreach (var category in allCategories)
+                if (category.Name.ToLower().Contains(searchText))
                 {
-                    if (category.Name.ToLower().Contains(searchText))
+                    var copyCategory = new Category
                     {
-                        var copyCategory = new Category
-                        {
-                            CategoryId = category.CategoryId,
-                            Name = category.Name,
-                            ParentCategoryName = category.ParentCategoryName,
-                            ImageUrl = category.ImageUrl,
-                            ParentCategoryId = category.ParentCategoryId,
-                            Products = category.Products,
-                            Subcategories = new List<Category>()
-                        };
-                        filteredCategories.Add(copyCategory);
-                    }
+                        CategoryId = category.CategoryId,
+                        Name = category.Name,
+                        ParentCategoryName = category.ParentCategoryName,
+                        ImageUrl = category.ImageUrl,
+                        ParentCategoryId = category.ParentCategoryId,
+                        Products = category.Products,
+                        Subcategories = new List<Category>()
+                    };
+                    filteredCategories.Add(copyCategory);
                 }
+            }
 
-                foreach (var category in filteredCategories)
+            foreach (var category in filteredCategories)
+            {
+                if (category.ParentCategoryId == null)
                 {
-                    if (category.ParentCategoryId == null)
+                    rootCategories.Add(category);
+                }
+                else
+                {
+                    var parent = filteredCategories.FirstOrDefault(c => c.CategoryId == category.ParentCategoryId);
+                    if (parent != null)
                     {
-                        rootCategories.Add(category);
-                    }
-                    else
-                    {
-                        var parent = filteredCategories.FirstOrDefault(c => c.CategoryId == category.ParentCategoryId);
-                        if (parent != null)
-                        {
-                            parent.Subcategories.Add(category);
-                        }
+                        parent.Subcategories.Add(category);
                     }
                 }
             }
 
-            if (CategoriesTree != null)
-            {
-                CategoriesTree.ItemsSource = rootCategories;
-            }
+            CategoriesTree.ItemsSource = rootCategories;
         }
 
         private void ClearCategorySearch_Click(object sender, RoutedEventArgs e)
         {
-            SearchCategoryName.Text = "Пошук за назвою категорії";
-            if (CategoriesTree != null && allCategories != null)
+            if (SearchCategoryName == null || CategoriesTree == null || allCategories == null)
             {
-                CategoriesTree.ItemsSource = allCategories.Where(c => c.ParentCategoryId == null).ToList();
+                MessageBox.Show("Елемент SearchCategoryName або CategoriesTree не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
+            SearchCategoryName.Text = "Пошук за назвою категорії";
+            CategoriesTree.ItemsSource = allCategories.Where(c => c.ParentCategoryId == null).ToList();
         }
 
         private void LoadProducts()
@@ -669,6 +665,11 @@ namespace ElmirClone
 
         private void SearchProductById_Click(object sender, RoutedEventArgs e)
         {
+            if (SearchProductId == null)
+            {
+                MessageBox.Show("Елемент SearchProductId не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string productIdText = SearchProductId.Text?.Trim();
             if (string.IsNullOrWhiteSpace(productIdText) || !int.TryParse(productIdText, out int productId))
             {
@@ -752,6 +753,11 @@ namespace ElmirClone
 
         private void SelectImage_Click(object sender, RoutedEventArgs e)
         {
+            if (ParentCategory == null || ImagePathTextBox == null)
+            {
+                MessageBox.Show("Елемент ParentCategory або ImagePathTextBox не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             int? parentCategoryId = (ParentCategory.SelectedItem as ComboBoxItem)?.Tag as int?;
             if (!parentCategoryId.HasValue)
             {
@@ -768,15 +774,17 @@ namespace ElmirClone
             if (openFileDialog.ShowDialog() == true)
             {
                 selectedImagePath = openFileDialog.FileName;
-                if (ImagePathTextBox != null)
-                {
-                    ImagePathTextBox.Text = selectedImagePath;
-                }
+                ImagePathTextBox.Text = selectedImagePath;
             }
         }
 
         private void AddCategory_Click(object sender, RoutedEventArgs e)
         {
+            if (NewCategoryName == null || ParentCategory == null || ImagePathTextBox == null)
+            {
+                MessageBox.Show("Елемент NewCategoryName, ParentCategory або ImagePathTextBox не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string name = NewCategoryName.Text?.Trim();
             int? parentCategoryId = (ParentCategory.SelectedItem as ComboBoxItem)?.Tag as int?;
 
@@ -816,8 +824,8 @@ namespace ElmirClone
                     }
                 }
                 LoadCategories();
-                if (NewCategoryName != null) NewCategoryName.Text = "";
-                if (ImagePathTextBox != null) ImagePathTextBox.Text = "";
+                NewCategoryName.Text = "";
+                ImagePathTextBox.Text = "";
                 selectedImagePath = null;
                 MessageBox.Show("Категорію успішно додано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -908,7 +916,6 @@ namespace ElmirClone
             }
         }
 
-        // Метод для рекурсивного збору всіх підкатегорій
         private List<int> GetAllSubcategoryIds(int categoryId, List<Category> categories)
         {
             var subcategoryIds = new List<int> { categoryId };
@@ -922,7 +929,6 @@ namespace ElmirClone
             return subcategoryIds;
         }
 
-        // Метод для створення або отримання категорії "Без категорії"
         private int GetOrCreateNoCategory()
         {
             try
@@ -931,7 +937,6 @@ namespace ElmirClone
                 {
                     connection.Open();
 
-                    // Перевіряємо, чи існує категорія "Без категорії"
                     int noCategoryId;
                     using (var command = new NpgsqlCommand("SELECT categoryid FROM categories WHERE name = 'Без категорії' AND parentcategoryid IS NULL LIMIT 1", connection))
                     {
@@ -943,7 +948,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Якщо категорії немає, створюємо її
                     using (var command = new NpgsqlCommand("INSERT INTO categories (name, parentcategoryid, image_url) VALUES ('Без категорії', NULL, NULL) RETURNING categoryid", connection))
                     {
                         noCategoryId = (int)command.ExecuteScalar();
@@ -962,7 +966,6 @@ namespace ElmirClone
         {
             int categoryId = (int)((Button)sender).Tag;
 
-            // Перевіряємо, чи є категорія кореневою (parentcategoryid IS NULL)
             bool isRootCategory;
             using (var connection = new NpgsqlConnection(connectionString))
             {
@@ -974,7 +977,6 @@ namespace ElmirClone
                 }
             }
 
-            // Якщо це коренева категорія, перевіряємо, чи є інші кореневі категорії
             if (isRootCategory)
             {
                 using (var connection = new NpgsqlConnection(connectionString))
@@ -1002,10 +1004,8 @@ namespace ElmirClone
                     {
                         try
                         {
-                            // Отримуємо всі підкатегорії (включаючи саму категорію)
                             var allSubcategoryIds = GetAllSubcategoryIds(categoryId, allCategories);
 
-                            // Отримуємо або створюємо категорію "Без категорії"
                             int noCategoryId = GetOrCreateNoCategory();
                             if (noCategoryId == -1)
                             {
@@ -1013,7 +1013,6 @@ namespace ElmirClone
                                 return;
                             }
 
-                            // Перевіряємо, чи є товари, пов’язані з цими категоріями
                             long productCount;
                             using (var command = new NpgsqlCommand("SELECT COUNT(*) FROM products WHERE categoryid = ANY(@categoryIds) OR subcategoryid = ANY(@categoryIds)", connection))
                             {
@@ -1024,7 +1023,6 @@ namespace ElmirClone
 
                             if (productCount > 0)
                             {
-                                // Переназначаємо товари до категорії "Без категорії"
                                 using (var command = new NpgsqlCommand("UPDATE products SET categoryid = @noCategoryId WHERE categoryid = ANY(@categoryIds)", connection))
                                 {
                                     command.Parameters.AddWithValue("noCategoryId", noCategoryId);
@@ -1041,7 +1039,6 @@ namespace ElmirClone
                                 }
                             }
 
-                            // Видаляємо категорії (включаючи підкатегорії)
                             using (var command = new NpgsqlCommand("DELETE FROM categories WHERE categoryid = ANY(@categoryIds)", connection))
                             {
                                 command.Parameters.AddWithValue("categoryIds", allSubcategoryIds);
@@ -1104,6 +1101,11 @@ namespace ElmirClone
 
         private void AddPaymentMethod_Click(object sender, RoutedEventArgs e)
         {
+            if (NewPaymentMethodName == null)
+            {
+                MessageBox.Show("Елемент NewPaymentMethodName не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string name = NewPaymentMethodName.Text?.Trim();
 
             if (string.IsNullOrWhiteSpace(name))
@@ -1136,7 +1138,7 @@ namespace ElmirClone
                     }
                 }
                 LoadPaymentMethods();
-                if (NewPaymentMethodName != null) NewPaymentMethodName.Text = "";
+                NewPaymentMethodName.Text = "";
                 MessageBox.Show("Спосіб оплати успішно додано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -1312,6 +1314,11 @@ namespace ElmirClone
 
         private void AddCourierService_Click(object sender, RoutedEventArgs e)
         {
+            if (NewCourierService == null)
+            {
+                MessageBox.Show("Елемент NewCourierService не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string name = NewCourierService.Text?.Trim();
 
             if (string.IsNullOrWhiteSpace(name))
@@ -1333,7 +1340,7 @@ namespace ElmirClone
                     }
                 }
                 LoadCourierServices();
-                if (NewCourierService != null) NewCourierService.Text = "";
+                NewCourierService.Text = "";
                 MessageBox.Show("Кур'єрську службу успішно додано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -1431,7 +1438,7 @@ namespace ElmirClone
         private void UpdateCourierService_Click(object sender, RoutedEventArgs e)
         {
             int serviceId = (int)((Button)sender).Tag;
-            var selectedRow = CourierServicesList.SelectedItem as CourierService;
+            var selectedRow = CourierServicesList?.SelectedItem as CourierService;
             if (selectedRow == null)
             {
                 MessageBox.Show("Оберіть службу для оновлення.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1497,6 +1504,11 @@ namespace ElmirClone
 
         private void AddPickupPoint_Click(object sender, RoutedEventArgs e)
         {
+            if (NewPickupPointAddress == null || NewPickupPointRegion == null)
+            {
+                MessageBox.Show("Елемент NewPickupPointAddress або NewPickupPointRegion не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             string address = NewPickupPointAddress.Text?.Trim();
             string region = NewPickupPointRegion.SelectedItem?.ToString();
 
@@ -1530,8 +1542,8 @@ namespace ElmirClone
                     }
                 }
                 LoadPickupPoints();
-                if (NewPickupPointAddress != null) NewPickupPointAddress.Text = "";
-                if (NewPickupPointRegion != null) NewPickupPointRegion.SelectedIndex = 0;
+                NewPickupPointAddress.Text = "";
+                NewPickupPointRegion.SelectedIndex = 0;
                 MessageBox.Show("Пункт самовивозу успішно додано!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -1563,91 +1575,91 @@ namespace ElmirClone
                 return;
             }
 
-            string newAddress = Microsoft.VisualBasic.Interaction.InputBox("Введіть нову адресу пункту самовивозу:", "Редагування пункту самовивозу", pointToEdit.Address);
-            if (string.IsNullOrWhiteSpace(newAddress))
+            Window editWindow = new Window
             {
-                MessageBox.Show("Адреса не може бути порожньою.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            var regionWindow = new Window
-            {
-                Title = "Оберіть регіон",
-                Width = 300,
-                Height = 150,
+                Title = "Редагування пункту самовивозу",
+                Width = 400,
+                Height = 300,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = this
             };
-            var regionStackPanel = new StackPanel { Margin = new Thickness(10) };
-            var regionComboBox = new ComboBox
-            {
-                ItemsSource = regions,
-                SelectedItem = pointToEdit.Region,
-                Width = 260,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            var confirmButton = new Button
-            {
-                Content = "Підтвердити",
-                Width = 100,
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-            confirmButton.Click += (s, ev) => regionWindow.DialogResult = true;
-            regionStackPanel.Children.Add(new TextBlock { Text = "Оберіть регіон:" });
-            regionStackPanel.Children.Add(regionComboBox);
-            regionStackPanel.Children.Add(confirmButton);
-            regionWindow.Content = regionStackPanel;
 
-            string newRegion = pointToEdit.Region;
-            if (regionWindow.ShowDialog() == true && regionComboBox.SelectedItem != null)
-            {
-                newRegion = regionComboBox.SelectedItem.ToString();
-            }
-            else
-            {
-                return;
-            }
+            StackPanel panel = new StackPanel { Margin = new Thickness(10) };
 
-            try
+            TextBlock addressLabel = new TextBlock { Text = "Нова адреса:", Margin = new Thickness(0, 0, 0, 5) };
+            TextBox addressBox = new TextBox { Text = pointToEdit.Address, Width = 300, Margin = new Thickness(0, 0, 0, 10) };
+
+            TextBlock regionLabel = new TextBlock { Text = "Новий регіон:", Margin = new Thickness(0, 0, 0, 5) };
+            ComboBox regionBox = new ComboBox { Width = 300, Margin = new Thickness(0, 0, 0, 10) };
+            foreach (var region in regions)
             {
-                using (var connection = new NpgsqlConnection(connectionString))
+                regionBox.Items.Add(new ComboBoxItem { Content = region });
+            }
+            regionBox.SelectedItem = regionBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Content.ToString() == pointToEdit.Region);
+
+            Button saveButton = new Button { Content = "Зберегти", Width = 100, Margin = new Thickness(0, 20, 0, 0) };
+            saveButton.Click += (s, ev) =>
+            {
+                string newAddress = addressBox.Text?.Trim();
+                string newRegion = (regionBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
+
+                if (string.IsNullOrWhiteSpace(newAddress) || string.IsNullOrWhiteSpace(newRegion))
                 {
-                    connection.Open();
-                    using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM pickup_points WHERE address = @address AND pickup_point_id != @pickupPointId", connection))
+                    MessageBox.Show("Заповніть усі поля.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
                     {
-                        checkCommand.Parameters.AddWithValue("address", newAddress);
-                        checkCommand.Parameters.AddWithValue("pickupPointId", pickupPointId);
-                        long count = (long)checkCommand.ExecuteScalar();
-                        if (count > 0)
+                        connection.Open();
+                        using (var checkCommand = new NpgsqlCommand("SELECT COUNT(*) FROM pickup_points WHERE address = @address AND pickup_point_id != @pickupPointId", connection))
                         {
-                            MessageBox.Show("Пункт самовивозу з такою адресою вже існує.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
+                            checkCommand.Parameters.AddWithValue("address", newAddress);
+                            checkCommand.Parameters.AddWithValue("pickupPointId", pickupPointId);
+                            long count = (long)checkCommand.ExecuteScalar();
+                            if (count > 0)
+                            {
+                                MessageBox.Show("Пункт самовивозу з такою адресою вже існує.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+                        }
+
+                        using (var command = new NpgsqlCommand("UPDATE pickup_points SET address = @address, region = @region WHERE pickup_point_id = @pickupPointId", connection))
+                        {
+                            command.Parameters.AddWithValue("address", newAddress);
+                            command.Parameters.AddWithValue("region", newRegion);
+                            command.Parameters.AddWithValue("pickupPointId", pickupPointId);
+                            command.ExecuteNonQuery();
                         }
                     }
-
-                    using (var command = new NpgsqlCommand("UPDATE pickup_points SET address = @address, region = @region WHERE pickup_point_id = @pickupPointId", connection))
-                    {
-                        command.Parameters.AddWithValue("address", newAddress);
-                        command.Parameters.AddWithValue("region", newRegion);
-                        command.Parameters.AddWithValue("pickupPointId", pickupPointId);
-                        command.ExecuteNonQuery();
-                    }
+                    LoadPickupPoints();
+                    MessageBox.Show("Пункт самовивозу успішно оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                    editWindow.Close();
                 }
-                LoadPickupPoints();
-                MessageBox.Show("Пункт самовивозу успішно оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка під час оновлення пункту самовивозу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка під час оновлення пункту самовивозу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            panel.Children.Add(addressLabel);
+            panel.Children.Add(addressBox);
+            panel.Children.Add(regionLabel);
+            panel.Children.Add(regionBox);
+            panel.Children.Add(saveButton);
+
+            editWindow.Content = panel;
+            editWindow.ShowDialog();
         }
 
         private void DeletePickupPoint_Click(object sender, RoutedEventArgs e)
         {
             int pickupPointId = (int)((Button)sender).Tag;
 
-            MessageBoxResult confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цей пункт самовивозу?", "Підтвердження видалення", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (confirmResult != MessageBoxResult.Yes)
+            MessageBoxResult result = MessageBox.Show("Ви впевнені, що хочете видалити цей пункт самовивозу?", "Підтвердження видалення", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result != MessageBoxResult.Yes)
             {
                 return;
             }
@@ -1664,29 +1676,8 @@ namespace ElmirClone
                         long orderCount = (long)checkCommand.ExecuteScalar();
                         if (orderCount > 0)
                         {
-                            int? newPickupPointId = null;
-                            using (var selectCommand = new NpgsqlCommand("SELECT pickup_point_id FROM pickup_points WHERE pickup_point_id != @pickupPointId LIMIT 1", connection))
-                            {
-                                selectCommand.Parameters.AddWithValue("pickupPointId", pickupPointId);
-                                var resultObj = selectCommand.ExecuteScalar();
-                                if (resultObj != null)
-                                {
-                                    newPickupPointId = (int)resultObj;
-                                }
-                            }
-
-                            if (newPickupPointId == null)
-                            {
-                                MessageBox.Show("Немає інших пунктів самовивозу для заміни. Додайте новий пункт самовивозу перед видаленням цього.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
-
-                            using (var updateCommand = new NpgsqlCommand("UPDATE orders SET pickup_point_id = @newPickupPointId WHERE pickup_point_id = @pickupPointId", connection))
-                            {
-                                updateCommand.Parameters.AddWithValue("newPickupPointId", newPickupPointId);
-                                updateCommand.Parameters.AddWithValue("pickupPointId", pickupPointId);
-                                updateCommand.ExecuteNonQuery();
-                            }
+                            MessageBox.Show("Цей пункт самовивозу використовується в активних замовленнях. Видаліть або змініть пов'язані замовлення перед видаленням.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
                         }
                     }
 
@@ -1695,122 +1686,14 @@ namespace ElmirClone
                         command.Parameters.AddWithValue("pickupPointId", pickupPointId);
                         command.ExecuteNonQuery();
                     }
-
-                    LoadPickupPoints();
-                    MessageBox.Show("Пункт самовивозу успішно видалено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
+                LoadPickupPoints();
+                MessageBox.Show("Пункт самовивозу успішно видалено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка під час видалення пункту самовивозу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-    }
-
-    public class User
-    {
-        public int UserId { get; set; }
-        public string Username { get; set; }
-        public string Email { get; set; }
-        public string Role { get; set; }
-        public bool IsBlocked { get; set; }
-    }
-
-    public class Category
-    {
-        public int CategoryId { get; set; }
-        public string Name { get; set; }
-        public string ParentCategoryName { get; set; }
-        public int? ParentCategoryId { get; set; }
-        public string ImageUrl { get; set; }
-        public List<ProductDetails> Products { get; set; }
-        public List<Category> Subcategories { get; set; }
-    }
-
-    public class PaymentMethod
-    {
-        public int MethodId { get; set; }
-        public string Name { get; set; }
-        public bool IsActive { get; set; }
-        public int PaymentMethodId { get; internal set; }
-    }
-
-    public class CourierService
-    {
-        public int ServiceId { get; set; }
-        public string Name { get; set; }
-        public bool IsActive { get; set; }
-    }
-
-    public class PickupPoint
-    {
-        public int PickupPointId { get; set; }
-        public string Address { get; set; }
-        public string Region { get; set; }
-    }
-
-    public class BooleanToBlockedConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return (bool)value ? "Заблоковано" : "Активний";
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class BooleanToBlockButtonConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return (bool)value ? "Розблокувати" : "Заблокувати";
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class BooleanToHiddenConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return (bool)value ? "Приховано" : "Видимий";
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class BooleanToHideButtonConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return (bool)value ? "Показати" : "Приховати";
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class NullToVisibilityConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return value == null ? Visibility.Collapsed : Visibility.Visible;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            throw new NotImplementedException();
         }
     }
 }

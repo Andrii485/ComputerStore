@@ -9,7 +9,6 @@
         <local:BooleanToBlockButtonConverter x:Key="BooleanToBlockButtonConverter"/>
         <local:BooleanToHiddenConverter x:Key="BooleanToHiddenConverter"/>
         <local:BooleanToHideButtonConverter x:Key="BooleanToHideButtonConverter"/>
-        <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
 
         <!-- Modern Button Style -->
         <Style TargetType="Button" x:Key="ModernButtonStyle">
@@ -158,10 +157,50 @@
             </Setter>
         </Style>
 
-        <!-- TreeView Item Style -->
+        <!-- TreeView Style for Categories -->
+        <Style TargetType="TreeView" x:Key="ModernTreeViewStyle">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CED4DA"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+
+        <!-- TreeViewItem Style -->
         <Style TargetType="TreeViewItem">
             <Setter Property="Margin" Value="2"/>
-            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Padding" Value="3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TreeViewItem">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <Border Name="Bd" Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                <DockPanel>
+                                    <ContentPresenter x:Name="PART_Header" ContentSource="Header" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                </DockPanel>
+                            </Border>
+                            <ItemsPresenter Grid.Row="1"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="Transparent"/>
+                            </Trigger>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F8F9FA"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#E9ECEF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#DDE2E5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     <Grid>
@@ -265,35 +304,20 @@
                     <TextBlock Text="Категорії" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
                     <DockPanel Margin="10,0,10,10">
                         <TextBox x:Name="SearchCategoryName" Style="{StaticResource ModernInputStyle}" Text="Пошук за назвою категорії" DockPanel.Dock="Left" TextChanged="SearchCategoryName_TextChanged"/>
-                        <Button Content="Очистити" Click="ClearCategorySearch_Click" Style="{StaticResource ModernButtonStyle}" DockPanel.Dock="Right" Width="80"/>
+                        <Button x:Name="ClearCategorySearch" Content="Очистити" Click="ClearCategorySearch_Click" Style="{StaticResource ModernButtonStyle}" DockPanel.Dock="Right" Width="80"/>
                     </DockPanel>
-                    <TreeView x:Name="CategoriesTree" Margin="10,0,10,10" MaxHeight="300" BorderThickness="1" BorderBrush="#CED4DA">
+                    <TreeView x:Name="CategoriesTree" Margin="10,0,10,10" MaxHeight="200" Style="{StaticResource ModernTreeViewStyle}">
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Subcategories}">
-                                <StackPanel Margin="5">
-                                    <DockPanel>
-                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Margin="0,0,10,0"/>
-                                            <TextBlock Text="{Binding ParentCategoryName, StringFormat='Батьківська: {0}'}" FontStyle="Italic" Foreground="#666"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                            <Button Content="Редагувати" Tag="{Binding CategoryId}" Click="EditCategory_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
-                                            <Button Content="Видалити" Tag="{Binding CategoryId}" Click="DeleteCategory_Click" Style="{StaticResource DangerButtonStyle}" Width="80"/>
-                                        </StackPanel>
-                                    </DockPanel>
-                                    <Image Source="{Binding ImageUrl}" Width="100" Height="100" Visibility="{Binding ImageUrl, Converter={StaticResource NullToVisibilityConverter}}" Margin="0,5"/>
-                                    <Expander Header="Товари в категорії" IsExpanded="False" Margin="0,5">
-                                        <ListView ItemsSource="{Binding Products}" BorderThickness="0" MaxHeight="150">
-                                            <ListView.View>
-                                                <GridView>
-                                                    <GridViewColumn Header="ID" DisplayMemberBinding="{Binding ProductId}" Width="50"/>
-                                                    <GridViewColumn Header="Назва" DisplayMemberBinding="{Binding Name}" Width="200"/>
-                                                    <GridViewColumn Header="Ціна" DisplayMemberBinding="{Binding Price}" Width="80"/>
-                                                    <GridViewColumn Header="Бренд" DisplayMemberBinding="{Binding Brand}" Width="100"/>
-                                                </GridView>
-                                            </ListView.View>
-                                        </ListView>
-                                    </Expander>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" Margin="5,0"/>
+                                    <TextBlock Text=" (" FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ParentCategoryName}" FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text=")" FontSize="12" VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
+                                        <Button Content="Edit" Tag="{Binding CategoryId}" Click="EditCategory_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                                        <Button Content="Delete" Tag="{Binding CategoryId}" Click="DeleteCategory_Click" Style="{StaticResource DangerButtonStyle}" Width="80"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
