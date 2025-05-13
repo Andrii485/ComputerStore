@@ -19,7 +19,7 @@ namespace ElmirClone
         private int? selectedOrderId;
         private string connectionString;
         private UserProfile userProfile;
-        private int buyerId; // Добавляем поле для хранения buyerId
+        private int buyerId;
 
         public OrdersWindow(UserProfile userProfile)
         {
@@ -46,13 +46,34 @@ namespace ElmirClone
 
             if (userProfile?.UserId is int id && id > 0)
             {
-                buyerId = id; // Сохраняем buyerId
+                buyerId = id;
                 LoadOrders(buyerId);
+                InitializeFilters(); // Инициализация фильтров
             }
             else
             {
                 MessageBox.Show("Необхідно авторизуватися.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                Close();
             }
+        }
+
+        private void InitializeFilters()
+        {
+            // Инициализация фильтра по статусу
+            StatusFilterComboBox.Items.Add("Всі");
+            StatusFilterComboBox.Items.Add("Новий");
+            StatusFilterComboBox.Items.Add("Обробляється");
+            StatusFilterComboBox.Items.Add("Відправлено");
+            StatusFilterComboBox.Items.Add("Доставлено");
+            StatusFilterComboBox.SelectedIndex = 0; // По умолчанию "Все"
+
+            // Инициализация сортировки
+            SortOrderComboBox.Items.Add("Дата: новіші зверху");
+            SortOrderComboBox.Items.Add("Дата: старіші зверху");
+            SortOrderComboBox.SelectedIndex = 0; // По умолчанию "новые сверху"
+
+            StatusFilterComboBox.SelectionChanged += FilterOrders;
+            SortOrderComboBox.SelectionChanged += FilterOrders;
         }
 
         private void LoadOrders(int buyerId)
@@ -70,13 +91,12 @@ namespace ElmirClone
                 {
                     connection.Open();
                     using (var command = new NpgsqlCommand(
-                        "SELECT o.orderid, o.orderdate, o.totalprice, o.status, pp.address, pm.name, p.name, oi.quantity, oi.price " +
+                        "SELECT o.orderid, o.orderdate, o.totalprice, o.status, pp.address, pm.name, p.name, o.quantity " +
                         "FROM orders o " +
-                        "JOIN orderitems oi ON o.orderid = oi.orderid " +
-                        "JOIN products p ON oi.productid = p.productid " +
+                        "JOIN products p ON o.productid = p.productid " +
                         "LEFT JOIN pickup_points pp ON o.pickup_point_id = pp.pickup_point_id " +
                         "LEFT JOIN payment_methods pm ON o.payment_method_id = pm.methodid " +
-                        "WHERE o.buyerid = @buyerId AND o.status != 'Скасовано'", connection)) // Фильтр по статусу вместо ishidden
+                        "WHERE o.buyerid = @buyerId", connection))
                     {
                         command.Parameters.AddWithValue("buyerId", buyerId);
                         using (var reader = command.ExecuteReader())
@@ -85,42 +105,61 @@ namespace ElmirClone
                             {
                                 int orderId = reader.GetInt32(0);
                                 DateTime orderDate = reader.GetDateTime(1);
-                                decimal totalAmount = reader.GetDecimal(2);
+                                decimal totalPrice = reader.GetDecimal(2);
                                 string status = reader.GetString(3);
                                 string deliveryAddress = reader.IsDBNull(4) ? "Немає адреси" : reader.GetString(4);
                                 string paymentStatus = reader.IsDBNull(5) ? "Невідомо" : reader.GetString(5);
                                 string productName = reader.GetString(6);
                                 int quantity = reader.GetInt32(7);
-                                decimal itemPrice = reader.GetDecimal(8);
 
-                                var order = orders.FirstOrDefault(o => o.OrderId == orderId);
-                                if (order == null)
+                                orders.Add(new OrderDisplay
                                 {
-                                    order = new OrderDisplay
-                                    {
-                                        OrderId = orderId,
-                                        OrderDate = orderDate,
-                                        TotalAmount = totalAmount,
-                                        Status = status,
-                                        DeliveryAddress = deliveryAddress,
-                                        PaymentStatus = paymentStatus,
-                                        Items = new List<(string ProductName, int Quantity, decimal Price)>()
-                                    };
-                                    orders.Add(order);
-                                }
-                                order.Items.Add((productName, quantity, itemPrice));
+                                    OrderId = orderId,
+                                    OrderDate = orderDate,
+                                    TotalPrice = totalPrice,
+                                    Status = status,
+                                    DeliveryAddress = deliveryAddress,
+                                    PaymentStatus = paymentStatus,
+                                    ProductName = productName,
+                                    Quantity = quantity
+                                });
                             }
                         }
                     }
                 }
-                OrdersList.ItemsSource = null;
-                OrdersList.ItemsSource = orders;
+                FilterOrders(null, null); // Применяем фильтры после загрузки
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка при завантаженні замовлень: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 OrdersList.ItemsSource = new List<OrderDisplay> { new OrderDisplay { Status = "Помилка завантаження" } };
             }
+        }
+
+        private void FilterOrders(object sender, SelectionChangedEventArgs e)
+        {
+            string selectedStatus = StatusFilterComboBox.SelectedItem?.ToString();
+            string selectedSort = SortOrderComboBox.SelectedItem?.ToString();
+
+            // Фильтрация по статусу
+            var filteredOrders = orders.AsEnumerable();
+            if (selectedStatus != "Всі")
+            {
+                filteredOrders = filteredOrders.Where(o => o.Status == selectedStatus);
+            }
+
+            // Сортировка по дате
+            if (selectedSort == "Дата: новіші зверху")
+            {
+                filteredOrders = filteredOrders.OrderByDescending(o => o.OrderDate);
+            }
+            else
+            {
+                filteredOrders = filteredOrders.OrderBy(o => o.OrderDate);
+            }
+
+            OrdersList.ItemsSource = null;
+            OrdersList.ItemsSource = filteredOrders.ToList();
         }
 
         private void OrdersList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -328,13 +367,13 @@ namespace ElmirClone
                                             MessageBox.Show($"Ваше замовлення #{orderId} доставлено!", "Оновлення статусу", MessageBoxButton.OK, MessageBoxImage.Information);
                                             break;
                                     }
-                                    order.Status = status; // Обновляем статус в локальном списке
+                                    order.Status = status;
                                 }
                             }
                         }
                     }
                 }
-                LoadOrders(buyerId); // Перезагружаем список для отображения актуальных данных
+                LoadOrders(buyerId);
             }
             catch (Exception ex)
             {
@@ -347,10 +386,11 @@ namespace ElmirClone
     {
         public int OrderId { get; set; }
         public DateTime OrderDate { get; set; }
-        public decimal TotalAmount { get; set; }
+        public decimal TotalPrice { get; set; }
         public string Status { get; set; }
         public string DeliveryAddress { get; set; }
         public string PaymentStatus { get; set; }
-        public List<(string ProductName, int Quantity, decimal Price)> Items { get; set; }
+        public string ProductName { get; set; }
+        public int Quantity { get; set; }
     }
 }

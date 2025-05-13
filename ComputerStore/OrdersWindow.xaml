@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Мої замовлення" Height="600" Width="800" WindowStartupLocation="CenterScreen">
     <Window.Resources>
-        <!-- Добавление стиля ActionButtonStyle -->
         <Style TargetType="Button" x:Key="ActionButtonStyle">
             <Setter Property="Background" Value="#2C3E50"/>
             <Setter Property="Foreground" Value="White"/>
@@ -43,9 +42,18 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style TargetType="ComboBox" x:Key="FilterComboBoxStyle">
+            <Setter Property="Width" Value="150"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -54,8 +62,16 @@
         <!-- Заголовок -->
         <TextBlock Grid.Row="0" Text="Мої замовлення" FontSize="24" FontWeight="Bold" Margin="0,0,0,10"/>
 
+        <!-- Фильтры и сортировка -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Фільтр за статусом:" VerticalAlignment="Center" Margin="0,0,5,0" FontSize="14"/>
+            <ComboBox x:Name="StatusFilterComboBox" Style="{StaticResource FilterComboBoxStyle}"/>
+            <TextBlock Text="Сортування:" VerticalAlignment="Center" Margin="10,0,5,0" FontSize="14"/>
+            <ComboBox x:Name="SortOrderComboBox" Style="{StaticResource FilterComboBoxStyle}"/>
+        </StackPanel>
+
         <!-- Список заказов -->
-        <Border Grid.Row="1" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Background="White">
+        <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Background="White">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ListBox x:Name="OrdersList" SelectionChanged="OrdersList_SelectionChanged" Margin="0,0,0,10">
                     <ListBox.ItemTemplate>
@@ -66,22 +82,17 @@
                                 <TextBlock Text="{Binding Status}"/>
                                 <TextBlock Text="{Binding DeliveryAddress}"/>
                                 <TextBlock Text="{Binding PaymentStatus}"/>
-                                <ItemsControl ItemsSource="{Binding Items}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding ProductName}" Margin="0,0,5,0"/>
-                                                <TextBlock Text="{Binding Quantity}" Margin="0,0,5,0"/>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Price, StringFormat=F2}"/>
-                                                    <TextBlock Text=" грн" Margin="2,0,0,0"/>
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding TotalAmount, StringFormat=F2}"/>
+                                    <TextBlock Text="Товар: "/>
+                                    <TextBlock Text="{Binding ProductName}" Margin="5,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Кількість: "/>
+                                    <TextBlock Text="{Binding Quantity}" Margin="5,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Сума: "/>
+                                    <TextBlock Text="{Binding TotalPrice, StringFormat=F2}"/>
                                     <TextBlock Text=" грн" Margin="2,0,0,0" FontWeight="Bold"/>
                                 </StackPanel>
                             </StackPanel>
@@ -92,13 +103,13 @@
         </Border>
 
         <!-- Кнопки управления -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="CloseOrderButton" Content="Скасувати замовлення" Click="CloseOrderButton_Click" Margin="5" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
-            <Button x:Name="ConfirmReceiptButton" Content="Підтвердити отримання" Click="ConfirmReceiptButton_Click" Margin="5" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
-            <Button x:Name="ProcessPaymentButton" Content="Обробити оплату" Click="ProcessPayment" Margin="5" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
-            <Button x:Name="ReturnButton" Content="Повернути" Click="ReturnButton_Click" Margin="5" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
-            <Button x:Name="BackToShoppingButton" Content="Повернутися до покупок" Click="BackToShoppingButton_Click" Margin="5" Style="{StaticResource ActionButtonStyle}"/>
-            <Button x:Name="RetryOrderLoad" Content="Перезавантажити" Click="RetryOrderLoad_Click" Margin="5" Style="{StaticResource ActionButtonStyle}" Width="130"/>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="CloseOrderButton" Content="Скасувати замовлення" Click="CloseOrderButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="ConfirmReceiptButton" Content="Підтвердити отримання" Click="ConfirmReceiptButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="ProcessPaymentButton" Content="Обробити оплату" Click="ProcessPayment" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="ReturnButton" Content="Повернути" Click="ReturnButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="BackToShoppingButton" Content="Повернутися до покупок" Click="BackToShoppingButton_Click" Style="{StaticResource ActionButtonStyle}"/>
+            <Button x:Name="RetryOrderLoad" Content="Перезавантажити" Click="RetryOrderLoad_Click" Style="{StaticResource ActionButtonStyle}" Width="130"/>
         </StackPanel>
     </Grid>
 </Window>
