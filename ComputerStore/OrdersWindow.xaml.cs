@@ -157,7 +157,7 @@ namespace ElmirClone
                 selectedOrderId = selectedOrder.OrderId;
                 CloseOrderButton.IsEnabled = selectedOrder.Status == "Обробляється";
                 ConfirmReceiptButton.IsEnabled = selectedOrder.Status == "Доставлено";
-                ReturnButton.IsEnabled = selectedOrder.Status == "Доставлено";
+                ReturnButton.IsEnabled = selectedOrder.Status == "Доставлено" || selectedOrder.Status == "Завершено";
             }
             else
             {
@@ -357,20 +357,102 @@ namespace ElmirClone
                         using (var connection = new NpgsqlConnection(connectionString))
                         {
                             connection.Open();
-                            using (var command = new NpgsqlCommand(
-                                "UPDATE orders SET status = 'Повернення' WHERE orderid = @orderId AND buyerid = @buyerId", connection))
+                            using (var transaction = connection.BeginTransaction())
                             {
-                                command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
-                                command.Parameters.AddWithValue("buyerId", buyerId);
-                                int rowsAffected = command.ExecuteNonQuery();
-                                if (rowsAffected > 0)
+                                // Получаем информацию о заказе
+                                string currentStatus = "";
+                                int sellerId = 0;
+                                decimal totalPrice = 0;
+                                int productId = 0;
+                                int quantity = 0;
+                                using (var command = new NpgsqlCommand(
+                                    "SELECT status, sellerid, totalprice, productid, quantity " +
+                                    "FROM orders WHERE orderid = @orderId AND buyerid = @buyerId", connection))
                                 {
-                                    LoadOrders(buyerId);
-                                    MessageBox.Show("Замовлення відправлено на повернення.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                    command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
+                                    command.Parameters.AddWithValue("buyerId", buyerId);
+                                    using (var reader = command.ExecuteReader())
+                                    {
+                                        if (reader.Read())
+                                        {
+                                            currentStatus = reader.GetString(0);
+                                            sellerId = reader.GetInt32(1);
+                                            totalPrice = reader.GetDecimal(2);
+                                            productId = reader.GetInt32(3);
+                                            quantity = reader.GetInt32(4);
+                                        }
+                                        else
+                                        {
+                                            transaction.Rollback();
+                                            MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                            return;
+                                        }
+                                    }
                                 }
-                                else
+
+                                // Проверяем, что статус позволяет возврат
+                                if (currentStatus != "Доставлено" && currentStatus != "Завершено")
                                 {
-                                    MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    transaction.Rollback();
+                                    MessageBox.Show("Повернення можливе лише для замовлень зі статусом 'Доставлено' або 'Завершено'.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+
+                                // Если заказ "Завершено", вычитаем сумму из баланса продавца
+                                if (currentStatus == "Завершено")
+                                {
+                                    using (var command = new NpgsqlCommand(
+                                        "UPDATE usercredentials SET balance = balance - @totalPrice WHERE userid = @sellerId", connection))
+                                    {
+                                        command.Parameters.AddWithValue("totalPrice", totalPrice);
+                                        command.Parameters.AddWithValue("sellerId", sellerId);
+                                        int rowsAffected = command.ExecuteNonQuery();
+                                        if (rowsAffected == 0)
+                                        {
+                                            transaction.Rollback();
+                                            MessageBox.Show("Продавця не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                            return;
+                                        }
+                                    }
+                                }
+
+                                // Возвращаем товар на склад
+                                using (var command = new NpgsqlCommand(
+                                    "UPDATE products SET stock_quantity = stock_quantity + @quantity, available = true " +
+                                    "WHERE productid = @productId", connection))
+                                {
+                                    command.Parameters.AddWithValue("quantity", quantity);
+                                    command.Parameters.AddWithValue("productId", productId);
+                                    int rowsAffected = command.ExecuteNonQuery();
+                                    if (rowsAffected == 0)
+                                    {
+                                        transaction.Rollback();
+                                        MessageBox.Show("Товар не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                        return;
+                                    }
+                                }
+
+                                // Обновляем статус заказа на "Повернення"
+                                using (var command = new NpgsqlCommand(
+                                    "UPDATE orders SET status = 'Повернення' WHERE orderid = @orderId AND buyerid = @buyerId", connection))
+                                {
+                                    command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
+                                    command.Parameters.AddWithValue("buyerId", buyerId);
+                                    int rowsAffected = command.ExecuteNonQuery();
+                                    if (rowsAffected > 0)
+                                    {
+                                        transaction.Commit();
+                                        LoadOrders(buyerId);
+                                        string message = currentStatus == "Завершено"
+                                            ? "Замовлення відправлено на повернення, кошти списано з продавця, товар повернено на склад."
+                                            : "Замовлення відправлено на повернення, товар повернено на склад.";
+                                        MessageBox.Show(message, "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                    }
+                                    else
+                                    {
+                                        transaction.Rollback();
+                                        MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    }
                                 }
                             }
                         }
