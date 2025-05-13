@@ -48,7 +48,7 @@ namespace ElmirClone
             {
                 buyerId = id;
                 LoadOrders(buyerId);
-                InitializeFilters(); // Инициализация фильтров
+                InitializeFilters();
             }
             else
             {
@@ -59,18 +59,16 @@ namespace ElmirClone
 
         private void InitializeFilters()
         {
-            // Инициализация фильтра по статусу
             StatusFilterComboBox.Items.Add("Всі");
             StatusFilterComboBox.Items.Add("Новий");
             StatusFilterComboBox.Items.Add("Обробляється");
             StatusFilterComboBox.Items.Add("Відправлено");
             StatusFilterComboBox.Items.Add("Доставлено");
-            StatusFilterComboBox.SelectedIndex = 0; // По умолчанию "Все"
+            StatusFilterComboBox.SelectedIndex = 0;
 
-            // Инициализация сортировки
             SortOrderComboBox.Items.Add("Дата: новіші зверху");
             SortOrderComboBox.Items.Add("Дата: старіші зверху");
-            SortOrderComboBox.SelectedIndex = 0; // По умолчанию "новые сверху"
+            SortOrderComboBox.SelectedIndex = 0;
 
             StatusFilterComboBox.SelectionChanged += FilterOrders;
             SortOrderComboBox.SelectionChanged += FilterOrders;
@@ -91,11 +89,10 @@ namespace ElmirClone
                 {
                     connection.Open();
                     using (var command = new NpgsqlCommand(
-                        "SELECT o.orderid, o.orderdate, o.totalprice, o.status, pp.address, pm.name, p.name, o.quantity " +
+                        "SELECT o.orderid, o.orderdate, o.totalprice, o.status, pp.address, p.name, o.quantity, o.sellerid " +
                         "FROM orders o " +
                         "JOIN products p ON o.productid = p.productid " +
                         "LEFT JOIN pickup_points pp ON o.pickup_point_id = pp.pickup_point_id " +
-                        "LEFT JOIN payment_methods pm ON o.payment_method_id = pm.methodid " +
                         "WHERE o.buyerid = @buyerId", connection))
                     {
                         command.Parameters.AddWithValue("buyerId", buyerId);
@@ -103,31 +100,22 @@ namespace ElmirClone
                         {
                             while (reader.Read())
                             {
-                                int orderId = reader.GetInt32(0);
-                                DateTime orderDate = reader.GetDateTime(1);
-                                decimal totalPrice = reader.GetDecimal(2);
-                                string status = reader.GetString(3);
-                                string deliveryAddress = reader.IsDBNull(4) ? "Немає адреси" : reader.GetString(4);
-                                string paymentStatus = reader.IsDBNull(5) ? "Невідомо" : reader.GetString(5);
-                                string productName = reader.GetString(6);
-                                int quantity = reader.GetInt32(7);
-
                                 orders.Add(new OrderDisplay
                                 {
-                                    OrderId = orderId,
-                                    OrderDate = orderDate,
-                                    TotalPrice = totalPrice,
-                                    Status = status,
-                                    DeliveryAddress = deliveryAddress,
-                                    PaymentStatus = paymentStatus,
-                                    ProductName = productName,
-                                    Quantity = quantity
+                                    OrderId = reader.GetInt32(0),
+                                    OrderDate = reader.GetDateTime(1),
+                                    TotalPrice = reader.GetDecimal(2),
+                                    Status = reader.GetString(3),
+                                    DeliveryAddress = reader.IsDBNull(4) ? "Немає адреси" : reader.GetString(4),
+                                    ProductName = reader.GetString(5),
+                                    Quantity = reader.GetInt32(6),
+                                    SellerId = reader.GetInt32(7)
                                 });
                             }
                         }
                     }
                 }
-                FilterOrders(null, null); // Применяем фильтры после загрузки
+                FilterOrders(null, null);
             }
             catch (Exception ex)
             {
@@ -141,14 +129,12 @@ namespace ElmirClone
             string selectedStatus = StatusFilterComboBox.SelectedItem?.ToString();
             string selectedSort = SortOrderComboBox.SelectedItem?.ToString();
 
-            // Фильтрация по статусу
             var filteredOrders = orders.AsEnumerable();
             if (selectedStatus != "Всі")
             {
                 filteredOrders = filteredOrders.Where(o => o.Status == selectedStatus);
             }
 
-            // Сортировка по дате
             if (selectedSort == "Дата: новіші зверху")
             {
                 filteredOrders = filteredOrders.OrderByDescending(o => o.OrderDate);
@@ -167,10 +153,9 @@ namespace ElmirClone
             if (OrdersList.SelectedItem is OrderDisplay selectedOrder)
             {
                 selectedOrderId = selectedOrder.OrderId;
-                CloseOrderButton.IsEnabled = selectedOrder.Status == "Новий" || selectedOrder.Status == "Обробляється";
-                ConfirmReceiptButton.IsEnabled = selectedOrder.Status == "Відправлено";
+                CloseOrderButton.IsEnabled = selectedOrder.Status == "Обробляється";
+                ConfirmReceiptButton.IsEnabled = selectedOrder.Status == "Доставлено";
                 ReturnButton.IsEnabled = selectedOrder.Status == "Доставлено";
-                ProcessPaymentButton.IsEnabled = selectedOrder.PaymentStatus == "Очікує оплати";
             }
             else
             {
@@ -178,7 +163,6 @@ namespace ElmirClone
                 CloseOrderButton.IsEnabled = false;
                 ConfirmReceiptButton.IsEnabled = false;
                 ReturnButton.IsEnabled = false;
-                ProcessPaymentButton.IsEnabled = false;
             }
         }
 
@@ -194,14 +178,22 @@ namespace ElmirClone
                         {
                             connection.Open();
                             using (var command = new NpgsqlCommand(
-                                "UPDATE orders SET status = 'Скасовано' WHERE orderid = @orderId", connection))
+                                "UPDATE orders SET status = 'Скасовано' WHERE orderid = @orderId AND buyerid = @buyerId", connection))
                             {
                                 command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
-                                command.ExecuteNonQuery();
+                                command.Parameters.AddWithValue("buyerId", buyerId);
+                                int rowsAffected = command.ExecuteNonQuery();
+                                if (rowsAffected > 0)
+                                {
+                                    LoadOrders(buyerId);
+                                    MessageBox.Show("Замовлення скасовано.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                }
                             }
                         }
-                        LoadOrders(buyerId);
-                        MessageBox.Show("Замовлення скасовано.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     catch (Exception ex)
                     {
@@ -220,45 +212,66 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand(
-                            "UPDATE orders SET status = 'Доставлено' WHERE orderid = @orderId", connection))
+                        using (var transaction = connection.BeginTransaction())
                         {
-                            command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
-                            command.ExecuteNonQuery();
-                        }
-                    }
-                    LoadOrders(buyerId);
-                    MessageBox.Show("Отримання товару підтверджено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Помилка при підтверженні отримання: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
+                            // Получаем информацию о заказе
+                            int sellerId = 0;
+                            decimal totalPrice = 0;
+                            using (var command = new NpgsqlCommand(
+                                "SELECT sellerid, totalprice FROM orders WHERE orderid = @orderId AND buyerid = @buyerId", connection))
+                            {
+                                command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
+                                command.Parameters.AddWithValue("buyerId", buyerId);
+                                using (var reader = command.ExecuteReader())
+                                {
+                                    if (reader.Read())
+                                    {
+                                        sellerId = reader.GetInt32(0);
+                                        totalPrice = reader.GetDecimal(1);
+                                    }
+                                    else
+                                    {
+                                        transaction.Rollback();
+                                        MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                        return;
+                                    }
+                                }
+                            }
 
-        private void ProcessPayment(object sender, RoutedEventArgs e)
-        {
-            if (selectedOrderId.HasValue)
-            {
-                try
-                {
-                    using (var connection = new NpgsqlConnection(connectionString))
-                    {
-                        connection.Open();
-                        using (var command = new NpgsqlCommand(
-                            "UPDATE orders SET payment_method_id = (SELECT methodid FROM payment_methods WHERE name = 'Оплачено' LIMIT 1) WHERE orderid = @orderId", connection))
-                        {
-                            command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
-                            command.ExecuteNonQuery();
+                            // Обновляем баланс продавца
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE usercredentials SET balance = balance + @totalPrice WHERE userid = @sellerId", connection))
+                            {
+                                command.Parameters.AddWithValue("totalPrice", totalPrice);
+                                command.Parameters.AddWithValue("sellerId", sellerId);
+                                command.ExecuteNonQuery();
+                            }
+
+                            // Подтверждаем заказ
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE orders SET status = 'Завершено' WHERE orderid = @orderId AND buyerid = @buyerId", connection))
+                            {
+                                command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
+                                command.Parameters.AddWithValue("buyerId", buyerId);
+                                int rowsAffected = command.ExecuteNonQuery();
+                                if (rowsAffected > 0)
+                                {
+                                    transaction.Commit();
+                                    LoadOrders(buyerId);
+                                    MessageBox.Show("Замовлення підтверджено, кошти переведено продавцю.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                else
+                                {
+                                    transaction.Rollback();
+                                    MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                }
+                            }
                         }
                     }
-                    LoadOrders(buyerId);
-                    MessageBox.Show("Оплата успішно оброблена.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Помилка при обробці оплати: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Помилка при підтвердженні замовлення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -275,45 +288,27 @@ namespace ElmirClone
                         {
                             connection.Open();
                             using (var command = new NpgsqlCommand(
-                                "UPDATE orders SET status = 'Повернення' WHERE orderid = @orderId", connection))
+                                "UPDATE orders SET status = 'Повернення' WHERE orderid = @orderId AND buyerid = @buyerId", connection))
                             {
                                 command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
-                                command.ExecuteNonQuery();
+                                command.Parameters.AddWithValue("buyerId", buyerId);
+                                int rowsAffected = command.ExecuteNonQuery();
+                                if (rowsAffected > 0)
+                                {
+                                    LoadOrders(buyerId);
+                                    MessageBox.Show("Замовлення відправлено на повернення.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Замовлення не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                }
                             }
                         }
-                        LoadOrders(buyerId);
-                        MessageBox.Show("Замовлення відправлено на повернення.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     catch (Exception ex)
                     {
                         MessageBox.Show($"Помилка при запиті на повернення: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-                }
-            }
-        }
-
-        private void RefundPayment(object sender, RoutedEventArgs e)
-        {
-            if (selectedOrderId.HasValue)
-            {
-                try
-                {
-                    using (var connection = new NpgsqlConnection(connectionString))
-                    {
-                        connection.Open();
-                        using (var command = new NpgsqlCommand(
-                            "UPDATE orders SET payment_method_id = (SELECT methodid FROM payment_methods WHERE name = 'Повернуто' LIMIT 1) WHERE orderid = @orderId", connection))
-                        {
-                            command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
-                            command.ExecuteNonQuery();
-                        }
-                    }
-                    LoadOrders(buyerId);
-                    MessageBox.Show("Платіж повернуто.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Помилка при поверненні платежу: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -325,7 +320,8 @@ namespace ElmirClone
 
         private void RetryOrderLoad_Click(object sender, RoutedEventArgs e)
         {
-            LoadOrders(buyerId);
+            OrdersList.ItemsSource = null; // Очищаем текущий список
+            LoadOrders(buyerId); // Загружаем заказы заново
         }
 
         private async void CheckOrderStatus()
@@ -342,7 +338,7 @@ namespace ElmirClone
                 {
                     await connection.OpenAsync();
                     using (var command = new NpgsqlCommand(
-                        "SELECT orderid, status FROM orders WHERE buyerid = @buyerId AND status IN ('Обробляється', 'Відправлено', 'Доставлено', 'Shipped', 'Delivered')", connection))
+                        "SELECT orderid, status FROM orders WHERE buyerid = @buyerId AND status IN ('Обробляється', 'Відправлено', 'Доставлено')", connection))
                     {
                         command.Parameters.AddWithValue("buyerId", buyerId);
                         using (var reader = await command.ExecuteReaderAsync())
@@ -357,12 +353,10 @@ namespace ElmirClone
                                     switch (status)
                                     {
                                         case "Відправлено":
-                                        case "Shipped":
                                             notifiedOrders.Add(orderId);
                                             MessageBox.Show($"Ваше замовлення #{orderId} відправлено!", "Оновлення статусу", MessageBoxButton.OK, MessageBoxImage.Information);
                                             break;
                                         case "Доставлено":
-                                        case "Delivered":
                                             notifiedOrders.Add(orderId);
                                             MessageBox.Show($"Ваше замовлення #{orderId} доставлено!", "Оновлення статусу", MessageBoxButton.OK, MessageBoxImage.Information);
                                             break;
@@ -389,8 +383,8 @@ namespace ElmirClone
         public decimal TotalPrice { get; set; }
         public string Status { get; set; }
         public string DeliveryAddress { get; set; }
-        public string PaymentStatus { get; set; }
         public string ProductName { get; set; }
         public int Quantity { get; set; }
+        public int SellerId { get; set; }
     }
 }

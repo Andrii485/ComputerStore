@@ -81,7 +81,6 @@
                                 <TextBlock Text="{Binding OrderDate, StringFormat=dd.MM.yyyy HH:mm}"/>
                                 <TextBlock Text="{Binding Status}"/>
                                 <TextBlock Text="{Binding DeliveryAddress}"/>
-                                <TextBlock Text="{Binding PaymentStatus}"/>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="Товар: "/>
                                     <TextBlock Text="{Binding ProductName}" Margin="5,0,0,0"/>
@@ -105,11 +104,10 @@
         <!-- Кнопки управления -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button x:Name="CloseOrderButton" Content="Скасувати замовлення" Click="CloseOrderButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
-            <Button x:Name="ConfirmReceiptButton" Content="Підтвердити отримання" Click="ConfirmReceiptButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
-            <Button x:Name="ProcessPaymentButton" Content="Обробити оплату" Click="ProcessPayment" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
+            <Button x:Name="ConfirmReceiptButton" Content="Підтвердити замовлення" Click="ConfirmReceiptButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
             <Button x:Name="ReturnButton" Content="Повернути" Click="ReturnButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
             <Button x:Name="BackToShoppingButton" Content="Повернутися до покупок" Click="BackToShoppingButton_Click" Style="{StaticResource ActionButtonStyle}"/>
-            <Button x:Name="RetryOrderLoad" Content="Перезавантажити" Click="RetryOrderLoad_Click" Style="{StaticResource ActionButtonStyle}" Width="130"/>
+            <Button x:Name="RetryOrderLoad" Content="Перезавантажити" Click="RetryOrderLoad_Click" Style="{StaticResource ActionButtonStyle}" Width="140"/>
         </StackPanel>
     </Grid>
 </Window>
