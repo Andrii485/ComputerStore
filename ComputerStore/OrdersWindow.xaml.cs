@@ -255,6 +255,53 @@ namespace ElmirClone
                                 return;
                             }
 
+                            // Проверяем текущий запас товара (для диагностики)
+                            int currentStock = 0;
+                            using (var command = new NpgsqlCommand(
+                                "SELECT stock_quantity FROM products WHERE productid = @productId", connection))
+                            {
+                                command.Parameters.AddWithValue("productId", productId);
+                                var result = command.ExecuteScalar();
+                                if (result == null)
+                                {
+                                    transaction.Rollback();
+                                    MessageBox.Show("Товар не знайдено в базі даних.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                                currentStock = (int)result;
+                            }
+
+                            if (currentStock < quantity)
+                            {
+                                transaction.Rollback();
+                                MessageBox.Show($"Недостатньо товару на складі. Поточний запас: {currentStock}, потрібно: {quantity}.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+
+                            // Уменьшаем запас товара
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE products SET stock_quantity = stock_quantity - @quantity " +
+                                "WHERE productid = @productId AND stock_quantity >= @quantity", connection))
+                            {
+                                command.Parameters.AddWithValue("quantity", quantity);
+                                command.Parameters.AddWithValue("productId", productId);
+                                int rowsAffected = command.ExecuteNonQuery();
+                                if (rowsAffected == 0)
+                                {
+                                    transaction.Rollback();
+                                    MessageBox.Show($"Недостатньо товару на складі або товар не знайдено. Поточний запас: {currentStock}, потрібно: {quantity}.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                            }
+
+                            // Если товара больше нет, помечаем его как недоступный
+                            using (var command = new NpgsqlCommand(
+                                "UPDATE products SET available = false WHERE productid = @productId AND stock_quantity = 0", connection))
+                            {
+                                command.Parameters.AddWithValue("productId", productId);
+                                command.ExecuteNonQuery();
+                            }
+
                             // Обновляем баланс продавца
                             using (var command = new NpgsqlCommand(
                                 "UPDATE usercredentials SET balance = balance + @totalPrice WHERE userid = @sellerId", connection))
@@ -268,29 +315,6 @@ namespace ElmirClone
                                     MessageBox.Show("Продавця не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                                     return;
                                 }
-                            }
-
-                            // Уменьшаем запас товара
-                            using (var command = new NpgsqlCommand(
-                                "UPDATE products SET stock = stock - @quantity WHERE productid = @productId AND stock >= @quantity", connection))
-                            {
-                                command.Parameters.AddWithValue("quantity", quantity);
-                                command.Parameters.AddWithValue("productId", productId);
-                                int rowsAffected = command.ExecuteNonQuery();
-                                if (rowsAffected == 0)
-                                {
-                                    transaction.Rollback();
-                                    MessageBox.Show("Недостатньо товару на складі або товар не знайдено.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return;
-                                }
-                            }
-
-                            // Если товара больше нет, помечаем его как недоступный
-                            using (var command = new NpgsqlCommand(
-                                "UPDATE products SET available = false WHERE productid = @productId AND stock = 0", connection))
-                            {
-                                command.Parameters.AddWithValue("productId", productId);
-                                command.ExecuteNonQuery();
                             }
 
                             // Обновляем статус заказа на "Завершено"
