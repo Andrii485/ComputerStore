@@ -9,7 +9,7 @@ using BCrypt.Net;
 using Microsoft.Win32;
 using ElmirClone.Models;
 
-namespace ElmirClone 
+namespace ElmirClone
 {
     public partial class AdminWindow : Window
     {
@@ -40,6 +40,12 @@ namespace ElmirClone
 
             allCategories = new List<Category>();
             this.Loaded += AdminWindow_Loaded;
+
+            // Привязываем обработчики событий для SearchCategoryName
+            if (SearchCategoryName != null)
+            {
+                SearchCategoryName.TextChanged += SearchCategoryName_TextChanged;
+            }
         }
 
         private void AdminWindow_Loaded(object sender, RoutedEventArgs e)
@@ -521,7 +527,7 @@ namespace ElmirClone
                 }
                 else
                 {
-                    MessageBox.Show("CategoriesTree не ініціалізований. Перевірте XAML-розмітку.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Елемент CategoriesTree не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
                 if (ParentCategory != null)
@@ -539,7 +545,7 @@ namespace ElmirClone
                 }
                 else
                 {
-                    MessageBox.Show("ParentCategory не ініціалізований. Перевірте XAML-розмітку.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Елемент ParentCategory не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
@@ -557,9 +563,9 @@ namespace ElmirClone
         {
             if (SearchCategoryName == null || CategoriesTree == null || allCategories == null)
             {
-                MessageBox.Show("Елемент SearchCategoryName або CategoriesTree не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return; // Тихий выход, если элементы не найдены
             }
+
             string searchText = SearchCategoryName.Text?.Trim().ToLower();
             if (string.IsNullOrWhiteSpace(searchText) || searchText == "пошук за назвою категорії")
             {
@@ -611,9 +617,9 @@ namespace ElmirClone
         {
             if (SearchCategoryName == null || CategoriesTree == null || allCategories == null)
             {
-                MessageBox.Show("Елемент SearchCategoryName або CategoriesTree не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return; // Тихий выход, если элементы не найдены
             }
+
             SearchCategoryName.Text = "Пошук за назвою категорії";
             CategoriesTree.ItemsSource = allCategories.Where(c => c.ParentCategoryId == null).ToList();
         }

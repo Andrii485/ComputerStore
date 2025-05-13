@@ -45,8 +45,8 @@ namespace ElmirClone
                 OrdersPanel.Visibility = Visibility.Collapsed;
                 FinancePanel.Visibility = Visibility.Collapsed;
                 ProfilePanel.Visibility = Visibility.Collapsed;
-                SearchProductId.Text = "Введіть ID"; // Reset search field
-                LoadProducts(); // Reload all products
+                SearchProductId.Text = "Введіть ID";
+                LoadProducts();
             }
         }
 
@@ -58,8 +58,8 @@ namespace ElmirClone
                 OrdersPanel.Visibility = Visibility.Visible;
                 FinancePanel.Visibility = Visibility.Collapsed;
                 ProfilePanel.Visibility = Visibility.Collapsed;
-                SearchOrderId.Text = "Введіть ID"; // Reset search field
-                LoadOrders(); // Reload all orders
+                SearchOrderId.Text = "Введіть ID";
+                LoadOrders();
             }
         }
 
@@ -71,8 +71,8 @@ namespace ElmirClone
                 OrdersPanel.Visibility = Visibility.Collapsed;
                 FinancePanel.Visibility = Visibility.Visible;
                 ProfilePanel.Visibility = Visibility.Collapsed;
-                SearchSoldProductId.Text = "Введіть ID"; // Reset search field
-                LoadFinancials(); // Reload all financials
+                SearchSoldProductId.Text = "Введіть ID";
+                LoadFinancials();
             }
         }
 
@@ -334,7 +334,6 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        // Get current ishidden status
                         bool currentStatus;
                         using (var statusCommand = new NpgsqlCommand("SELECT ishidden FROM products WHERE productid = @productid AND sellerid = @sellerid", connection))
                         {
@@ -349,7 +348,6 @@ namespace ElmirClone
                             currentStatus = (bool)result;
                         }
 
-                        // Toggle the ishidden status
                         using (var command = new NpgsqlCommand("UPDATE products SET ishidden = @ishidden WHERE productid = @productid AND sellerid = @sellerid", connection))
                         {
                             command.Parameters.AddWithValue("ishidden", !currentStatus);
@@ -842,7 +840,6 @@ namespace ElmirClone
                     return;
                 }
 
-                // Create a dialog to select the new status
                 Window statusWindow = new Window
                 {
                     Title = "Оновити статус замовлення",
@@ -1023,6 +1020,21 @@ namespace ElmirClone
                         decimal feePercentage = 0;
                         var sales = new List<Sale>();
 
+                        // Check if the product exists for the seller
+                        using (var checkCommand = new NpgsqlCommand(
+                            "SELECT COUNT(*) FROM products WHERE productid = @productid AND sellerid = @sellerid", connection))
+                        {
+                            checkCommand.Parameters.AddWithValue("productid", productId);
+                            checkCommand.Parameters.AddWithValue("sellerid", sellerId);
+                            long productCount = (long)checkCommand.ExecuteScalar();
+                            if (productCount == 0)
+                            {
+                                MessageBox.Show("Товар з таким ID не належить вам.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                                return;
+                            }
+                        }
+
+                        // Get fee percentage
                         using (var command = new NpgsqlCommand(
                             "SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
                         {
@@ -1034,11 +1046,12 @@ namespace ElmirClone
                             }
                         }
 
+                        // Fetch sales for the product
                         using (var command = new NpgsqlCommand(
                             "SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid " +
                             "FROM orders o " +
                             "JOIN products p ON o.productid = p.productid " +
-                            "WHERE o.sellerid = @sellerid AND o.status = 'Завершено' AND o.productid = @productid", connection))
+                            "WHERE o.sellerid = @sellerid AND o.productid = @productid", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.Parameters.AddWithValue("productid", productId);
@@ -1065,7 +1078,7 @@ namespace ElmirClone
 
                         if (sales.Count == 0)
                         {
-                            MessageBox.Show("Продажі з таким ID товару не знайдено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show("Продажів з таким ID товару не знайдено. Перевірте статус замовлень.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
 
                         TotalRevenueText.Text = $"{totalRevenue:F2} грн";
