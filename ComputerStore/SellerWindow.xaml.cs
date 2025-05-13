@@ -968,7 +968,7 @@ namespace ElmirClone
                             "SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid " +
                             "FROM orders o " +
                             "JOIN products p ON o.productid = p.productid " +
-                            "WHERE o.sellerid = @sellerid AND o.status = 'Доставлено'", connection))
+                            "WHERE o.sellerid = @sellerid AND o.status = 'Завершено'", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             using (var reader = command.ExecuteReader())
@@ -1038,7 +1038,7 @@ namespace ElmirClone
                             "SELECT o.orderid, p.name AS productname, o.totalprice, o.orderdate, o.productid " +
                             "FROM orders o " +
                             "JOIN products p ON o.productid = p.productid " +
-                            "WHERE o.sellerid = @sellerid AND o.status = 'Доставлено' AND o.productid = @productid", connection))
+                            "WHERE o.sellerid = @sellerid AND o.status = 'Завершено' AND o.productid = @productid", connection))
                         {
                             command.Parameters.AddWithValue("sellerid", sellerId);
                             command.Parameters.AddWithValue("productid", productId);
