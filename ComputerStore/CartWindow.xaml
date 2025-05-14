@@ -86,7 +86,7 @@
                                 <TextBlock Text="{Binding StockQuantity, StringFormat=Доступно: {0} шт.}" Width="100" VerticalAlignment="Center" FontSize="14"/>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
                                     <Button Content="-" Style="{StaticResource QuantityButtonStyle}" Tag="{Binding ProductId}" Click="DecreaseQuantity_Click"/>
-                                    <TextBox Text="{Binding Quantity, Mode=OneWay}" Width="40" TextAlignment="Center" VerticalAlignment="Center" FontSize="14" Tag="{Binding ProductId}" TextChanged="QuantityTextBox_TextChanged"/>
+                                    <TextBox Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" TextAlignment="Center" VerticalAlignment="Center" FontSize="14" Tag="{Binding ProductId}" TextChanged="QuantityTextBox_TextChanged"/>
                                     <Button Content="+" Style="{StaticResource QuantityButtonStyle}" Tag="{Binding ProductId}" Click="IncreaseQuantity_Click"/>
                                 </StackPanel>
                                 <TextBlock Text="{Binding TotalPrice, StringFormat=Вартість: {0:F2} грн}" Width="100" VerticalAlignment="Center" FontSize="14"/>

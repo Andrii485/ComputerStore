@@ -1178,7 +1178,7 @@ namespace ElmirClone
                                     }
                                 }
 
-                                int newQuantity = currentQuantity + quantity;
+                                int newQuantity = currentQuantity + quantity; // Додаємо нову кількість до існуючої
 
                                 if (newQuantity > product.StockQuantity)
                                 {
@@ -1205,7 +1205,7 @@ namespace ElmirClone
                                     {
                                         insertCommand.Parameters.AddWithValue("buyerid", buyerId);
                                         insertCommand.Parameters.AddWithValue("productid", productId);
-                                        insertCommand.Parameters.AddWithValue("quantity", quantity);
+                                        insertCommand.Parameters.AddWithValue("quantity", quantity); // Додаємо лише нову кількість
                                         insertCommand.ExecuteNonQuery();
                                     }
                                     MessageBox.Show($"Товар {product.Name} додано до кошика! (Кількість: {quantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1546,6 +1546,11 @@ namespace ElmirClone
                     MessageBox.Show("Необхідно авторизуватися для перегляду замовлень.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
+        }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
         }
     }
 
