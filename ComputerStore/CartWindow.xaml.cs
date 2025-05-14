@@ -31,7 +31,7 @@ namespace ElmirClone
         public CartWindow(List<ProductDetails> cartItems, UserProfile userProfile, string connectionString, MainWindow mainWindow)
         {
             InitializeComponent();
-            _cartItems = cartItems ?? new List<ProductDetails>(); // Ініціалізація порожнього списку, якщо null
+            _cartItems = cartItems ?? throw new ArgumentNullException(nameof(cartItems));
             _userProfile = userProfile ?? throw new ArgumentNullException(nameof(userProfile));
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
 
@@ -48,8 +48,6 @@ namespace ElmirClone
                 return;
             }
 
-            // Завантажуємо актуальні дані з бази даних для кошика
-            LoadCartFromDatabase();
             foreach (var item in _cartItems)
             {
                 if (item.StockQuantity == 0)
@@ -58,7 +56,7 @@ namespace ElmirClone
                 }
                 if (item.Quantity == 0)
                 {
-                    item.Quantity = 1; // Встановлюємо мінімальну кількість 1, якщо 0
+                    item.Quantity = 1;
                 }
             }
 
@@ -74,45 +72,6 @@ namespace ElmirClone
         public CartWindow(UserProfile userProfile)
         {
             _userProfile = userProfile;
-        }
-
-        private void LoadCartFromDatabase()
-        {
-            try
-            {
-                using (var connection = new NpgsqlConnection(_connectionString))
-                {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand(
-                        "SELECT p.productid, p.name, p.price, p.image_url, p.stock_quantity, c.quantity " +
-                        "FROM cart c " +
-                        "JOIN products p ON c.productid = p.productid " +
-                        "WHERE c.buyerid = @buyerId AND p.ishidden = false", connection))
-                    {
-                        command.Parameters.AddWithValue("buyerId", _userProfile.UserId);
-                        using (var reader = command.ExecuteReader())
-                        {
-                            _cartItems.Clear();
-                            while (reader.Read())
-                            {
-                                _cartItems.Add(new ProductDetails
-                                {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Price = reader.GetDecimal(2),
-                                    ImageUrl = reader.IsDBNull(3) ? "https://via.placeholder.com/150" : reader.GetString(3),
-                                    StockQuantity = reader.GetInt32(4),
-                                    Quantity = reader.GetInt32(5)
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка при завантаженні кошика з бази даних: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
 
         private void CalculateTotalPrice()
@@ -291,14 +250,13 @@ namespace ElmirClone
                 var item = _cartItems.FirstOrDefault(i => i.ProductId == productId);
                 if (item != null)
                 {
-                    int availableQuantity = GetAvailableStock(productId);
+                    int availableQuantity = item.StockQuantity;
                     if (item.Quantity + 1 > availableQuantity)
                     {
                         MessageBox.Show($"Неможливо збільшити кількість. Доступно лише {availableQuantity} одиниць товару {item.Name}.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
                     item.Quantity++;
-                    UpdateCartInDatabase(productId, item.Quantity);
                     CartItemsList.ItemsSource = null;
                     CartItemsList.ItemsSource = _cartItems;
                     CalculateTotalPrice();
@@ -314,7 +272,6 @@ namespace ElmirClone
                 if (item != null && item.Quantity > 1)
                 {
                     item.Quantity--;
-                    UpdateCartInDatabase(productId, item.Quantity);
                     CartItemsList.ItemsSource = null;
                     CartItemsList.ItemsSource = _cartItems;
                     CalculateTotalPrice();
@@ -336,57 +293,20 @@ namespace ElmirClone
                     return;
                 }
 
-                int availableQuantity = GetAvailableStock(productId);
-                if (newQuantity > availableQuantity)
+                if (newQuantity > item.StockQuantity)
                 {
-                    MessageBox.Show($"Неможливо встановити кількість. Доступно лише {availableQuantity} одиниць товару {item.Name}.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    textBox.Text = availableQuantity.ToString();
-                    item.Quantity = availableQuantity;
+                    MessageBox.Show($"Неможливо встановити кількість. Доступно лише {item.StockQuantity} одиниць товару {item.Name}.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    textBox.Text = item.StockQuantity.ToString();
+                    item.Quantity = item.StockQuantity;
                 }
                 else
                 {
                     item.Quantity = newQuantity;
                 }
 
-                UpdateCartInDatabase(productId, item.Quantity);
                 CartItemsList.ItemsSource = null;
                 CartItemsList.ItemsSource = _cartItems;
                 CalculateTotalPrice();
-            }
-        }
-
-        private void UpdateCartInDatabase(int productId, int quantity)
-        {
-            try
-            {
-                using (var connection = new NpgsqlConnection(_connectionString))
-                {
-                    connection.Open();
-                    using (var command = new NpgsqlCommand(
-                        "UPDATE cart SET quantity = @quantity WHERE buyerid = @buyerid AND productid = @productid", connection))
-                    {
-                        command.Parameters.AddWithValue("quantity", quantity);
-                        command.Parameters.AddWithValue("buyerid", _userProfile.UserId);
-                        command.Parameters.AddWithValue("productid", productId);
-                        int rowsAffected = command.ExecuteNonQuery();
-                        if (rowsAffected == 0)
-                        {
-                            // Якщо запису немає, додаємо новий
-                            using (var insertCommand = new NpgsqlCommand(
-                                "INSERT INTO cart (buyerid, productid, quantity) VALUES (@buyerid, @productid, @quantity)", connection))
-                            {
-                                insertCommand.Parameters.AddWithValue("buyerid", _userProfile.UserId);
-                                insertCommand.Parameters.AddWithValue("productid", productId);
-                                insertCommand.Parameters.AddWithValue("quantity", quantity);
-                                insertCommand.ExecuteNonQuery();
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка при оновленні кошика в базі даних: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -628,7 +548,7 @@ namespace ElmirClone
                                         command.Parameters.AddWithValue("buyerid", buyerIdValue);
                                         command.Parameters.AddWithValue("sellerid", sellerId.Value);
                                         command.Parameters.AddWithValue("productid", item.ProductId);
-                                        command.Parameters.AddWithValue("quantity", item.Quantity); // Використовуємо актуальну кількість
+                                        command.Parameters.AddWithValue("quantity", item.Quantity);
                                         command.Parameters.AddWithValue("totalprice", (double)(item.Price * item.Quantity));
                                         command.Parameters.AddWithValue("orderdate", DateTime.Now);
                                         command.Parameters.AddWithValue("status", "Ожидает отправки");
@@ -675,6 +595,7 @@ namespace ElmirClone
                                         }
                                     }
                                     _userProfile.Balance = (decimal)_userProfile.Balance - totalPrice;
+
                                 }
                                 catch (Exception ex)
                                 {

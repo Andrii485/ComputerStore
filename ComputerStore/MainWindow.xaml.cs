@@ -1015,7 +1015,7 @@ namespace ElmirClone
                             }
                         }
 
-                        int newQuantity = currentQuantity + quantity;
+                        int newQuantity = currentQuantity > 0 ? currentQuantity : quantity;
 
                         if (newQuantity > product.StockQuantity)
                         {
@@ -1033,7 +1033,7 @@ namespace ElmirClone
                                 updateCommand.Parameters.AddWithValue("productid", productId);
                                 updateCommand.ExecuteNonQuery();
                             }
-                            MessageBox.Show($"Кількість товару {product.Name} у кошику оновлено! (Нова кількість: {newQuantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Кількість товару {product.Name} у кошику оновлено! (Кількість: {newQuantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
                         {
