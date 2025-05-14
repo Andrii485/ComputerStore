@@ -20,9 +20,8 @@ namespace ElmirClone
         private List<string> selectedBrands;
         private decimal? priceFrom;
         private decimal? priceTo;
-        private int? reviewCountMin; // Додано змінну для фільтра кількості відгуків
+        private int? reviewCountMin;
 
-        // История навигации
         private List<(string Category, int? CategoryId, int? SubCategoryId)> navigationHistory;
         private int navigationIndex;
 
@@ -33,7 +32,7 @@ namespace ElmirClone
             navigationHistory = new List<(string, int?, int?)>();
             navigationIndex = -1;
             selectedBrands = new List<string>();
-            reviewCountMin = null; // Ініціалізація фільтра відгуків
+            reviewCountMin = null;
 
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
             if (string.IsNullOrEmpty(connectionString))
@@ -227,7 +226,7 @@ namespace ElmirClone
                     selectedBrands.Clear();
                     priceFrom = null;
                     priceTo = null;
-                    reviewCountMin = null; // Скидаємо фільтр відгуків
+                    reviewCountMin = null;
 
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
@@ -345,7 +344,6 @@ namespace ElmirClone
                     else
                     {
                         FilterPanel.Visibility = Visibility.Collapsed;
-                        // Додаємо тільки "Рекомендовані товари" та "Найкращі пропозиції"
                         ContentPanel.Children.Add(new TextBlock
                         {
                             Text = "Рекомендовані товари",
@@ -362,7 +360,6 @@ namespace ElmirClone
                                               "LIMIT 5";
                         LoadProductsWithQuery(featuredQuery, new List<NpgsqlParameter>());
 
-                        // Додаємо блок "Найкращі пропозиції для вас"
                         LoadBestOffers();
                     }
                 }
@@ -552,7 +549,6 @@ namespace ElmirClone
             {
                 try
                 {
-                    // Очищаємо попередній блок "Найкращі пропозиції", якщо він існує
                     var existingHeader = ContentPanel.Children.OfType<StackPanel>()
                         .FirstOrDefault(sp => sp.Children.OfType<TextBlock>().Any(tb => tb.Text == "Найкращі пропозиції для вас"));
                     if (existingHeader != null)
@@ -566,7 +562,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Додаємо лише заголовок без кнопки "Оновити"
                     StackPanel headerPanel = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
@@ -581,7 +576,6 @@ namespace ElmirClone
                     });
                     ContentPanel.Children.Add(headerPanel);
 
-                    // Завантажуємо випадкові товари
                     string query = "SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description, p.stock_quantity " +
                                   "FROM products p " +
                                   "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
@@ -697,7 +691,6 @@ namespace ElmirClone
                                         MaxWidth = 800
                                     };
 
-                                    // Back Button
                                     Button backButton = new Button
                                     {
                                         Content = "← Повернутися до товарів",
@@ -708,7 +701,6 @@ namespace ElmirClone
                                     backButton.Click += (s, args) => LoadProducts();
                                     productDetailsPanel.Children.Add(backButton);
 
-                                    // Product Image
                                     Border imageBorder = new Border
                                     {
                                         BorderBrush = Brushes.LightGray,
@@ -728,7 +720,6 @@ namespace ElmirClone
                                     imageBorder.Child = productImage;
                                     productDetailsPanel.Children.Add(imageBorder);
 
-                                    // Product Title
                                     TextBlock titleText = new TextBlock
                                     {
                                         Text = product.Name,
@@ -740,7 +731,6 @@ namespace ElmirClone
                                     };
                                     productDetailsPanel.Children.Add(titleText);
 
-                                    // Product Info Grid
                                     Grid infoGrid = new Grid
                                     {
                                         Margin = new Thickness(0, 0, 0, 20)
@@ -780,7 +770,6 @@ namespace ElmirClone
 
                                     productDetailsPanel.Children.Add(infoGrid);
 
-                                    // Stock Status
                                     TextBlock stockText = new TextBlock
                                     {
                                         Text = product.StockQuantity > 0 ? $"В наявності: {product.StockQuantity} шт." : "Немає в наявності",
@@ -791,7 +780,6 @@ namespace ElmirClone
                                     };
                                     productDetailsPanel.Children.Add(stockText);
 
-                                    // Add to Cart Button
                                     Button addToCartButton = new Button
                                     {
                                         Content = "Додати до кошика",
@@ -804,7 +792,6 @@ namespace ElmirClone
                                     addToCartButton.Click += AddToCart_Click;
                                     productDetailsPanel.Children.Add(addToCartButton);
 
-                                    // Description Section
                                     Expander descriptionExpander = new Expander
                                     {
                                         Header = "Опис товару",
@@ -824,7 +811,6 @@ namespace ElmirClone
                                     descriptionExpander.Content = descriptionText;
                                     productDetailsPanel.Children.Add(descriptionExpander);
 
-                                    // Store Info Section
                                     Expander storeExpander = new Expander
                                     {
                                         Header = "Інформація про магазин",
@@ -842,7 +828,6 @@ namespace ElmirClone
                                     storeExpander.Content = storePanel;
                                     productDetailsPanel.Children.Add(storeExpander);
 
-                                    // Reviews Section
                                     Expander reviewsExpander = new Expander
                                     {
                                         Header = "Відгуки",
@@ -856,7 +841,6 @@ namespace ElmirClone
                                     reviewsExpander.Content = reviewsList;
                                     productDetailsPanel.Children.Add(reviewsExpander);
 
-                                    // Add Review Section
                                     StackPanel reviewInputPanel = new StackPanel
                                     {
                                         Margin = new Thickness(0, 0, 0, 20)
@@ -1003,224 +987,67 @@ namespace ElmirClone
                                 }
                             }
                         }
-                    }
 
-                    if (product == null)
-                    {
-                        MessageBox.Show("Товар не знайдено або він прихований.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    if (product.StockQuantity <= 0)
-                    {
-                        MessageBox.Show($"Товар {product.Name} відсутній у наявності.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    Window quantityWindow = new Window
-                    {
-                        Title = $"Додати {product.Name} до кошика",
-                        Width = 300,
-                        Height = 250,
-                        WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                        ResizeMode = ResizeMode.NoResize
-                    };
-                    StackPanel panel = new StackPanel { Margin = new Thickness(10) };
-                    TextBlock stockText = new TextBlock
-                    {
-                        Text = $"Доступно: {product.StockQuantity} шт.",
-                        FontSize = 14,
-                        Margin = new Thickness(0, 0, 0, 10)
-                    };
-                    panel.Children.Add(stockText);
-                    TextBlock label = new TextBlock
-                    {
-                        Text = "Вкажіть кількість:",
-                        FontSize = 14,
-                        Margin = new Thickness(0, 0, 0, 5)
-                    };
-                    panel.Children.Add(label);
-                    StackPanel quantityPanel = new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        Margin = new Thickness(0, 0, 0, 10)
-                    };
-                    Button decreaseButton = new Button
-                    {
-                        Content = "-",
-                        Width = 30,
-                        Height = 30,
-                        FontSize = 14,
-                        Margin = new Thickness(0, 0, 5, 0),
-                        Style = (Style)FindResource("AddToCartButtonStyle")
-                    };
-                    TextBox quantityBox = new TextBox
-                    {
-                        Text = "1",
-                        FontSize = 14,
-                        Width = 50,
-                        TextAlignment = TextAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    };
-                    Button increaseButton = new Button
-                    {
-                        Content = "+",
-                        Width = 30,
-                        Height = 30,
-                        FontSize = 14,
-                        Margin = new Thickness(5, 0, 0, 0),
-                        Style = (Style)FindResource("AddToCartButtonStyle")
-                    };
-                    quantityPanel.Children.Add(decreaseButton);
-                    quantityPanel.Children.Add(quantityBox);
-                    quantityPanel.Children.Add(increaseButton);
-                    panel.Children.Add(quantityPanel);
-                    TextBlock totalPriceText = new TextBlock
-                    {
-                        Text = $"Вартість: {(product.Price * 1):F2} грн",
-                        FontSize = 14,
-                        Margin = new Thickness(0, 0, 0, 10)
-                    };
-                    panel.Children.Add(totalPriceText);
-                    StackPanel buttonPanel = new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    };
-                    Button confirmButton = new Button
-                    {
-                        Content = "Додати",
-                        Width = 80,
-                        Height = 30,
-                        Margin = new Thickness(0, 0, 10, 0),
-                        Style = (Style)FindResource("AddToCartButtonStyle")
-                    };
-                    Button cancelButton = new Button
-                    {
-                        Content = "Скасувати",
-                        Width = 80,
-                        Height = 30,
-                        Style = (Style)FindResource("ActionButtonStyle")
-                    };
-                    buttonPanel.Children.Add(confirmButton);
-                    buttonPanel.Children.Add(cancelButton);
-                    panel.Children.Add(buttonPanel);
-                    quantityWindow.Content = panel;
-
-                    decreaseButton.Click += (s, ev) =>
-                    {
-                        if (int.TryParse(quantityBox.Text, out int quantity) && quantity > 1)
+                        if (product == null)
                         {
-                            quantity--;
-                            quantityBox.Text = quantity.ToString();
-                            totalPriceText.Text = $"Вартість: {(product.Price * quantity):F2} грн";
+                            MessageBox.Show("Товар не знайдено або він прихований.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
                         }
-                    };
 
-                    increaseButton.Click += (s, ev) =>
-                    {
-                        if (int.TryParse(quantityBox.Text, out int quantity) && quantity < product.StockQuantity)
+                        if (product.StockQuantity <= 0)
                         {
-                            quantity++;
-                            quantityBox.Text = quantity.ToString();
-                            totalPriceText.Text = $"Вартість: {(product.Price * quantity):F2} грн";
+                            MessageBox.Show($"Товар {product.Name} відсутній у наявності.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
                         }
-                    };
 
-                    quantityBox.TextChanged += (s, ev) =>
-                    {
-                        if (int.TryParse(quantityBox.Text, out int quantity))
+                        int quantity = 1; // Додаємо товар з кількістю 1 за замовчуванням
+
+                        int currentQuantity = 0;
+                        using (var checkCommand = new NpgsqlCommand(
+                            "SELECT quantity FROM cart WHERE buyerid = @buyerid AND productid = @productid", connection))
                         {
-                            if (quantity < 1)
+                            checkCommand.Parameters.AddWithValue("buyerid", buyerId);
+                            checkCommand.Parameters.AddWithValue("productid", productId);
+                            var result = checkCommand.ExecuteScalar();
+                            if (result != null)
                             {
-                                quantityBox.Text = "1";
-                                quantity = 1;
+                                currentQuantity = Convert.ToInt32(result);
                             }
-                            else if (quantity > product.StockQuantity)
+                        }
+
+                        int newQuantity = currentQuantity + quantity;
+
+                        if (newQuantity > product.StockQuantity)
+                        {
+                            MessageBox.Show($"Загальна кількість у кошику ({newQuantity}) перевищує доступну ({product.StockQuantity}).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+
+                        if (currentQuantity > 0)
+                        {
+                            using (var updateCommand = new NpgsqlCommand(
+                                "UPDATE cart SET quantity = @quantity WHERE buyerid = @buyerid AND productid = @productid", connection))
                             {
-                                quantityBox.Text = product.StockQuantity.ToString();
-                                quantity = product.StockQuantity;
+                                updateCommand.Parameters.AddWithValue("quantity", newQuantity);
+                                updateCommand.Parameters.AddWithValue("buyerid", buyerId);
+                                updateCommand.Parameters.AddWithValue("productid", productId);
+                                updateCommand.ExecuteNonQuery();
                             }
-                            totalPriceText.Text = $"Вартість: {(product.Price * quantity):F2} грн";
+                            MessageBox.Show($"Кількість товару {product.Name} у кошику оновлено! (Нова кількість: {newQuantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
                         {
-                            quantityBox.Text = "1";
-                            totalPriceText.Text = $"Вартість: {(product.Price * 1):F2} грн";
-                        }
-                    };
-
-                    confirmButton.Click += (s, ev) =>
-                    {
-                        if (int.TryParse(quantityBox.Text, out int quantity) && quantity > 0)
-                        {
-                            if (quantity > product.StockQuantity)
+                            using (var insertCommand = new NpgsqlCommand(
+                                "INSERT INTO cart (buyerid, productid, quantity) VALUES (@buyerid, @productid, @quantity)", connection))
                             {
-                                MessageBox.Show($"Вибрана кількість ({quantity}) перевищує доступну ({product.StockQuantity}).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
+                                insertCommand.Parameters.AddWithValue("buyerid", buyerId);
+                                insertCommand.Parameters.AddWithValue("productid", productId);
+                                insertCommand.Parameters.AddWithValue("quantity", quantity);
+                                insertCommand.ExecuteNonQuery();
                             }
-
-                            using (var connection = new NpgsqlConnection(connectionString))
-                            {
-                                connection.Open();
-
-                                int currentQuantity = 0;
-                                using (var checkCommand = new NpgsqlCommand(
-                                    "SELECT quantity FROM cart WHERE buyerid = @buyerid AND productid = @productid", connection))
-                                {
-                                    checkCommand.Parameters.AddWithValue("buyerid", buyerId);
-                                    checkCommand.Parameters.AddWithValue("productid", productId);
-                                    var result = checkCommand.ExecuteScalar();
-                                    if (result != null)
-                                    {
-                                        currentQuantity = Convert.ToInt32(result);
-                                    }
-                                }
-
-                                int newQuantity = currentQuantity + quantity; // Додаємо нову кількість до існуючої
-
-                                if (newQuantity > product.StockQuantity)
-                                {
-                                    MessageBox.Show($"Загальна кількість у кошику ({newQuantity}) перевищує доступну ({product.StockQuantity}).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return;
-                                }
-
-                                if (currentQuantity > 0)
-                                {
-                                    using (var updateCommand = new NpgsqlCommand(
-                                        "UPDATE cart SET quantity = @quantity WHERE buyerid = @buyerid AND productid = @productid", connection))
-                                    {
-                                        updateCommand.Parameters.AddWithValue("quantity", newQuantity);
-                                        updateCommand.Parameters.AddWithValue("buyerid", buyerId);
-                                        updateCommand.Parameters.AddWithValue("productid", productId);
-                                        updateCommand.ExecuteNonQuery();
-                                    }
-                                    MessageBox.Show($"Кількість товару {product.Name} у кошику оновлено! (Нова кількість: {newQuantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                                }
-                                else
-                                {
-                                    using (var insertCommand = new NpgsqlCommand(
-                                        "INSERT INTO cart (buyerid, productid, quantity) VALUES (@buyerid, @productid, @quantity)", connection))
-                                    {
-                                        insertCommand.Parameters.AddWithValue("buyerid", buyerId);
-                                        insertCommand.Parameters.AddWithValue("productid", productId);
-                                        insertCommand.Parameters.AddWithValue("quantity", quantity); // Додаємо лише нову кількість
-                                        insertCommand.ExecuteNonQuery();
-                                    }
-                                    MessageBox.Show($"Товар {product.Name} додано до кошика! (Кількість: {quantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                                }
-                            }
-                            quantityWindow.Close();
+                            MessageBox.Show($"Товар {product.Name} додано до кошика! (Кількість: {quantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
-                        else
-                        {
-                            MessageBox.Show("Введіть коректну кількість (ціле число більше 0).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    };
-
-                    cancelButton.Click += (s, ev) => quantityWindow.Close();
-                    quantityWindow.ShowDialog();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1242,7 +1069,6 @@ namespace ElmirClone
         {
             if (Dispatcher.CheckAccess() && selectedSubCategoryId.HasValue)
             {
-                // Зчитуємо ціну "Від"
                 if (decimal.TryParse(PriceFromTextBox.Text, out decimal from) && from >= 0)
                 {
                     priceFrom = from;
@@ -1252,7 +1078,6 @@ namespace ElmirClone
                     priceFrom = null;
                 }
 
-                // Зчитуємо ціну "До"
                 if (decimal.TryParse(PriceToTextBox.Text, out decimal to) && to >= 0)
                 {
                     priceTo = to;
@@ -1262,14 +1087,12 @@ namespace ElmirClone
                     priceTo = null;
                 }
 
-                // Перевіряємо коректність діапазону цін
                 if (priceFrom.HasValue && priceTo.HasValue && priceFrom > priceTo)
                 {
                     MessageBox.Show("Мінімальна ціна не може бути більшою за максимальну.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                // Зчитуємо мінімальну кількість відгуків
                 if (ReviewCountComboBox.SelectedItem is ComboBoxItem selectedItem && int.TryParse(selectedItem.Tag?.ToString(), out int minReviews))
                 {
                     reviewCountMin = minReviews;
@@ -1279,7 +1102,6 @@ namespace ElmirClone
                     reviewCountMin = null;
                 }
 
-                // Оновлюємо список товарів із застосуванням фільтрів
                 LoadProducts(subCategoryId: selectedSubCategoryId.Value);
             }
         }
@@ -1344,7 +1166,6 @@ namespace ElmirClone
             {
                 if (userProfile?.UserId is int buyerId && buyerId > 0)
                 {
-                    // Загрузка товаров из корзины из базы данных
                     List<ProductDetails> cartItems = LoadCartItemsFromDatabase(buyerId);
                     CartWindow cartWindow = new CartWindow(cartItems, userProfile, connectionString, this);
                     cartWindow.ShowDialog();
@@ -1356,7 +1177,6 @@ namespace ElmirClone
             }
         }
 
-        // Новый метод для загрузки товаров из корзины
         private List<ProductDetails> LoadCartItemsFromDatabase(int buyerId)
         {
             List<ProductDetails> cartItems = new List<ProductDetails>();
@@ -1510,24 +1330,21 @@ namespace ElmirClone
         {
             if (Dispatcher.CheckAccess())
             {
-                // Скидаємо всі стани
                 selectedCategoryId = null;
                 selectedSubCategoryId = null;
                 selectedBrands.Clear();
                 priceFrom = null;
                 priceTo = null;
-                reviewCountMin = null; // Скидаємо фільтр відгуків
+                reviewCountMin = null;
                 FilterPanel.Visibility = Visibility.Collapsed;
                 CategoryPanel.Visibility = Visibility.Collapsed;
                 SearchBox.Text = "Я шукаю...";
                 SearchBox.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7F8C8D"));
 
-                // Очищаємо історію навігації
                 navigationHistory.Clear();
                 navigationIndex = -1;
                 UpdateNavigationButtons();
 
-                // Завантажуємо головну сторінку заново
                 LoadProducts();
             }
         }
