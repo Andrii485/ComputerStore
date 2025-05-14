@@ -549,7 +549,7 @@ namespace ElmirClone
                         }
                     }
 
-                    // Додаємо заголовок і кнопку оновлення
+                    // Додаємо лише заголовок без кнопки "Оновити"
                     StackPanel headerPanel = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
@@ -562,16 +562,6 @@ namespace ElmirClone
                         FontWeight = FontWeights.Bold,
                         Margin = new Thickness(0, 0, 10, 0)
                     });
-                    Button refreshButton = new Button
-                    {
-                        Content = "Оновити",
-                        Style = (Style)FindResource("ActionButtonStyle"),
-                        Width = 120,
-                        Height = 35,
-                        FontSize = 14
-                    };
-                    refreshButton.Click += (s, e) => LoadBestOffers();
-                    headerPanel.Children.Add(refreshButton);
                     ContentPanel.Children.Add(headerPanel);
 
                     // Завантажуємо випадкові товари
@@ -1318,6 +1308,31 @@ namespace ElmirClone
                 navigationHistory.Clear();
                 navigationIndex = -1;
                 UpdateNavigationButtons();
+                LoadProducts();
+            }
+        }
+
+        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                // Скидаємо всі стани
+                selectedCategoryId = null;
+                selectedSubCategoryId = null;
+                selectedBrands.Clear();
+                priceFrom = null;
+                priceTo = null;
+                FilterPanel.Visibility = Visibility.Collapsed;
+                CategoryPanel.Visibility = Visibility.Collapsed;
+                SearchBox.Text = "Я шукаю...";
+                SearchBox.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7F8C8D"));
+
+                // Очищаємо історію навігації
+                navigationHistory.Clear();
+                navigationIndex = -1;
+                UpdateNavigationButtons();
+
+                // Завантажуємо головну сторінку заново
                 LoadProducts();
             }
         }
