@@ -7,6 +7,7 @@ using Npgsql;
 using System.Configuration;
 using System.Windows.Media;
 using System.Windows.Input;
+using ElmirClone.Models;
 
 namespace ElmirClone
 {
@@ -19,8 +20,8 @@ namespace ElmirClone
         private List<string> selectedBrands;
         private decimal? priceFrom;
         private decimal? priceTo;
+        private int? minReviewCount;
 
-        // История навигации
         private List<(string Category, int? CategoryId, int? SubCategoryId)> navigationHistory;
         private int navigationIndex;
 
@@ -31,6 +32,7 @@ namespace ElmirClone
             navigationHistory = new List<(string, int?, int?)>();
             navigationIndex = -1;
             selectedBrands = new List<string>();
+            minReviewCount = null;
 
             connectionString = ConfigurationManager.ConnectionStrings["ElitePCConnection"]?.ConnectionString;
             if (string.IsNullOrEmpty(connectionString))
@@ -44,6 +46,28 @@ namespace ElmirClone
             LoadCategories();
             LoadProducts();
             UpdateNavigationButtons();
+
+            CategoryPanel.IsVisibleChanged += CategoryPanel_IsVisibleChanged;
+        }
+
+        private void CategoryPanel_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                if (CategoryPanel.Visibility == Visibility.Visible)
+                {
+                    // Обчислюємо висоту CategoryPanel
+                    CategoryPanel.UpdateLayout();
+                    double categoryPanelHeight = CategoryListPanel.ActualHeight + CategoryListPanel.Margin.Top + CategoryListPanel.Margin.Bottom;
+                    // Зміщуємо FilterPanel вниз із невеликим фіксованим відступом (наприклад, 5 пікселів)
+                    FilterPanel.Margin = new Thickness(10, categoryPanelHeight + 5, 10, 10);
+                }
+                else
+                {
+                    // Повертаємо початковий Margin
+                    FilterPanel.Margin = new Thickness(10);
+                }
+            }
         }
 
         private void LoadCategories()
@@ -52,7 +76,7 @@ namespace ElmirClone
             {
                 try
                 {
-                    CategoryPanel.Children.Clear();
+                    CategoryListPanel.Children.Clear();
                     CategoryPanel.Visibility = Visibility.Collapsed;
 
                     using (var connection = new NpgsqlConnection(connectionString))
@@ -78,7 +102,7 @@ namespace ElmirClone
                                         Width = 157
                                     };
                                     catButton.Click += CategoryButton_Click;
-                                    CategoryPanel.Children.Add(catButton);
+                                    CategoryListPanel.Children.Add(catButton);
                                 }
                             }
                         }
@@ -221,9 +245,11 @@ namespace ElmirClone
                     BrandsPanel.Children.Clear();
                     PriceFromTextBox.Text = "";
                     PriceToTextBox.Text = "";
+                    ReviewCountComboBox.SelectedIndex = 0;
                     selectedBrands.Clear();
                     priceFrom = null;
                     priceTo = null;
+                    minReviewCount = null;
 
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
@@ -299,6 +325,7 @@ namespace ElmirClone
                                       "FROM products p " +
                                       "JOIN categories sc ON p.subcategoryid = sc.categoryid " +
                                       "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
+                                      "LEFT JOIN (SELECT productid, COUNT(*) as review_count FROM product_reviews GROUP BY productid) pr ON p.productid = pr.productid " +
                                       "WHERE sc.categoryid = @subCategoryId AND p.ishidden = false";
                         var parameters = new List<NpgsqlParameter>
                         {
@@ -323,6 +350,12 @@ namespace ElmirClone
                             parameters.Add(new NpgsqlParameter("priceTo", priceTo.Value));
                         }
 
+                        if (minReviewCount.HasValue)
+                        {
+                            query += " AND (pr.review_count >= @minReviewCount OR pr.review_count IS NULL AND @minReviewCount = 0)";
+                            parameters.Add(new NpgsqlParameter("minReviewCount", minReviewCount.Value));
+                        }
+
                         query += " LIMIT 5";
                         LoadProductsWithQuery(query, parameters);
                     }
@@ -334,7 +367,6 @@ namespace ElmirClone
                     else
                     {
                         FilterPanel.Visibility = Visibility.Collapsed;
-                        // Додаємо тільки "Рекомендовані товари" та "Найкращі пропозиції"
                         ContentPanel.Children.Add(new TextBlock
                         {
                             Text = "Рекомендовані товари",
@@ -351,7 +383,6 @@ namespace ElmirClone
                                               "LIMIT 5";
                         LoadProductsWithQuery(featuredQuery, new List<NpgsqlParameter>());
 
-                        // Додаємо блок "Найкращі пропозиції для вас"
                         LoadBestOffers();
                     }
                 }
@@ -535,7 +566,6 @@ namespace ElmirClone
             {
                 try
                 {
-                    // Очищаємо попередній блок "Найкращі пропозиції", якщо він існує
                     var existingHeader = ContentPanel.Children.OfType<StackPanel>()
                         .FirstOrDefault(sp => sp.Children.OfType<TextBlock>().Any(tb => tb.Text == "Найкращі пропозиції для вас"));
                     if (existingHeader != null)
@@ -549,7 +579,6 @@ namespace ElmirClone
                         }
                     }
 
-                    // Додаємо лише заголовок без кнопки "Оновити"
                     StackPanel headerPanel = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
@@ -564,7 +593,6 @@ namespace ElmirClone
                     });
                     ContentPanel.Children.Add(headerPanel);
 
-                    // Завантажуємо випадкові товари
                     string query = "SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description, p.stock_quantity " +
                                   "FROM products p " +
                                   "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
@@ -1060,7 +1088,10 @@ namespace ElmirClone
             if (Dispatcher.CheckAccess())
             {
                 CategoryPanel.Visibility = CategoryPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-                FilterPanel.Visibility = Visibility.Collapsed;
+                if (!selectedSubCategoryId.HasValue)
+                {
+                    FilterPanel.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
@@ -1084,6 +1115,15 @@ namespace ElmirClone
                 else
                 {
                     priceTo = null;
+                }
+
+                if (ReviewCountComboBox.SelectedItem is ComboBoxItem selectedItem && int.TryParse(selectedItem.Tag?.ToString(), out int reviewCount))
+                {
+                    minReviewCount = reviewCount;
+                }
+                else
+                {
+                    minReviewCount = null;
                 }
 
                 LoadProducts(subCategoryId: selectedSubCategoryId.Value);
@@ -1150,7 +1190,6 @@ namespace ElmirClone
             {
                 if (userProfile?.UserId is int buyerId && buyerId > 0)
                 {
-                    // Загрузка товаров из корзины из базы данных
                     List<ProductDetails> cartItems = LoadCartItemsFromDatabase(buyerId);
                     CartWindow cartWindow = new CartWindow(cartItems, userProfile, connectionString, this);
                     cartWindow.ShowDialog();
@@ -1162,7 +1201,6 @@ namespace ElmirClone
             }
         }
 
-        // Новый метод для загрузки товаров из корзины
         private List<ProductDetails> LoadCartItemsFromDatabase(int buyerId)
         {
             List<ProductDetails> cartItems = new List<ProductDetails>();
@@ -1231,34 +1269,22 @@ namespace ElmirClone
             {
                 try
                 {
-                    if (!(userProfile?.UserId is int userId) || userId <= 0)
-                    {
-                        MessageBox.Show("Необхідно авторизуватися.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
                         using (var command = new NpgsqlCommand(
-                            "UPDATE userdetails SET firstname = @firstname, middlename = @middlename, phone = @phone, email = @email WHERE userid = @userid", connection))
+                            "UPDATE userdetails SET firstname = @firstname, middlename = @middlename, phone = @phone, email = @email WHERE userid = @userId", connection))
                         {
-                            command.Parameters.AddWithValue("userid", userId);
-                            command.Parameters.AddWithValue("firstname", FirstNameTextBox.Text.Trim());
-                            command.Parameters.AddWithValue("middlename", MiddleNameTextBox.Text.Trim());
-                            command.Parameters.AddWithValue("phone", PhoneTextBox.Text.Trim());
-                            command.Parameters.AddWithValue("email", EmailTextBox.Text.Trim());
+                            command.Parameters.AddWithValue("firstname", userProfile.FirstName ?? (object)DBNull.Value);
+                            command.Parameters.AddWithValue("middlename", userProfile.MiddleName ?? (object)DBNull.Value);
+                            command.Parameters.AddWithValue("phone", userProfile.Phone ?? (object)DBNull.Value);
+                            command.Parameters.AddWithValue("email", userProfile.Email ?? (object)DBNull.Value);
+                            command.Parameters.AddWithValue("userId", userProfile.UserId == 0 ? (object)DBNull.Value : userProfile.UserId);
                             command.ExecuteNonQuery();
                         }
-
-                        userProfile.FirstName = FirstNameTextBox.Text.Trim();
-                        userProfile.MiddleName = MiddleNameTextBox.Text.Trim();
-                        userProfile.Phone = PhoneTextBox.Text.Trim();
-                        userProfile.Email = EmailTextBox.Text.Trim();
-
-                        MessageBox.Show("Профіль оновлено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
-                        CloseProfileButton_Click(sender, e);
                     }
+                    MessageBox.Show("Профіль успішно оновлено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ProfileBorder.Visibility = Visibility.Collapsed;
                 }
                 catch (Exception ex)
                 {
@@ -1271,12 +1297,137 @@ namespace ElmirClone
         {
             if (Dispatcher.CheckAccess())
             {
-                if (MessageBox.Show("Ви впевнені, що хочете вийти?", "Підтвердження", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                var result = MessageBox.Show("Ви впевнені, що хочете вийти?", "Підтвердження", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Yes)
                 {
-                    userProfile = null;
-                    CloseProfileButton_Click(sender, e);
-                    LoadProducts();
-                    MessageBox.Show("Ви вийшли з акаунта.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var loginWindow = new LoginWindow();
+                    loginWindow.Show();
+                    Close();
+                }
+            }
+        }
+
+        private void OrdersButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                if (userProfile?.UserId is int buyerId && buyerId > 0)
+                {
+                    try
+                    {
+                        List<OrderDetails> orders = new List<OrderDetails>();
+                        using (var connection = new NpgsqlConnection(connectionString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(
+                                "SELECT o.orderid, o.order_date, o.total_amount, o.status, p.name, oi.quantity, oi.price " +
+                                "FROM orders o " +
+                                "JOIN order_items oi ON o.orderid = oi.orderid " +
+                                "JOIN products p ON oi.productid = p.productid " +
+                                "WHERE o.buyerid = @buyerId " +
+                                "ORDER BY o.order_date DESC", connection))
+                            {
+                                command.Parameters.AddWithValue("buyerId", buyerId);
+                                using (var reader = command.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        orders.Add(new OrderDetails
+                                        {
+                                            OrderId = reader.GetInt32(0),
+                                            OrderDate = reader.GetDateTime(1),
+                                            TotalAmount = reader.GetDecimal(2),
+                                            Status = reader.GetString(3),
+                                            ProductName = reader.GetString(4),
+                                            Quantity = reader.GetInt32(5),
+                                            Price = reader.GetDecimal(6)
+                                        });
+                                    }
+                                }
+                            }
+                        }
+
+                        Window ordersWindow = new Window
+                        {
+                            Title = "Мої замовлення",
+                            Width = 800,
+                            Height = 600,
+                            WindowStartupLocation = WindowStartupLocation.CenterScreen
+                        };
+                        ScrollViewer scrollViewer = new ScrollViewer
+                        {
+                            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+                        };
+                        StackPanel ordersPanel = new StackPanel { Margin = new Thickness(10) };
+
+                        if (orders.Any())
+                        {
+                            var groupedOrders = orders.GroupBy(o => o.OrderId);
+                            foreach (var orderGroup in groupedOrders)
+                            {
+                                var firstOrder = orderGroup.First();
+                                StackPanel orderPanel = new StackPanel
+                                {
+                                    Margin = new Thickness(0, 0, 0, 20),
+                                    Background = Brushes.White,
+                                    Width = 740
+                                };
+                                orderPanel.Children.Add(new TextBlock
+                                {
+                                    Text = $"Замовлення #{firstOrder.OrderId} від {firstOrder.OrderDate:dd.MM.yyyy}",
+                                    FontSize = 16,
+                                    FontWeight = FontWeights.Bold,
+                                    Margin = new Thickness(10, 10, 0, 5)
+                                });
+                                orderPanel.Children.Add(new TextBlock
+                                {
+                                    Text = $"Статус: {firstOrder.Status}",
+                                    FontSize = 14,
+                                    Margin = new Thickness(10, 0, 0, 5)
+                                });
+                                orderPanel.Children.Add(new TextBlock
+                                {
+                                    Text = $"Загальна сума: {firstOrder.TotalAmount:F2} грн",
+                                    FontSize = 14,
+                                    Margin = new Thickness(10, 0, 0, 5)
+                                });
+
+                                foreach (var item in orderGroup)
+                                {
+                                    orderPanel.Children.Add(new TextBlock
+                                    {
+                                        Text = $"- {item.ProductName}: {item.Quantity} шт. x {item.Price:F2} грн",
+                                        FontSize = 14,
+                                        Margin = new Thickness(20, 0, 0, 5)
+                                    });
+                                }
+
+                                ordersPanel.Children.Add(orderPanel);
+                            }
+                        }
+                        else
+                        {
+                            ordersPanel.Children.Add(new TextBlock
+                            {
+                                Text = "Замовлення відсутні.",
+                                FontSize = 16,
+                                Margin = new Thickness(10),
+                                Foreground = Brushes.Gray
+                            });
+                        }
+
+                        scrollViewer.Content = ordersPanel;
+                        ordersWindow.Content = scrollViewer;
+                        ordersWindow.ShowDialog();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Помилка при завантаженні замовлень: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Необхідно авторизуватися для перегляду замовлень.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
         }
@@ -1288,6 +1439,7 @@ namespace ElmirClone
                 navigationIndex--;
                 var (category, categoryId, subCategoryId) = navigationHistory[navigationIndex];
                 LoadProducts(category, categoryId, subCategoryId, false);
+                UpdateNavigationButtons();
             }
         }
 
@@ -1298,17 +1450,7 @@ namespace ElmirClone
                 navigationIndex++;
                 var (category, categoryId, subCategoryId) = navigationHistory[navigationIndex];
                 LoadProducts(category, categoryId, subCategoryId, false);
-            }
-        }
-
-        private void Logo_Click(object sender, RoutedEventArgs e)
-        {
-            if (Dispatcher.CheckAccess())
-            {
-                navigationHistory.Clear();
-                navigationIndex = -1;
                 UpdateNavigationButtons();
-                LoadProducts();
             }
         }
 
@@ -1316,40 +1458,23 @@ namespace ElmirClone
         {
             if (Dispatcher.CheckAccess())
             {
-                // Скидаємо всі стани
-                selectedCategoryId = null;
-                selectedSubCategoryId = null;
-                selectedBrands.Clear();
-                priceFrom = null;
-                priceTo = null;
-                FilterPanel.Visibility = Visibility.Collapsed;
-                CategoryPanel.Visibility = Visibility.Collapsed;
-                SearchBox.Text = "Я шукаю...";
-                SearchBox.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7F8C8D"));
-
-                // Очищаємо історію навігації
-                navigationHistory.Clear();
-                navigationIndex = -1;
-                UpdateNavigationButtons();
-
-                // Завантажуємо головну сторінку заново
-                LoadProducts();
-            }
-        }
-
-        private void OrdersButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (Dispatcher.CheckAccess())
-            {
-                if (userProfile?.UserId is int buyerId && buyerId > 0)
+                if (navigationIndex >= 0 && navigationIndex < navigationHistory.Count)
                 {
-                    OrdersWindow ordersWindow = new OrdersWindow(userProfile);
-                    ordersWindow.ShowDialog();
+                    var (category, categoryId, subCategoryId) = navigationHistory[navigationIndex];
+                    LoadProducts(category, categoryId, subCategoryId, false);
                 }
                 else
                 {
-                    MessageBox.Show("Необхідно авторизуватися для перегляду замовлень.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    LoadProducts();
                 }
+            }
+        }
+
+        private void Logo_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                LoadProducts();
             }
         }
     }
@@ -1360,60 +1485,27 @@ namespace ElmirClone
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; }
-        public string Brand { get; set; }
-        public string CategoryName { get; set; }
         public string ImageUrl { get; set; }
         public double Rating { get; set; }
         public string StoreName { get; set; }
         public string StoreDescription { get; set; }
         public int StockQuantity { get; set; }
         public int Quantity { get; set; }
+        public string Brand { get; set; }
+        public string CategoryName { get; set; }
         public int ReviewCount { get; set; }
         public string SubcategoryName { get; internal set; }
         public bool IsHidden { get; internal set; }
     }
 
-    public class UserProfile : System.ComponentModel.INotifyPropertyChanged
+    public class OrderDetails
     {
-        private int userId;
-        private string firstName;
-        private string middleName;
-        private string phone;
-        private string email;
-
-        public int UserId
-        {
-            get => userId;
-            set { userId = value; OnPropertyChanged(nameof(UserId)); }
-        }
-        public string FirstName
-        {
-            get => firstName;
-            set { firstName = value; OnPropertyChanged(nameof(FirstName)); }
-        }
-        public string MiddleName
-        {
-            get => middleName;
-            set { middleName = value; OnPropertyChanged(nameof(MiddleName)); }
-        }
-        public string Phone
-        {
-            get => phone;
-            set { phone = value; OnPropertyChanged(nameof(Phone)); }
-        }
-        public string Email
-        {
-            get => email;
-            set { email = value; OnPropertyChanged(nameof(Email)); }
-        }
-
-        public object Balance { get; internal set; }
-        public string? LastName { get; internal set; }
-
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-        }
+        public int OrderId { get; set; }
+        public DateTime OrderDate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; }
+        public string ProductName { get; set; }
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
     }
 }
