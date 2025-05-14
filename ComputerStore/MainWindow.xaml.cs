@@ -43,7 +43,6 @@ namespace ElmirClone
             DataContext = userProfile;
             LoadCategories();
             LoadProducts();
-            LoadFeaturedProducts();
             UpdateNavigationButtons();
         }
 
@@ -335,66 +334,25 @@ namespace ElmirClone
                     else
                     {
                         FilterPanel.Visibility = Visibility.Collapsed;
-                        using (var connection = new NpgsqlConnection(connectionString))
+                        // Додаємо тільки "Рекомендовані товари" та "Найкращі пропозиції"
+                        ContentPanel.Children.Add(new TextBlock
                         {
-                            connection.Open();
-                            var categories = new Dictionary<int, (string Name, List<(int SubCategoryId, string SubCategoryName)> SubCategories)>();
-                            using (var catCommand = new NpgsqlCommand("SELECT categoryid, name FROM categories WHERE parentcategoryid IS NULL", connection))
-                            {
-                                using (var reader = catCommand.ExecuteReader())
-                                {
-                                    while (reader.Read())
-                                    {
-                                        int catId = reader.GetInt32(0);
-                                        string catName = reader.GetString(1);
-                                        categories[catId] = (catName, new List<(int, string)>());
-                                    }
-                                }
-                            }
+                            Text = "Рекомендовані товари",
+                            FontSize = 20,
+                            FontWeight = FontWeights.Bold,
+                            Margin = new Thickness(10, 20, 10, 10)
+                        });
 
-                            foreach (var catId in categories.Keys.ToList())
-                            {
-                                using (var subCatCommand = new NpgsqlCommand("SELECT categoryid, name FROM categories WHERE parentcategoryid = @parentId", connection))
-                                {
-                                    subCatCommand.Parameters.AddWithValue("parentId", catId);
-                                    using (var reader = subCatCommand.ExecuteReader())
-                                    {
-                                        while (reader.Read())
-                                        {
-                                            int subCatId = reader.GetInt32(0);
-                                            string subCatName = reader.GetString(1);
-                                            categories[catId].SubCategories.Add((subCatId, subCatName));
-                                        }
-                                    }
-                                }
-                            }
+                        string featuredQuery = "SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description, p.stock_quantity " +
+                                              "FROM products p " +
+                                              "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
+                                              "WHERE p.ishidden = false " +
+                                              "ORDER BY p.rating DESC " +
+                                              "LIMIT 5";
+                        LoadProductsWithQuery(featuredQuery, new List<NpgsqlParameter>());
 
-                            foreach (var catEntry in categories)
-                            {
-                                int catId = catEntry.Key;
-                                string catName = catEntry.Value.Name;
-                                var subCategories = catEntry.Value.SubCategories;
-
-                                TextBlock categoryHeader = new TextBlock
-                                {
-                                    Text = catName,
-                                    FontSize = 20,
-                                    FontWeight = FontWeights.Bold,
-                                    Margin = new Thickness(10, 20, 10, 10)
-                                };
-                                ContentPanel.Children.Add(categoryHeader);
-
-                                string catQuery = "SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description, p.stock_quantity " +
-                                                 "FROM products p " +
-                                                 "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
-                                                 "WHERE p.categoryid = @categoryId AND p.subcategoryid IS NULL AND p.ishidden = false LIMIT 5";
-                                var catParams = new List<NpgsqlParameter>
-                                {
-                                    new NpgsqlParameter("categoryId", catId)
-                                };
-                                LoadProductsWithQuery(catQuery, catParams);
-                            }
-                        }
+                        // Додаємо блок "Найкращі пропозиції для вас"
+                        LoadBestOffers();
                     }
                 }
                 catch (Exception ex)
@@ -571,31 +529,63 @@ namespace ElmirClone
             }
         }
 
-        private void LoadFeaturedProducts()
+        private void LoadBestOffers()
         {
             if (Dispatcher.CheckAccess())
             {
                 try
                 {
-                    ContentPanel.Children.Add(new TextBlock
+                    // Очищаємо попередній блок "Найкращі пропозиції", якщо він існує
+                    var existingHeader = ContentPanel.Children.OfType<StackPanel>()
+                        .FirstOrDefault(sp => sp.Children.OfType<TextBlock>().Any(tb => tb.Text == "Найкращі пропозиції для вас"));
+                    if (existingHeader != null)
                     {
-                        Text = "Рекомендовані товари",
+                        ContentPanel.Children.Remove(existingHeader);
+                        var nextPanel = ContentPanel.Children.OfType<WrapPanel>()
+                            .FirstOrDefault(wp => ContentPanel.Children.IndexOf(wp) > ContentPanel.Children.IndexOf(existingHeader));
+                        if (nextPanel != null)
+                        {
+                            ContentPanel.Children.Remove(nextPanel);
+                        }
+                    }
+
+                    // Додаємо заголовок і кнопку оновлення
+                    StackPanel headerPanel = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Margin = new Thickness(10, 20, 10, 10)
+                    };
+                    headerPanel.Children.Add(new TextBlock
+                    {
+                        Text = "Найкращі пропозиції для вас",
                         FontSize = 20,
                         FontWeight = FontWeights.Bold,
-                        Margin = new Thickness(10, 20, 10, 10)
+                        Margin = new Thickness(0, 0, 10, 0)
                     });
+                    Button refreshButton = new Button
+                    {
+                        Content = "Оновити",
+                        Style = (Style)FindResource("ActionButtonStyle"),
+                        Width = 120,
+                        Height = 35,
+                        FontSize = 14
+                    };
+                    refreshButton.Click += (s, e) => LoadBestOffers();
+                    headerPanel.Children.Add(refreshButton);
+                    ContentPanel.Children.Add(headerPanel);
 
+                    // Завантажуємо випадкові товари
                     string query = "SELECT p.productid, p.name, p.price, p.image_url, p.rating, s.storename, s.description AS store_description, p.stock_quantity " +
                                   "FROM products p " +
                                   "JOIN sellerprofiles s ON p.sellerid = s.sellerid " +
                                   "WHERE p.ishidden = false " +
-                                  "ORDER BY p.rating DESC " +
+                                  "ORDER BY RANDOM() " +
                                   "LIMIT 5";
                     LoadProductsWithQuery(query, new List<NpgsqlParameter>());
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Помилка при завантаженні рекомендованих товарів: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Помилка при завантаженні найкращих пропозицій: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
