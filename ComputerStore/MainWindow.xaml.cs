@@ -56,15 +56,12 @@ namespace ElmirClone
             {
                 if (CategoryPanel.Visibility == Visibility.Visible)
                 {
-                    // Обчислюємо висоту CategoryPanel
                     CategoryPanel.UpdateLayout();
                     double categoryPanelHeight = CategoryListPanel.ActualHeight + CategoryListPanel.Margin.Top + CategoryListPanel.Margin.Bottom;
-                    // Зміщуємо FilterPanel вниз із невеликим фіксованим відступом (наприклад, 5 пікселів)
                     FilterPanel.Margin = new Thickness(10, categoryPanelHeight + 5, 10, 10);
                 }
                 else
                 {
-                    // Повертаємо початковий Margin
                     FilterPanel.Margin = new Thickness(10);
                 }
             }
@@ -449,9 +446,13 @@ namespace ElmirClone
                                         BorderThickness = new Thickness(1),
                                         Margin = new Thickness(10),
                                         Width = 200,
-                                        Height = 475,
-                                        Style = (Style)FindResource("SubCategoryBorderStyle")
+                                        Height = 425,
+                                        Style = (Style)FindResource("SubCategoryBorderStyle"),
+                                        Cursor = Cursors.Hand,
+                                        Tag = product.ProductId
                                     };
+                                    productBorder.MouseLeftButtonDown += ProductBorder_MouseLeftButtonDown;
+
                                     StackPanel productPanel = new StackPanel
                                     {
                                         Background = Brushes.White,
@@ -512,15 +513,6 @@ namespace ElmirClone
                                         TextAlignment = TextAlignment.Center
                                     };
                                     productPanel.Children.Add(priceText);
-                                    Button viewProductButton = new Button
-                                    {
-                                        Content = "Переглянути",
-                                        Style = (Style)FindResource("AddToCartButtonStyle"),
-                                        Tag = product.ProductId,
-                                        Margin = new Thickness(5)
-                                    };
-                                    viewProductButton.Click += ViewProduct_Click;
-                                    productPanel.Children.Add(viewProductButton);
                                     Button addToCartButton = new Button
                                     {
                                         Content = "Додати до кошика",
@@ -557,6 +549,14 @@ namespace ElmirClone
                 {
                     MessageBox.Show($"Помилка при завантаженні товарів: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private void ProductBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.Tag is int productId)
+            {
+                ViewProduct_Click(sender, e, productId);
             }
         }
 
@@ -658,9 +658,9 @@ namespace ElmirClone
             }
         }
 
-        private void ViewProduct_Click(object sender, RoutedEventArgs e)
+        private void ViewProduct_Click(object sender, RoutedEventArgs e, int productId)
         {
-            if (Dispatcher.CheckAccess() && (sender as Button)?.Tag is int productId)
+            if (Dispatcher.CheckAccess() && productId > 0)
             {
                 try
                 {
