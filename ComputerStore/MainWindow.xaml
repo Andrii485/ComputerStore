@@ -461,37 +461,39 @@
 
         <!-- Бічна панель із категоріями та фільтрами -->
         <Border Grid.Row="2" Grid.Column="0" Background="#ECF0F1" Margin="5" CornerRadius="10">
-            <StackPanel>
-                <Button x:Name="CategoryToggleButton" Click="CategoryToggleButton_Click" Style="{StaticResource CategoryToggleButtonStyle}"/>
-                <StackPanel x:Name="CategoryPanel" Margin="10" Visibility="Collapsed">
-                    <StackPanel x:Name="CategoryListPanel" Margin="0"/>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Button x:Name="CategoryToggleButton" Click="CategoryToggleButton_Click" Style="{StaticResource CategoryToggleButtonStyle}"/>
+                    <StackPanel x:Name="CategoryPanel" Margin="10" Visibility="Collapsed">
+                        <StackPanel x:Name="CategoryListPanel" Margin="0"/>
+                    </StackPanel>
+                    <StackPanel x:Name="FilterPanel" Margin="10" Visibility="Collapsed">
+                        <TextBlock Text="Фільтри" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,15" Foreground="#2C3E50"/>
+                        <TextBlock Text="Бренди" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
+                        <StackPanel x:Name="BrandsPanel" Margin="0,0,0,15"/>
+                        <TextBlock Text="Ціна" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="Від:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
+                            <TextBox x:Name="PriceFromTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                            <TextBlock Text="До:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
+                            <TextBox x:Name="PriceToTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
+                        </StackPanel>
+                        <TextBlock Text="Кількість відгуків" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                            <TextBlock Text="Мінімум:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
+                            <ComboBox x:Name="ReviewCountComboBox" Style="{StaticResource ReviewFilterComboBoxStyle}">
+                                <ComboBoxItem Content="0+" Tag="0"/>
+                                <ComboBoxItem Content="10+" Tag="10"/>
+                                <ComboBoxItem Content="50+" Tag="50"/>
+                                <ComboBoxItem Content="100+" Tag="100"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <Button x:Name="ApplyFiltersButton" Content="Застосувати фільтри" Click="ApplyFiltersButton_Click" Style="{StaticResource ActionButtonStyle}"/>
+                    </StackPanel>
                 </StackPanel>
-                <StackPanel x:Name="FilterPanel" Margin="10" Visibility="Collapsed">
-                    <TextBlock Text="Фільтри" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,15" Foreground="#2C3E50"/>
-                    <TextBlock Text="Бренди" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
-                    <StackPanel x:Name="BrandsPanel" Margin="0,0,0,15"/>
-                    <TextBlock Text="Ціна" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="Від:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
-                        <TextBox x:Name="PriceFromTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                        <TextBlock Text="До:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
-                        <TextBox x:Name="PriceToTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
-                    </StackPanel>
-                    <TextBlock Text="Кількість відгуків" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                        <TextBlock Text="Мінімум:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
-                        <ComboBox x:Name="ReviewCountComboBox" Style="{StaticResource ReviewFilterComboBoxStyle}">
-                            <ComboBoxItem Content="0+" Tag="0"/>
-                            <ComboBoxItem Content="10+" Tag="10"/>
-                            <ComboBoxItem Content="50+" Tag="50"/>
-                            <ComboBoxItem Content="100+" Tag="100"/>
-                        </ComboBox>
-                    </StackPanel>
-                    <Button x:Name="ApplyFiltersButton" Content="Застосувати фільтри" Click="ApplyFiltersButton_Click" Style="{StaticResource ActionButtonStyle}"/>
-                </StackPanel>
-            </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <!-- Основний вміст -->

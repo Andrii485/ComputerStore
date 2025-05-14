@@ -449,7 +449,7 @@ namespace ElmirClone
                                         BorderThickness = new Thickness(1),
                                         Margin = new Thickness(10),
                                         Width = 200,
-                                        Height = 450,
+                                        Height = 475,
                                         Style = (Style)FindResource("SubCategoryBorderStyle")
                                     };
                                     StackPanel productPanel = new StackPanel
