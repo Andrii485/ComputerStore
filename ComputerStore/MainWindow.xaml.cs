@@ -403,15 +403,15 @@ namespace ElmirClone
                                     int reviewCount = GetReviewCount(reader.GetInt32(0));
                                     products.Add(new ProductDetails
                                     {
-                                        ProductId = reader.GetInt32(0),
-                                        Name = reader.GetString(1),
-                                        Price = reader.GetDecimal(2),
-                                        ImageUrl = imageUrl,
-                                        Rating = reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
-                                        StoreName = reader.IsDBNull(5) ? "Невідомий магазин" : reader.GetString(5),
-                                        StoreDescription = reader.IsDBNull(6) ? "Немає опису" : reader.GetString(6),
-                                        StockQuantity = reader.GetInt32(7),
-                                        ReviewCount = reviewCount
+                                        ProductId1 = reader.GetInt32(0),
+                                        Name1 = reader.GetString(1),
+                                        Price1 = reader.GetDecimal(2),
+                                        ImageUrl1 = imageUrl,
+                                        Rating1 = reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
+                                        StoreName1 = reader.IsDBNull(5) ? "Невідомий магазин" : reader.GetString(5),
+                                        StoreDescription1 = reader.IsDBNull(6) ? "Немає опису" : reader.GetString(6),
+                                        StockQuantity1 = reader.GetInt32(7),
+                                        ReviewCount1 = reviewCount
                                     });
                                 }
 
@@ -432,7 +432,7 @@ namespace ElmirClone
                                         Height = 440,
                                         Style = (Style)FindResource("SubCategoryBorderStyle"),
                                         Cursor = Cursors.Hand,
-                                        Tag = product.ProductId
+                                        Tag = product.ProductId1
                                     };
                                     productBorder.MouseLeftButtonDown += ProductBorder_MouseLeftButtonDown;
 
@@ -443,7 +443,7 @@ namespace ElmirClone
                                     };
                                     Image productImage = new Image
                                     {
-                                        Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl, UriKind.RelativeOrAbsolute)),
+                                        Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl1, UriKind.RelativeOrAbsolute)),
                                         Width = 200,
                                         Height = 205,
                                         Stretch = Stretch.Uniform,
@@ -454,21 +454,21 @@ namespace ElmirClone
 
                                     TextBlock productName = new TextBlock
                                     {
-                                        Text = product.Name,
+                                        Text = product.Name1,
                                         TextAlignment = TextAlignment.Center,
                                         TextWrapping = TextWrapping.Wrap,
                                         Height = 50,
                                         Margin = new Thickness(5),
                                         TextTrimming = TextTrimming.CharacterEllipsis
                                     };
-                                    double fontSize = Math.Max(10, 16 - (product.Name.Length - 20) * 0.2);
+                                    double fontSize = Math.Max(10, 16 - (product.Name1.Length - 20) * 0.2);
                                     productName.FontSize = Math.Min(16, Math.Max(10, fontSize));
                                     productName.FontWeight = FontWeights.Medium;
                                     productPanel.Children.Add(productName);
 
                                     TextBlock reviewCountText = new TextBlock
                                     {
-                                        Text = $"({product.ReviewCount} відгуків)",
+                                        Text = $"({product.ReviewCount1} відгуків)",
                                         FontSize = 14,
                                         Margin = new Thickness(5),
                                         TextAlignment = TextAlignment.Center,
@@ -478,17 +478,17 @@ namespace ElmirClone
 
                                     TextBlock stockText = new TextBlock
                                     {
-                                        Text = product.StockQuantity > 0 ? $"В наявності: {product.StockQuantity} шт." : "Немає в наявності",
+                                        Text = product.StockQuantity1 > 0 ? $"В наявності: {product.StockQuantity1} шт." : "Немає в наявності",
                                         FontSize = 14,
                                         Margin = new Thickness(5),
                                         TextAlignment = TextAlignment.Center,
-                                        Foreground = product.StockQuantity > 0 ? Brushes.Green : Brushes.Red
+                                        Foreground = product.StockQuantity1 > 0 ? Brushes.Green : Brushes.Red
                                     };
                                     productPanel.Children.Add(stockText);
 
                                     TextBlock priceText = new TextBlock
                                     {
-                                        Text = $"{product.Price:F2} грн",
+                                        Text = $"{product.Price1:F2} грн",
                                         FontSize = 16,
                                         FontWeight = FontWeights.Bold,
                                         Margin = new Thickness(5),
@@ -500,9 +500,9 @@ namespace ElmirClone
                                     {
                                         Content = "Додати до кошика",
                                         Style = (Style)FindResource("AddToCartButtonStyle"),
-                                        Tag = product.ProductId,
+                                        Tag = product.ProductId1,
                                         Margin = new Thickness(5),
-                                        IsEnabled = product.StockQuantity > 0
+                                        IsEnabled = product.StockQuantity1 > 0
                                     };
                                     addToCartButton.Click += AddToCart_Click;
                                     productPanel.Children.Add(addToCartButton);
@@ -673,16 +673,16 @@ namespace ElmirClone
 
                                     var product = new ProductDetails
                                     {
-                                        ProductId = reader.GetInt32(0),
-                                        Name = reader.GetString(1),
-                                        Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                        Price = reader.GetDecimal(3),
-                                        Brand = reader.GetString(4),
-                                        CategoryName = reader.GetString(5),
-                                        ImageUrl = imageUrl,
-                                        StoreName = reader.GetString(7),
-                                        StoreDescription = reader.IsDBNull(8) ? "Немає опису" : reader.GetString(8),
-                                        StockQuantity = reader.GetInt32(9)
+                                        ProductId1 = reader.GetInt32(0),
+                                        Name1 = reader.GetString(1),
+                                        Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                        Price1 = reader.GetDecimal(3),
+                                        Brand1 = reader.GetString(4),
+                                        CategoryName1 = reader.GetString(5),
+                                        ImageUrl1 = imageUrl,
+                                        StoreName1 = reader.GetString(7),
+                                        StoreDescription1 = reader.IsDBNull(8) ? "Немає опису" : reader.GetString(8),
+                                        StockQuantity1 = reader.GetInt32(9)
                                     };
 
                                     ContentPanel.Children.Clear();
@@ -714,7 +714,7 @@ namespace ElmirClone
                                     };
                                     Image productImage = new Image
                                     {
-                                        Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl, UriKind.RelativeOrAbsolute)),
+                                        Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl1, UriKind.RelativeOrAbsolute)),
                                         Width = 400,
                                         Height = 400,
                                         Stretch = Stretch.Uniform,
@@ -725,7 +725,7 @@ namespace ElmirClone
 
                                     TextBlock titleText = new TextBlock
                                     {
-                                        Text = product.Name,
+                                        Text = product.Name1,
                                         FontSize = 24,
                                         FontWeight = FontWeights.Bold,
                                         Foreground = Brushes.DarkBlue,
@@ -745,7 +745,7 @@ namespace ElmirClone
                                     infoGrid.RowDefinitions.Add(new RowDefinition());
 
                                     TextBlock categoryLabel = new TextBlock { Text = "Категорія:", FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = Brushes.DarkSlateGray, Margin = new Thickness(0, 0, 10, 0) };
-                                    TextBlock categoryValue = new TextBlock { Text = product.CategoryName, FontSize = 16, Foreground = Brushes.Black };
+                                    TextBlock categoryValue = new TextBlock { Text = product.CategoryName1, FontSize = 16, Foreground = Brushes.Black };
                                     Grid.SetRow(categoryLabel, 0);
                                     Grid.SetColumn(categoryLabel, 0);
                                     Grid.SetRow(categoryValue, 0);
@@ -754,7 +754,7 @@ namespace ElmirClone
                                     infoGrid.Children.Add(categoryValue);
 
                                     TextBlock brandLabel = new TextBlock { Text = "Бренд:", FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = Brushes.DarkSlateGray, Margin = new Thickness(0, 10, 10, 0) };
-                                    TextBlock brandValue = new TextBlock { Text = product.Brand, FontSize = 16, Foreground = Brushes.Black };
+                                    TextBlock brandValue = new TextBlock { Text = product.Brand1, FontSize = 16, Foreground = Brushes.Black };
                                     Grid.SetRow(brandLabel, 1);
                                     Grid.SetColumn(brandLabel, 0);
                                     Grid.SetRow(brandValue, 1);
@@ -763,7 +763,7 @@ namespace ElmirClone
                                     infoGrid.Children.Add(brandValue);
 
                                     TextBlock priceLabel = new TextBlock { Text = "Ціна:", FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = Brushes.DarkSlateGray, Margin = new Thickness(0, 10, 10, 0) };
-                                    TextBlock priceValue = new TextBlock { Text = $"{product.Price:F2} грн", FontSize = 16, Foreground = Brushes.Red, FontWeight = FontWeights.Bold };
+                                    TextBlock priceValue = new TextBlock { Text = $"{product.Price1:F2} грн", FontSize = 16, Foreground = Brushes.Red, FontWeight = FontWeights.Bold };
                                     Grid.SetRow(priceLabel, 2);
                                     Grid.SetColumn(priceLabel, 0);
                                     Grid.SetRow(priceValue, 2);
@@ -775,9 +775,9 @@ namespace ElmirClone
 
                                     TextBlock stockText = new TextBlock
                                     {
-                                        Text = product.StockQuantity > 0 ? $"В наявності: {product.StockQuantity} шт." : "Немає в наявності",
+                                        Text = product.StockQuantity1 > 0 ? $"В наявності: {product.StockQuantity1} шт." : "Немає в наявності",
                                         FontSize = 16,
-                                        Foreground = product.StockQuantity > 0 ? Brushes.Green : Brushes.Red,
+                                        Foreground = product.StockQuantity1 > 0 ? Brushes.Green : Brushes.Red,
                                         TextAlignment = TextAlignment.Center,
                                         Margin = new Thickness(0, 0, 0, 20)
                                     };
@@ -787,9 +787,9 @@ namespace ElmirClone
                                     {
                                         Content = "Додати до кошика",
                                         Style = (Style)FindResource("AddToCartButtonStyle"),
-                                        Tag = product.ProductId,
+                                        Tag = product.ProductId1,
                                         Margin = new Thickness(0, 0, 0, 20),
-                                        IsEnabled = product.StockQuantity > 0,
+                                        IsEnabled = product.StockQuantity1 > 0,
                                         HorizontalAlignment = HorizontalAlignment.Center
                                     };
                                     addToCartButton.Click += AddToCart_Click;
@@ -805,7 +805,7 @@ namespace ElmirClone
                                     };
                                     TextBlock descriptionText = new TextBlock
                                     {
-                                        Text = product.Description,
+                                        Text = product.Description1,
                                         FontSize = 14,
                                         TextWrapping = TextWrapping.Wrap,
                                         Margin = new Thickness(10),
@@ -826,8 +826,8 @@ namespace ElmirClone
                                     {
                                         Margin = new Thickness(10)
                                     };
-                                    storePanel.Children.Add(new TextBlock { Text = $"Магазин: {product.StoreName}", FontSize = 14, FontWeight = FontWeights.Medium, Foreground = Brushes.Black });
-                                    storePanel.Children.Add(new TextBlock { Text = product.StoreDescription, FontSize = 14, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 0), Foreground = Brushes.Gray });
+                                    storePanel.Children.Add(new TextBlock { Text = $"Магазин: {product.StoreName1}", FontSize = 14, FontWeight = FontWeights.Medium, Foreground = Brushes.Black });
+                                    storePanel.Children.Add(new TextBlock { Text = product.StoreDescription1, FontSize = 14, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 0), Foreground = Brushes.Gray });
                                     storeExpander.Content = storePanel;
                                     productDetailsPanel.Children.Add(storeExpander);
 
@@ -840,7 +840,7 @@ namespace ElmirClone
                                         Margin = new Thickness(0, 0, 0, 15)
                                     };
                                     ListBox reviewsList = new ListBox { Height = 150, Margin = new Thickness(10), FontSize = 14 };
-                                    LoadReviews(product.ProductId, reviewsList);
+                                    LoadReviews(product.ProductId1, reviewsList);
                                     reviewsExpander.Content = reviewsList;
                                     productDetailsPanel.Children.Add(reviewsExpander);
 
@@ -872,8 +872,8 @@ namespace ElmirClone
                                     {
                                         if (userProfile?.UserId != null && !string.IsNullOrWhiteSpace(reviewTextBox.Text) && reviewTextBox.Text != "Ваш відгук...")
                                         {
-                                            SaveReview(product.ProductId, ((int?)userProfile.UserId).Value, reviewTextBox.Text);
-                                            LoadReviews(product.ProductId, reviewsList);
+                                            SaveReview(product.ProductId1, ((int?)userProfile.UserId).Value, reviewTextBox.Text);
+                                            LoadReviews(product.ProductId1, reviewsList);
                                             reviewTextBox.Text = "Ваш відгук...";
                                         }
                                         else
@@ -1160,10 +1160,10 @@ namespace ElmirClone
                                 {
                                     product = new ProductDetails
                                     {
-                                        ProductId = productId,
-                                        Name = reader.GetString(0),
-                                        StockQuantity = reader.GetInt32(1),
-                                        Price = reader.GetDecimal(2)
+                                        ProductId1 = productId,
+                                        Name1 = reader.GetString(0),
+                                        StockQuantity1 = reader.GetInt32(1),
+                                        Price1 = reader.GetDecimal(2)
                                     };
                                 }
                             }
@@ -1175,9 +1175,9 @@ namespace ElmirClone
                             return;
                         }
 
-                        if (product.StockQuantity <= 0)
+                        if (product.StockQuantity1 <= 0)
                         {
-                            MessageBox.Show($"Товар {product.Name} відсутній у наявності.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show($"Товар {product.Name1} відсутній у наявності.", "Попередження", MessageBoxButton.OK, MessageBoxImage.Warning);
                             return;
                         }
 
@@ -1198,9 +1198,9 @@ namespace ElmirClone
 
                         int newQuantity = currentQuantity > 0 ? currentQuantity + quantity : quantity;
 
-                        if (newQuantity > product.StockQuantity)
+                        if (newQuantity > product.StockQuantity1)
                         {
-                            MessageBox.Show($"Загальна кількість у кошику ({newQuantity}) перевищує доступну ({product.StockQuantity}).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show($"Загальна кількість у кошику ({newQuantity}) перевищує доступну ({product.StockQuantity1}).", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
 
@@ -1214,7 +1214,7 @@ namespace ElmirClone
                                 updateCommand.Parameters.AddWithValue("productid", productId);
                                 updateCommand.ExecuteNonQuery();
                             }
-                            MessageBox.Show($"Кількість товару {product.Name} у кошику оновлено! (Кількість: {newQuantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Кількість товару {product.Name1} у кошику оновлено! (Кількість: {newQuantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
                         {
@@ -1226,7 +1226,7 @@ namespace ElmirClone
                                 insertCommand.Parameters.AddWithValue("quantity", quantity);
                                 insertCommand.ExecuteNonQuery();
                             }
-                            MessageBox.Show($"Товар {product.Name} додано до кошика! (Кількість: {quantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Товар {product.Name1} додано до кошика! (Кількість: {quantity})", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                     }
                 }
@@ -1385,11 +1385,11 @@ namespace ElmirClone
 
                                 cartItems.Add(new ProductDetails
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Price = reader.GetDecimal(2),
-                                    ImageUrl = imageUrl,
-                                    StockQuantity = reader.GetInt32(4),
+                                    ProductId1 = reader.GetInt32(0),
+                                    Name1 = reader.GetString(1),
+                                    Price1 = reader.GetDecimal(2),
+                                    ImageUrl1 = imageUrl,
+                                    StockQuantity1 = reader.GetInt32(4),
                                     Quantity = reader.GetInt32(5)
                                 });
                             }
@@ -1565,6 +1565,20 @@ namespace ElmirClone
         public int ReviewCount { get; set; }
         public string SubcategoryName { get; internal set; }
         public bool IsHidden { get; internal set; }
+        public bool IsHidden1 { get; internal set; }
+        public string ImageUrl1 { get; internal set; }
+        public string SubcategoryName1 { get; internal set; }
+        public string CategoryName1 { get; internal set; }
+        public decimal Price1 { get; internal set; }
+        public string Description1 { get; internal set; }
+        public int ProductId1 { get; internal set; }
+        public string Brand1 { get; internal set; }
+        public string Name1 { get; internal set; }
+        public double Rating1 { get; internal set; }
+        public int ReviewCount1 { get; internal set; }
+        public int StockQuantity1 { get; internal set; }
+        public string StoreDescription1 { get; internal set; }
+        public string StoreName1 { get; internal set; }
     }
 
     public class UserProfile : System.ComponentModel.INotifyPropertyChanged

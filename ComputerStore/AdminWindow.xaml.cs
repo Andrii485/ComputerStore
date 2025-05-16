@@ -458,15 +458,15 @@ namespace ElmirClone
                                 {
                                     ((List<ProductDetails>)category.Products).Add(new ProductDetails
                                     {
-                                        ProductId = productReader.GetInt32(0),
-                                        Name = productReader.GetString(1),
-                                        Description = productReader.IsDBNull(2) ? "" : productReader.GetString(2),
-                                        Price = productReader.GetDecimal(3),
-                                        Brand = productReader.GetString(4),
-                                        CategoryName = productReader.GetString(5),
-                                        SubcategoryName = productReader.IsDBNull(6) ? "Не вказано" : productReader.GetString(6),
-                                        ImageUrl = productReader.IsDBNull(7) ? "https://via.placeholder.com/150" : productReader.GetString(7),
-                                        IsHidden = productReader.GetBoolean(8)
+                                        ProductId1 = productReader.GetInt32(0),
+                                        Name1 = productReader.GetString(1),
+                                        Description1 = productReader.IsDBNull(2) ? "" : productReader.GetString(2),
+                                        Price1 = productReader.GetDecimal(3),
+                                        Brand1 = productReader.GetString(4),
+                                        CategoryName1 = productReader.GetString(5),
+                                        SubcategoryName1 = productReader.IsDBNull(6) ? "Не вказано" : productReader.GetString(6),
+                                        ImageUrl1 = productReader.IsDBNull(7) ? "https://via.placeholder.com/150" : productReader.GetString(7),
+                                        IsHidden1 = productReader.GetBoolean(8)
                                     });
                                 }
                             }
@@ -643,15 +643,15 @@ namespace ElmirClone
                             {
                                 products.Add(new ProductDetails
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price = reader.GetDecimal(3),
-                                    Brand = reader.GetString(4),
-                                    CategoryName = reader.GetString(5),
-                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
-                                    IsHidden = reader.GetBoolean(8)
+                                    ProductId1 = reader.GetInt32(0),
+                                    Name1 = reader.GetString(1),
+                                    Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price1 = reader.GetDecimal(3),
+                                    Brand1 = reader.GetString(4),
+                                    CategoryName1 = reader.GetString(5),
+                                    SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl1 = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
+                                    IsHidden1 = reader.GetBoolean(8)
                                 });
                             }
                             if (ProductsList != null)
@@ -703,15 +703,15 @@ namespace ElmirClone
                             {
                                 products.Add(new ProductDetails
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    Name = reader.GetString(1),
-                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price = reader.GetDecimal(3),
-                                    Brand = reader.GetString(4),
-                                    CategoryName = reader.GetString(5),
-                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
-                                    IsHidden = reader.GetBoolean(8)
+                                    ProductId1 = reader.GetInt32(0),
+                                    Name1 = reader.GetString(1),
+                                    Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price1 = reader.GetDecimal(3),
+                                    Brand1 = reader.GetString(4),
+                                    CategoryName1 = reader.GetString(5),
+                                    SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl1 = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
+                                    IsHidden1 = reader.GetBoolean(8)
                                 });
                             }
                             if (ProductsList != null)
