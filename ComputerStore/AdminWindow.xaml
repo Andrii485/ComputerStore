@@ -291,45 +291,45 @@
                                 <GridViewColumn Header="Category" DisplayMemberBinding="{Binding CategoryName}" Width="120"/>
                                 <GridViewColumn Header="Subcategory" DisplayMemberBinding="{Binding SubcategoryName}" Width="120"/>
                                 <GridViewColumn Header="Status" DisplayMemberBinding="{Binding IsHidden, Converter={StaticResource BooleanToHiddenConverter}}" Width="80"/>
-                                <GridViewColumn Header="Actions" Width="100">
+                                <GridViewColumn Header="Actions" Width="200">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Content="{Binding IsHidden, Converter={StaticResource BooleanToHideButtonConverter}}" Tag="{Binding ProductId}" Click="ToggleProductVisibility_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="{Binding IsHidden, Converter={StaticResource BooleanToHideButtonConverter}}" Tag="{Binding ProductId}" Click="ToggleProductVisibility_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                                                <Button Content="Delete" Tag="{Binding ProductId}" Click="DeleteCategory_Click" Style="{StaticResource DangerButtonStyle}" Width="80"/>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
                             </GridView>
                         </ListView.View>
                     </ListView>
-                    <TextBlock Text="Категорії" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
-                    <DockPanel Margin="10,0,10,10">
-                        <TextBox x:Name="SearchCategoryName" Style="{StaticResource ModernInputStyle}" Text="Пошук за назвою категорії" DockPanel.Dock="Left" TextChanged="SearchCategoryName_TextChanged"/>
-                        <Button x:Name="ClearCategorySearch" Content="Очистити" Click="ClearCategorySearch_Click" Style="{StaticResource ModernButtonStyle}" DockPanel.Dock="Right" Width="80"/>
-                    </DockPanel>
-                    <TreeView x:Name="CategoriesTree" Margin="10,0,10,10" MaxHeight="200" Style="{StaticResource ModernTreeViewStyle}">
+                    <TextBlock Text="Додати нову категорію" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
+                    <WrapPanel Margin="10,0,10,10">
+                        <TextBox x:Name="NewCategoryName" Style="{StaticResource ModernInputStyle}" Text="Назва категорії"/>
+                        <ComboBox x:Name="ParentCategory" Style="{StaticResource ModernComboBoxStyle}"/>
+                        <TextBox x:Name="ImagePathTextBox" Style="{StaticResource ModernInputStyle}" IsReadOnly="True"/>
+                        <Button Content="Оберіть зображення" Click="SelectImage_Click" Style="{StaticResource ModernButtonStyle}" Width="120"/>
+                        <Button Content="Додати" Click="AddCategory_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                    </WrapPanel>
+                    <TreeView x:Name="CategoriesTree" Margin="10,0,10,10" Style="{StaticResource ModernTreeViewStyle}" MaxHeight="200">
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Subcategories}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" Margin="5,0"/>
-                                    <TextBlock Text=" (" FontSize="12" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding ParentCategoryName}" FontSize="12" VerticalAlignment="Center"/>
-                                    <TextBlock Text=")" FontSize="12" VerticalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0">
-                                        <Button Content="Edit" Tag="{Binding CategoryId}" Click="EditCategory_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
-                                        <Button Content="Delete" Tag="{Binding CategoryId}" Click="DeleteCategory_Click" Style="{StaticResource DangerButtonStyle}" Width="80"/>
-                                    </StackPanel>
+                                    <TextBlock Text="{Binding Name}" Margin="0,0,10,0"/>
+                                    <TextBlock Text="(" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding ParentCategoryName}" Margin="0,0,5,0"/>
+                                    <TextBlock Text=")" Margin="0,0,10,0"/>
+                                    <Button Content="Edit" Tag="{Binding CategoryId}" Click="EditCategory_Click" Style="{StaticResource ModernButtonStyle}" Width="60"/>
+                                    <Button Content="Delete" Tag="{Binding CategoryId}" Click="DeleteCategory_Click" Style="{StaticResource DangerButtonStyle}" Width="60"/>
                                 </StackPanel>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
-                    <TextBlock Text="Додати категорію" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
-                    <WrapPanel Margin="10,0,10,10">
-                        <TextBox x:Name="NewCategoryName" Style="{StaticResource ModernInputStyle}" Text="Category Name"/>
-                        <ComboBox x:Name="ParentCategory" Style="{StaticResource ModernComboBoxStyle}"/>
-                        <TextBox x:Name="ImagePathTextBox" Style="{StaticResource ModernInputStyle}" IsReadOnly="True"/>
-                        <Button Content="Обрати зображення" Click="SelectImage_Click" Style="{StaticResource ModernButtonStyle}" Width="120"/>
-                        <Button Content="Додати" Click="AddCategory_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
-                    </WrapPanel>
+                    <DockPanel Margin="10,0,10,10">
+                        <TextBox x:Name="SearchCategoryName" Style="{StaticResource ModernInputStyle}" Text="Пошук за назвою категорії" DockPanel.Dock="Left"/>
+                        <Button Content="Очистити" Click="ClearCategorySearch_Click" Style="{StaticResource ModernButtonStyle}" DockPanel.Dock="Right" Width="80"/>
+                    </DockPanel>
                 </StackPanel>
 
                 <!-- Finance Panel -->
@@ -340,7 +340,7 @@
                             <GridView>
                                 <GridViewColumn Header="ID" DisplayMemberBinding="{Binding MethodId}" Width="50"/>
                                 <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}" Width="200"/>
-                                <GridViewColumn Header="Is Active" DisplayMemberBinding="{Binding IsActive}" Width="100"/>
+                                <GridViewColumn Header="Status" DisplayMemberBinding="{Binding IsActive, Converter={StaticResource BooleanToBlockedConverter}}" Width="80"/>
                                 <GridViewColumn Header="Actions" Width="200">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
@@ -354,9 +354,9 @@
                             </GridView>
                         </ListView.View>
                     </ListView>
-                    <TextBlock Text="Додати спосіб оплати" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
+                    <TextBlock Text="Додати новий спосіб оплати" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
                     <WrapPanel Margin="10,0,10,10">
-                        <TextBox x:Name="NewPaymentMethodName" Style="{StaticResource ModernInputStyle}" Text="Payment Method Name"/>
+                        <TextBox x:Name="NewPaymentMethodName" Style="{StaticResource ModernInputStyle}" Text="Назва"/>
                         <Button Content="Додати" Click="AddPaymentMethod_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
                     </WrapPanel>
                 </StackPanel>
@@ -364,43 +364,17 @@
                 <!-- Logistics Panel -->
                 <StackPanel x:Name="LogisticsPanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
                     <TextBlock Text="Логістика" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
-                    <TextBlock Text="Кур'єрські служби" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
-                    <ListView x:Name="CourierServicesList" Margin="10,0,10,10" MaxHeight="200" BorderThickness="1" BorderBrush="#CED4DA">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="ID" DisplayMemberBinding="{Binding ServiceId}" Width="50"/>
-                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}" Width="200"/>
-                                <GridViewColumn Header="Is Active" DisplayMemberBinding="{Binding IsActive}" Width="100"/>
-                                <GridViewColumn Header="Actions" Width="300">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Button Content="Edit" Tag="{Binding ServiceId}" Click="EditCourierService_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
-                                                <Button Content="Delete" Tag="{Binding ServiceId}" Click="DeleteCourierService_Click" Style="{StaticResource DangerButtonStyle}" Width="80"/>
-                                                <Button Content="Update" Tag="{Binding ServiceId}" Click="UpdateCourierService_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                    <WrapPanel Margin="10,0,10,10">
-                        <TextBox x:Name="NewCourierService" Style="{StaticResource ModernInputStyle}" Text="Courier Service Name"/>
-                        <Button Content="Додати" Click="AddCourierService_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
-                    </WrapPanel>
-                    <TextBlock Text="Пункти самовивозу" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
-                    <ListView x:Name="PickupPointsList" Margin="10,0,10,10" MaxHeight="200" BorderThickness="1" BorderBrush="#CED4DA">
+                    <ListView x:Name="PickupPointsList" Margin="10,0,10,10" MaxHeight="300" BorderThickness="1" BorderBrush="#CED4DA">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="ID" DisplayMemberBinding="{Binding PickupPointId}" Width="50"/>
-                                <GridViewColumn Header="Address" DisplayMemberBinding="{Binding Address}" Width="250"/>
+                                <GridViewColumn Header="Address" DisplayMemberBinding="{Binding Address}" Width="300"/>
                                 <GridViewColumn Header="Region" DisplayMemberBinding="{Binding Region}" Width="150"/>
                                 <GridViewColumn Header="Actions" Width="200">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
-                                                <Button Content="Update" Tag="{Binding PickupPointId}" Click="UpdatePickupPoint_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                                                <Button Content="Edit" Tag="{Binding PickupPointId}" Click="UpdatePickupPoint_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
                                                 <Button Content="Delete" Tag="{Binding PickupPointId}" Click="DeletePickupPoint_Click" Style="{StaticResource DangerButtonStyle}" Width="80"/>
                                             </StackPanel>
                                         </DataTemplate>
@@ -409,9 +383,9 @@
                             </GridView>
                         </ListView.View>
                     </ListView>
-                    <TextBlock Text="Додати пункт самовивозу" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
+                    <TextBlock Text="Додати новий пункт самовивозу" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
                     <WrapPanel Margin="10,0,10,10">
-                        <TextBox x:Name="NewPickupPointAddress" Style="{StaticResource ModernInputStyle}" Text="Pickup Point Address"/>
+                        <TextBox x:Name="NewPickupPointAddress" Style="{StaticResource ModernInputStyle}" Text="Адреса"/>
                         <ComboBox x:Name="NewPickupPointRegion" Style="{StaticResource ModernComboBoxStyle}"/>
                         <Button Content="Додати" Click="AddPickupPoint_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
                     </WrapPanel>

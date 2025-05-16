@@ -253,10 +253,12 @@ namespace ElmirClone
                                     brandCheckBox.Checked += (s, e) =>
                                     {
                                         if (!selectedBrands.Contains(brand)) selectedBrands.Add(brand);
+                                        ApplyFiltersButton_Click(null, null); // Автоматичне застосування фільтрів
                                     };
                                     brandCheckBox.Unchecked += (s, e) =>
                                     {
                                         if (selectedBrands.Contains(brand)) selectedBrands.Remove(brand);
+                                        ApplyFiltersButton_Click(null, null); // Автоматичне застосування фільтрів
                                     };
                                     BrandsPanel.Children.Add(brandCheckBox);
                                 }
@@ -309,6 +311,7 @@ namespace ElmirClone
                             new NpgsqlParameter("subCategoryId", subCategoryId.Value)
                         };
 
+                        // Додаємо фільтри
                         if (selectedBrands.Any())
                         {
                             query += " AND p.brand = ANY (@brands)";
@@ -329,11 +332,11 @@ namespace ElmirClone
 
                         if (reviewCountMin.HasValue)
                         {
-                            query += " AND (pr.review_count >= @reviewCountMin OR pr.review_count IS NULL AND @reviewCountMin = 0)";
+                            query += " AND (pr.review_count >= @reviewCountMin OR (pr.review_count IS NULL AND @reviewCountMin = 0))";
                             parameters.Add(new NpgsqlParameter("reviewCountMin", reviewCountMin.Value));
                         }
 
-                        query += " LIMIT 5";
+                        query += " ORDER BY p.price LIMIT 5";
                         LoadProductsWithQuery(query, parameters);
                     }
                     else if (categoryId.HasValue)
@@ -920,6 +923,39 @@ namespace ElmirClone
             }
         }
 
+        private void DeleteReview(int productId, int userId, ListBox reviewsList)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand("DELETE FROM product_reviews WHERE productid = @productId AND userid = @userId", connection))
+                        {
+                            command.Parameters.AddWithValue("productId", productId);
+                            command.Parameters.AddWithValue("userId", userId);
+                            int rowsAffected = command.ExecuteNonQuery();
+                            if (rowsAffected > 0)
+                            {
+                                MessageBox.Show("Відгук успішно видалено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                LoadReviews(productId, reviewsList);
+                            }
+                            else
+                            {
+                                MessageBox.Show("Відгук не знайдено або у вас немає прав для його видалення.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при видаленні відгуку: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
         private void LoadReviews(int productId, ListBox reviewsList)
         {
             if (Dispatcher.CheckAccess())
@@ -927,10 +963,19 @@ namespace ElmirClone
                 try
                 {
                     reviewsList.Items.Clear();
+                    bool userHasReview = false;
+                    string userReviewText = null;
+                    DateTime? userReviewDate = null;
+
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("SELECT pr.review_text, u.firstname, pr.review_date FROM product_reviews pr JOIN userdetails u ON pr.userid = u.userid WHERE pr.productid = @productId ORDER BY pr.review_date DESC", connection))
+                        using (var command = new NpgsqlCommand(
+                            "SELECT pr.review_text, u.firstname, pr.review_date, pr.userid " +
+                            "FROM product_reviews pr " +
+                            "JOIN userdetails u ON pr.userid = u.userid " +
+                            "WHERE pr.productid = @productId " +
+                            "ORDER BY pr.review_date DESC", connection))
                         {
                             command.Parameters.AddWithValue("productId", productId);
                             using (var reader = command.ExecuteReader())
@@ -940,7 +985,43 @@ namespace ElmirClone
                                     string reviewText = reader.GetString(0);
                                     string userName = reader.IsDBNull(1) ? "Анонім" : reader.GetString(1);
                                     DateTime reviewDate = reader.GetDateTime(2);
-                                    reviewsList.Items.Add($"{userName} ({reviewDate:dd.MM.yyyy}): {reviewText}");
+                                    int reviewUserId = reader.GetInt32(3);
+
+                                    StackPanel reviewPanel = new StackPanel { Margin = new Thickness(0, 5, 0, 5) };
+                                    TextBlock reviewBlock = new TextBlock
+                                    {
+                                        Text = $"{userName} ({reviewDate:dd.MM.yyyy}): {reviewText}",
+                                        TextWrapping = TextWrapping.Wrap
+                                    };
+                                    reviewPanel.Children.Add(reviewBlock);
+
+                                    if (userProfile?.UserId == reviewUserId)
+                                    {
+                                        userHasReview = true;
+                                        userReviewText = reviewText;
+                                        userReviewDate = reviewDate;
+
+                                        Button deleteButton = new Button
+                                        {
+                                            Content = "Видалити",
+                                            Width = 80,
+                                            Height = 25,
+                                            Margin = new Thickness(0, 5, 0, 0),
+                                            Background = Brushes.Red,
+                                            Foreground = Brushes.White,
+                                            FontSize = 12
+                                        };
+                                        deleteButton.Click += (s, e) =>
+                                        {
+                                            if (MessageBox.Show("Ви впевнені, що хочете видалити свій відгук?", "Підтвердження", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                                            {
+                                                DeleteReview(productId, userProfile.UserId, reviewsList);
+                                            }
+                                        };
+                                        reviewPanel.Children.Add(deleteButton);
+                                    }
+
+                                    reviewsList.Items.Add(reviewPanel);
                                 }
                             }
                         }
@@ -1000,7 +1081,7 @@ namespace ElmirClone
                             return;
                         }
 
-                        int quantity = 1; // Додаємо товар з кількістю 1 за замовчуванням
+                        int quantity = 1;
 
                         int currentQuantity = 0;
                         using (var checkCommand = new NpgsqlCommand(
@@ -1015,7 +1096,7 @@ namespace ElmirClone
                             }
                         }
 
-                        int newQuantity = currentQuantity > 0 ? currentQuantity : quantity;
+                        int newQuantity = currentQuantity > 0 ? currentQuantity + quantity : quantity;
 
                         if (newQuantity > product.StockQuantity)
                         {
@@ -1255,19 +1336,15 @@ namespace ElmirClone
                     {
                         connection.Open();
                         using (var command = new NpgsqlCommand(
-                            "UPDATE userdetails SET firstname = @firstname, middlename = @middlename, phone = @phone, email = @email WHERE userid = @userid", connection))
+                            "UPDATE userdetails SET firstname = @firstname, email = @email WHERE userid = @userid", connection))
                         {
                             command.Parameters.AddWithValue("userid", userId);
                             command.Parameters.AddWithValue("firstname", FirstNameTextBox.Text.Trim());
-                            command.Parameters.AddWithValue("middlename", MiddleNameTextBox.Text.Trim());
-                            command.Parameters.AddWithValue("phone", PhoneTextBox.Text.Trim());
                             command.Parameters.AddWithValue("email", EmailTextBox.Text.Trim());
                             command.ExecuteNonQuery();
                         }
 
                         userProfile.FirstName = FirstNameTextBox.Text.Trim();
-                        userProfile.MiddleName = MiddleNameTextBox.Text.Trim();
-                        userProfile.Phone = PhoneTextBox.Text.Trim();
                         userProfile.Email = EmailTextBox.Text.Trim();
 
                         MessageBox.Show("Профіль оновлено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
