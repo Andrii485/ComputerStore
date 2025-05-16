@@ -135,7 +135,7 @@
                 <!-- Основний контент -->
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="30">
                     <!-- Логотип -->
-                    <Image Source="https://i.postimg.cc/R0S5vjvN/2025-05-11-205222.png" Height="120" Stretch="Uniform" Margin="0,0,0,40"/>
+                    <Image Source="https://i.postimg.cc/8kdp9850/2025-05-16-154029.png" Height="120" Stretch="Uniform" Margin="0,0,0,40"/>
 
                     <!-- Перемикання між Входом і Реєстрацією -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,30">

@@ -923,6 +923,40 @@ namespace ElmirClone
             }
         }
 
+        private void UpdateReview(int productId, int userId, string newReviewText)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        using (var command = new NpgsqlCommand("UPDATE product_reviews SET review_text = @reviewText, review_date = @reviewDate WHERE productid = @productId AND userid = @userId", connection))
+                        {
+                            command.Parameters.AddWithValue("reviewText", newReviewText);
+                            command.Parameters.AddWithValue("reviewDate", DateTime.Now);
+                            command.Parameters.AddWithValue("productId", productId);
+                            command.Parameters.AddWithValue("userId", userId);
+                            int rowsAffected = command.ExecuteNonQuery();
+                            if (rowsAffected > 0)
+                            {
+                                MessageBox.Show("Відгук успішно оновлено.", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
+                            else
+                            {
+                                MessageBox.Show("Відгук не знайдено або у вас немає прав для його редагування.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка при оновленні відгуку: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
         private void DeleteReview(int productId, int userId, ListBox reviewsList)
         {
             if (Dispatcher.CheckAccess())
@@ -987,13 +1021,23 @@ namespace ElmirClone
                                     DateTime reviewDate = reader.GetDateTime(2);
                                     int reviewUserId = reader.GetInt32(3);
 
-                                    StackPanel reviewPanel = new StackPanel { Margin = new Thickness(0, 5, 0, 5) };
+                                    // Використовуємо Grid для розташування тексту та кнопок
+                                    Grid reviewGrid = new Grid { Margin = new Thickness(0, 5, 0, 5) };
+                                    reviewGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Текст займатиме весь доступний простір
+                                    reviewGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Кнопки займатимуть мінімально необхідний простір
+
                                     TextBlock reviewBlock = new TextBlock
                                     {
                                         Text = $"{userName} ({reviewDate:dd.MM.yyyy}): {reviewText}",
-                                        TextWrapping = TextWrapping.Wrap
+                                        TextWrapping = TextWrapping.Wrap,
+                                        VerticalAlignment = VerticalAlignment.Center,
+                                        Margin = new Thickness(0, 0, 10, 0) // Додаємо відступ праворуч для розділення тексту та кнопок
                                     };
-                                    reviewPanel.Children.Add(reviewBlock);
+                                    Grid.SetColumn(reviewBlock, 0);
+                                    reviewGrid.Children.Add(reviewBlock);
+
+                                    Button editButton = null;
+                                    Button deleteButton = null;
 
                                     if (userProfile?.UserId == reviewUserId)
                                     {
@@ -1001,15 +1045,68 @@ namespace ElmirClone
                                         userReviewText = reviewText;
                                         userReviewDate = reviewDate;
 
-                                        Button deleteButton = new Button
+                                        // Створюємо StackPanel для кнопок
+                                        StackPanel buttonPanel = new StackPanel
                                         {
-                                            Content = "Видалити",
-                                            Width = 80,
+                                            Orientation = Orientation.Horizontal,
+                                            HorizontalAlignment = HorizontalAlignment.Right, // Вирівнюємо кнопки по правому краю
+                                            VerticalAlignment = VerticalAlignment.Center
+                                        };
+
+                                        // Кнопка редагування з іконкою
+                                        editButton = new Button
+                                        {
+                                            Content = "✏️", // Іконка редагування
+                                            Width = 25,
                                             Height = 25,
-                                            Margin = new Thickness(0, 5, 0, 0),
-                                            Background = Brushes.Red,
-                                            Foreground = Brushes.White,
-                                            FontSize = 12
+                                            Margin = new Thickness(5, 0, 5, 0),
+                                            Background = Brushes.Transparent,
+                                            BorderThickness = new Thickness(0),
+                                            ToolTip = "Редагувати відгук"
+                                        };
+                                        editButton.Click += (s, e) =>
+                                        {
+                                            TextBox editTextBox = new TextBox
+                                            {
+                                                Text = reviewText,
+                                                Width = 300,
+                                                Height = 80,
+                                                AcceptsReturn = true,
+                                                Margin = new Thickness(0, 5, 0, 0)
+                                            };
+                                            Button saveEditButton = new Button
+                                            {
+                                                Content = "Зберегти",
+                                                Width = 80,
+                                                Height = 25,
+                                                Margin = new Thickness(0, 5, 0, 0),
+                                                Background = Brushes.Green,
+                                                Foreground = Brushes.White
+                                            };
+                                            saveEditButton.Click += (ss, ee) =>
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(editTextBox.Text))
+                                                {
+                                                    UpdateReview(productId, userProfile.UserId, editTextBox.Text);
+                                                    LoadReviews(productId, reviewsList);
+                                                }
+                                            };
+                                            reviewGrid.Children.Clear(); // Очищаємо попередній вміст
+                                            reviewGrid.Children.Add(editTextBox);
+                                            reviewGrid.Children.Add(saveEditButton);
+                                        };
+                                        buttonPanel.Children.Add(editButton);
+
+                                        // Кнопка видалення з іконкою
+                                        deleteButton = new Button
+                                        {
+                                            Content = "🗑️", // Іконка видалення
+                                            Width = 25,
+                                            Height = 25,
+                                            Margin = new Thickness(0, 0, 0, 0), // Видаляємо зайві відступи
+                                            Background = Brushes.Transparent,
+                                            BorderThickness = new Thickness(0),
+                                            ToolTip = "Видалити відгук"
                                         };
                                         deleteButton.Click += (s, e) =>
                                         {
@@ -1018,10 +1115,13 @@ namespace ElmirClone
                                                 DeleteReview(productId, userProfile.UserId, reviewsList);
                                             }
                                         };
-                                        reviewPanel.Children.Add(deleteButton);
+                                        buttonPanel.Children.Add(deleteButton);
+
+                                        Grid.SetColumn(buttonPanel, 1);
+                                        reviewGrid.Children.Add(buttonPanel);
                                     }
 
-                                    reviewsList.Items.Add(reviewPanel);
+                                    reviewsList.Items.Add(reviewGrid);
                                 }
                             }
                         }
