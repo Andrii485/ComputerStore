@@ -441,16 +441,27 @@ namespace ElmirClone
                                         Background = Brushes.White,
                                         HorizontalAlignment = HorizontalAlignment.Stretch
                                     };
+
+                                    // Контейнер для зображення з фіксованим розміром
+                                    Border imageContainer = new Border
+                                    {
+                                        Width = 200,
+                                        Height = 200,
+                                        HorizontalAlignment = HorizontalAlignment.Center,
+                                        Margin = new Thickness(0, 5, 0, 5)
+                                    };
+
                                     Image productImage = new Image
                                     {
                                         Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(product.ImageUrl, UriKind.RelativeOrAbsolute)),
-                                        MaxWidth = 200,
-                                        MaxHeight = 205,
-                                        Stretch = Stretch.Uniform,
-                                        Margin = new Thickness(5),
-                                        HorizontalAlignment = HorizontalAlignment.Center
+                                        Width = 200,
+                                        Height = 200,
+                                        Stretch = Stretch.Uniform, // Зображення масштабується пропорційно
+                                        HorizontalAlignment = HorizontalAlignment.Center,
+                                        VerticalAlignment = VerticalAlignment.Center
                                     };
-                                    productPanel.Children.Add(productImage);
+                                    imageContainer.Child = productImage;
+                                    productPanel.Children.Add(imageContainer);
 
                                     TextBlock productName = new TextBlock
                                     {
@@ -496,6 +507,7 @@ namespace ElmirClone
                                         TextAlignment = TextAlignment.Center
                                     };
                                     productPanel.Children.Add(priceText);
+
                                     Button addToCartButton = new Button
                                     {
                                         Content = "Додати до кошика",
@@ -506,6 +518,7 @@ namespace ElmirClone
                                     };
                                     addToCartButton.Click += AddToCart_Click;
                                     productPanel.Children.Add(addToCartButton);
+
                                     productBorder.Child = productPanel;
                                     productsPanel.Children.Add(productBorder);
                                 }
@@ -1544,7 +1557,6 @@ namespace ElmirClone
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-
         }
     }
 

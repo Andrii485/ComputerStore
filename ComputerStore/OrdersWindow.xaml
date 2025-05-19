@@ -7,9 +7,11 @@
             <Setter Property="Background" Value="#2C3E50"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Height" Value="45"/>
-            <Setter Property="Width" Value="160"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <!-- Минимальная ширина для удобства -->
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="Padding" Value="15,0,15,0"/>
+            <!-- Симметричный padding для адаптации текста -->
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="Template">
@@ -107,7 +109,7 @@
             <Button x:Name="ConfirmReceiptButton" Content="Підтвердити замовлення" Click="ConfirmReceiptButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
             <Button x:Name="ReturnButton" Content="Повернути" Click="ReturnButton_Click" Style="{StaticResource ActionButtonStyle}" IsEnabled="False"/>
             <Button x:Name="BackToShoppingButton" Content="Повернутися до покупок" Click="BackToShoppingButton_Click" Style="{StaticResource ActionButtonStyle}"/>
-            <Button x:Name="RetryOrderLoad" Content="Перезавантажити" Click="RetryOrderLoad_Click" Style="{StaticResource ActionButtonStyle}" Width="140"/>
+            <Button x:Name="RetryOrderLoad" Content="Перезавантажити" Click="RetryOrderLoad_Click" Style="{StaticResource ActionButtonStyle}"/>
         </StackPanel>
     </Grid>
 </Window>

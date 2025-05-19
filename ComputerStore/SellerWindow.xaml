@@ -278,7 +278,7 @@
 
                 <StackPanel x:Name="FinancePanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
                     <TextBlock Text="Фінанси" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
-                    <TextBlock Text="Загальний дохід (після комісії):" FontSize="14" FontWeight="Medium" Margin="10,0,10,5"/>
+                    <TextBlock Text="Загальний дохід:" FontSize="14" FontWeight="Medium" Margin="10,0,10,5"/>
                     <TextBlock x:Name="TotalRevenueText" FontSize="14" FontWeight="Bold" Margin="10,0,10,10"/>
                     <TextBlock Text="Історія продажів" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
                     <WrapPanel Margin="10,0,10,10">
