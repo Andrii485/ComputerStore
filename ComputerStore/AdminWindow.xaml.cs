@@ -41,7 +41,7 @@ namespace ElmirClone
             allCategories = new List<Category>();
             this.Loaded += AdminWindow_Loaded;
 
-            // Привязываем обработчики событий для SearchCategoryName
+            // Прив'язуємо обробники подій для SearchCategoryName
             if (SearchCategoryName != null)
             {
                 SearchCategoryName.TextChanged += SearchCategoryName_TextChanged;
@@ -169,7 +169,8 @@ namespace ElmirClone
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    using (var command = new NpgsqlCommand("SELECT uc.userid, uc.username, ud.email, uc.role, uc.isblocked FROM usercredentials uc JOIN userdetails ud ON uc.userid = ud.userid WHERE uc.role != 'Admin' AND ud.email ILIKE @email", connection))
+                    using (var command = new NpgsqlCommand("SELECT uc.userid, uc.username, ud.email, uc.role, uc.isblocked FROM usercredentials uc " +
+                                                           "JOIN userdetails ud ON uc.userid = ud.userid WHERE uc.role != 'Admin' AND ud.email ILIKE @email", connection))
                     {
                         command.Parameters.AddWithValue("email", $"%{email}%");
                         using (var reader = command.ExecuteReader())
@@ -445,9 +446,9 @@ namespace ElmirClone
                     {
                         connection.Open();
                         using (var productCommand = new NpgsqlCommand(
-                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden " +
+                            "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden, p.stock_quantity " +
                             "FROM products p " +
-                            "JOIN categories c ON p.categoryid = c.categoryid " +
+                            "LEFT JOIN categories c ON p.categoryid = c.categoryid " +
                             "LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid " +
                             "WHERE p.categoryid = @categoryId OR p.subcategoryid = @categoryId", connection))
                         {
@@ -458,15 +459,16 @@ namespace ElmirClone
                                 {
                                     ((List<ProductDetails>)category.Products).Add(new ProductDetails
                                     {
-                                        ProductId1 = productReader.GetInt32(0),
-                                        Name1 = productReader.GetString(1),
-                                        Description1 = productReader.IsDBNull(2) ? "" : productReader.GetString(2),
-                                        Price1 = productReader.GetDecimal(3),
-                                        Brand1 = productReader.GetString(4),
-                                        CategoryName1 = productReader.GetString(5),
-                                        SubcategoryName1 = productReader.IsDBNull(6) ? "Не вказано" : productReader.GetString(6),
-                                        ImageUrl1 = productReader.IsDBNull(7) ? "https://via.placeholder.com/150" : productReader.GetString(7),
-                                        IsHidden1 = productReader.GetBoolean(8)
+                                        ProductId = productReader.GetInt32(0),
+                                        Name = productReader.GetString(1),
+                                        Description = productReader.IsDBNull(2) ? "" : productReader.GetString(2),
+                                        Price = productReader.GetDecimal(3),
+                                        Brand = productReader.GetString(4),
+                                        CategoryName = productReader.IsDBNull(5) ? "Немає" : productReader.GetString(5),
+                                        SubcategoryName = productReader.IsDBNull(6) ? "Не вказано" : productReader.GetString(6),
+                                        ImageUrl = productReader.IsDBNull(7) ? "https://via.placeholder.com/150" : productReader.GetString(7),
+                                        IsHidden = productReader.GetBoolean(8),
+                                        StockQuantity = productReader.GetInt32(9)
                                     });
                                 }
                             }
@@ -562,7 +564,7 @@ namespace ElmirClone
         {
             if (SearchCategoryName == null || CategoriesTree == null || allCategories == null)
             {
-                return; // Тихий выход, если элементы не найдены
+                return; // Тихий вихід, якщо елементи не знайдені
             }
 
             string searchText = SearchCategoryName.Text?.Trim().ToLower();
@@ -616,7 +618,7 @@ namespace ElmirClone
         {
             if (SearchCategoryName == null || CategoriesTree == null || allCategories == null)
             {
-                return; // Тихий выход, если элементы не найдены
+                return; // Тихий вихід, якщо елементи не знайдені
             }
 
             SearchCategoryName.Text = "Пошук за назвою категорії";
@@ -631,9 +633,9 @@ namespace ElmirClone
                 {
                     connection.Open();
                     using (var command = new NpgsqlCommand(
-                        "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden " +
+                        "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden, p.stock_quantity " +
                         "FROM products p " +
-                        "JOIN categories c ON p.categoryid = c.categoryid " +
+                        "LEFT JOIN categories c ON p.categoryid = c.categoryid " +
                         "LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid", connection))
                     {
                         using (var reader = command.ExecuteReader())
@@ -643,20 +645,31 @@ namespace ElmirClone
                             {
                                 products.Add(new ProductDetails
                                 {
-                                    ProductId1 = reader.GetInt32(0),
-                                    Name1 = reader.GetString(1),
-                                    Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price1 = reader.GetDecimal(3),
-                                    Brand1 = reader.GetString(4),
-                                    CategoryName1 = reader.GetString(5),
-                                    SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl1 = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
-                                    IsHidden1 = reader.GetBoolean(8)
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price = reader.GetDecimal(3),
+                                    Brand = reader.GetString(4),
+                                    CategoryName = reader.IsDBNull(5) ? "Немає" : reader.GetString(5),
+                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
+                                    IsHidden = reader.GetBoolean(8),
+                                    StockQuantity = reader.GetInt32(9)
                                 });
                             }
+
                             if (ProductsList != null)
                             {
                                 ProductsList.ItemsSource = products;
+                                // Діагностика: перевірка, чи є товари в списку
+                                if (!products.Any())
+                                {
+                                    MessageBox.Show("Список товарів порожній. Перевірте, чи є товари в базі даних.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                            }
+                            else
+                            {
+                                MessageBox.Show("Елемент ProductsList не знайдено у розмітці.", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
                             }
                         }
                     }
@@ -689,9 +702,9 @@ namespace ElmirClone
                 {
                     connection.Open();
                     using (var command = new NpgsqlCommand(
-                        "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden " +
+                        "SELECT p.productid, p.name, p.description, p.price, p.brand, c.name AS categoryname, sc.name AS subcategoryname, p.image_url, p.ishidden, p.stock_quantity " +
                         "FROM products p " +
-                        "JOIN categories c ON p.categoryid = c.categoryid " +
+                        "LEFT JOIN categories c ON p.categoryid = c.categoryid " +
                         "LEFT JOIN categories sc ON p.subcategoryid = sc.categoryid " +
                         "WHERE p.productid = @productId", connection))
                     {
@@ -703,15 +716,16 @@ namespace ElmirClone
                             {
                                 products.Add(new ProductDetails
                                 {
-                                    ProductId1 = reader.GetInt32(0),
-                                    Name1 = reader.GetString(1),
-                                    Description1 = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                                    Price1 = reader.GetDecimal(3),
-                                    Brand1 = reader.GetString(4),
-                                    CategoryName1 = reader.GetString(5),
-                                    SubcategoryName1 = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
-                                    ImageUrl1 = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
-                                    IsHidden1 = reader.GetBoolean(8)
+                                    ProductId = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Description = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                                    Price = reader.GetDecimal(3),
+                                    Brand = reader.GetString(4),
+                                    CategoryName = reader.IsDBNull(5) ? "Немає" : reader.GetString(5),
+                                    SubcategoryName = reader.IsDBNull(6) ? "Не вказано" : reader.GetString(6),
+                                    ImageUrl = reader.IsDBNull(7) ? "https://via.placeholder.com/150" : reader.GetString(7),
+                                    IsHidden = reader.GetBoolean(8),
+                                    StockQuantity = reader.GetInt32(9)
                                 });
                             }
                             if (ProductsList != null)

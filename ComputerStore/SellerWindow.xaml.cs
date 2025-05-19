@@ -695,15 +695,64 @@ namespace ElmirClone
                     using (var connection = new NpgsqlConnection(connectionString))
                     {
                         connection.Open();
-                        using (var command = new NpgsqlCommand("DELETE FROM products WHERE productid = @productid AND sellerid = @sellerid", connection))
+
+                        // Перевіряємо, чи є пов'язані замовлення
+                        using (var checkCommand = new NpgsqlCommand(
+                            "SELECT COUNT(*) FROM orders WHERE productid = @productid AND sellerid = @sellerid", connection))
                         {
-                            command.Parameters.AddWithValue("productid", productId);
-                            command.Parameters.AddWithValue("sellerid", sellerId);
-                            command.ExecuteNonQuery();
+                            checkCommand.Parameters.AddWithValue("productid", productId);
+                            checkCommand.Parameters.AddWithValue("sellerid", sellerId);
+                            long orderCount = (long)checkCommand.ExecuteScalar();
+
+                            if (orderCount > 0)
+                            {
+                                // Пропонуємо користувачу вибір: видалити пов'язані замовлення або скасувати
+                                if (MessageBox.Show(
+                                    $"Цей товар має {orderCount} пов'язаних замовлень. Бажаєте видалити товар разом із усіма пов'язаними замовленнями? (Це видалить історію продажів цього товару.)",
+                                    "Попередження",
+                                    MessageBoxButton.YesNo,
+                                    MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                                {
+                                    // Видаляємо пов'язані замовлення
+                                    using (var deleteOrdersCommand = new NpgsqlCommand(
+                                        "DELETE FROM orders WHERE productid = @productid AND sellerid = @sellerid", connection))
+                                    {
+                                        deleteOrdersCommand.Parameters.AddWithValue("productid", productId);
+                                        deleteOrdersCommand.Parameters.AddWithValue("sellerid", sellerId);
+                                        deleteOrdersCommand.ExecuteNonQuery();
+                                    }
+
+                                    // Видаляємо продукт
+                                    using (var deleteProductCommand = new NpgsqlCommand(
+                                        "DELETE FROM products WHERE productid = @productid AND sellerid = @sellerid", connection))
+                                    {
+                                        deleteProductCommand.Parameters.AddWithValue("productid", productId);
+                                        deleteProductCommand.Parameters.AddWithValue("sellerid", sellerId);
+                                        deleteProductCommand.ExecuteNonQuery();
+                                    }
+
+                                    MessageBox.Show("Товар і пов'язані замовлення успішно видалено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Видалення скасовано. Товар не видалено.", "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                // Якщо замовлень немає, просто видаляємо продукт
+                                using (var command = new NpgsqlCommand("DELETE FROM products WHERE productid = @productid AND sellerid = @sellerid", connection))
+                                {
+                                    command.Parameters.AddWithValue("productid", productId);
+                                    command.Parameters.AddWithValue("sellerid", sellerId);
+                                    command.ExecuteNonQuery();
+                                }
+                                MessageBox.Show("Товар успішно видалено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
+                            }
                         }
                     }
                     LoadProducts();
-                    MessageBox.Show("Товар успішно видалено!", "Успіх", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -947,18 +996,26 @@ namespace ElmirClone
                     {
                         connection.Open();
                         decimal totalRevenue = 0;
-                        decimal feePercentage = 0;
+                        decimal feePercentage = 0.10m; // За замовчуванням 10%, якщо таблиця sellerfees відсутня
                         var sales = new List<Sale>();
 
-                        using (var command = new NpgsqlCommand(
-                            "SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
+                        // Спроба отримати feePercentage з таблиці, якщо вона існує
+                        try
                         {
-                            command.Parameters.AddWithValue("sellerid", sellerId);
-                            var result = command.ExecuteScalar();
-                            if (result != null)
+                            using (var command = new NpgsqlCommand(
+                                "SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
                             {
-                                feePercentage = (decimal)result / 100;
+                                command.Parameters.AddWithValue("sellerid", sellerId);
+                                var result = command.ExecuteScalar();
+                                if (result != null)
+                                {
+                                    feePercentage = (decimal)result / 100;
+                                }
                             }
+                        }
+                        catch (Exception)
+                        {
+                            // Ігноруємо помилку, якщо таблиця sellerfees не існує, використовуємо значення за замовчуванням
                         }
 
                         using (var command = new NpgsqlCommand(
@@ -1017,7 +1074,7 @@ namespace ElmirClone
                     {
                         connection.Open();
                         decimal totalRevenue = 0;
-                        decimal feePercentage = 0;
+                        decimal feePercentage = 0.10m; // За замовчуванням 10%, якщо таблиця sellerfees відсутня
                         var sales = new List<Sale>();
 
                         // Check if the product exists for the seller
@@ -1034,16 +1091,23 @@ namespace ElmirClone
                             }
                         }
 
-                        // Get fee percentage
-                        using (var command = new NpgsqlCommand(
-                            "SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
+                        // Спроба отримати feePercentage з таблиці, якщо вона існує
+                        try
                         {
-                            command.Parameters.AddWithValue("sellerid", sellerId);
-                            var result = command.ExecuteScalar();
-                            if (result != null)
+                            using (var command = new NpgsqlCommand(
+                                "SELECT feevalue FROM sellerfees WHERE sellerid = @sellerid AND feetype = 'Percentage'", connection))
                             {
-                                feePercentage = (decimal)result / 100;
+                                command.Parameters.AddWithValue("sellerid", sellerId);
+                                var result = command.ExecuteScalar();
+                                if (result != null)
+                                {
+                                    feePercentage = (decimal)result / 100;
+                                }
                             }
+                        }
+                        catch (Exception)
+                        {
+                            // Ігноруємо помилку, якщо таблиця sellerfees не існує, використовуємо значення за замовчуванням
                         }
 
                         // Fetch sales for the product

@@ -366,8 +366,8 @@ namespace ElmirClone
                                 int productId = 0;
                                 int quantity = 0;
                                 using (var command = new NpgsqlCommand(
-                                    "SELECT status, sellerid, totalprice, productid, quantity " +
-                                    "FROM orders WHERE orderid = @orderId AND buyerid = @buyerId", connection))
+                                    "SELECT status, sellerid, totalprice, productid, quantity "    +
+                                    "FROM orders WHERE orderid = @orderId AND buyerid = @buyerId"  , connection))
                                 {
                                     command.Parameters.AddWithValue("orderId", selectedOrderId.Value);
                                     command.Parameters.AddWithValue("buyerId", buyerId);

@@ -428,7 +428,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0">
-                    <Image Source="https://i.postimg.cc/rwDwzYT7/ELITEPC-Logo-mit-Blitzsymbol.png" Width="100" Height="60" Cursor="Hand" MouseLeftButtonDown="Logo_Click"/>
+                    <Image Source="https://i.postimg.cc/NjwbfzvS/2025-05-16-154029.png" Width="100" Height="60" Cursor="Hand" MouseLeftButtonDown="Logo_Click"/>
                     <Button x:Name="RefreshButton" Content="🔄" Click="RefreshButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
                     <Button x:Name="BackButton" Content="←" Click="BackButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
                     <Button x:Name="ForwardButton" Content="→" Click="ForwardButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
