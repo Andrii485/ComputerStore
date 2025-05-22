@@ -1,276 +1,522 @@
 ﻿<Window x:Class="ElmirClone.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ElitePC Store" Height="700" Width="1200" ResizeMode="CanResizeWithGrip" Background="#F5F5F5">
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="ElitePC" Height="900" Width="1200" Background="#F5F7FA" WindowStyle="SingleBorderWindow">
     <Window.Resources>
-        <Style TargetType="Button">
+        <Style TargetType="Button" x:Key="OrderButtonStyle">
+            <Setter Property="Background" Value="#FF5722"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#333333"/>
-            <Setter Property="Height" Value="35"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Margin" Value="5,2"/>
-            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="20"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#444444">
-                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#555555"/>
+                                <Setter Property="Background" Value="#E64A19"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.1" ScaleY="1.1"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#666666"/>
+                                <Setter Property="Background" Value="#D84315"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style TargetType="Border">
-            <Setter Property="CornerRadius" Value="5"/>
-            <Setter Property="Effect">
+        <Style TargetType="Button" x:Key="AddToCartButtonStyle">
+            <Setter Property="Background" Value="#4CAF50"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Width" Value="160"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
                 <Setter.Value>
-                    <DropShadowEffect Color="#000000" Direction="320" ShadowDepth="5" Opacity="0.3" BlurRadius="10"/>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#45A049"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#388E3C"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Стиль для кнопки выхода в панели профиля -->
-        <Style x:Key="LogoutButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Style TargetType="Border" x:Key="SubCategoryBorderStyle">
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Width" Value="300"/>
+            <Setter Property="Height" Value="300"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#CCCCCC" Direction="270" ShadowDepth="3" BlurRadius="10" Opacity="0.5"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button" x:Key="SubCategoryButtonStyle">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button" x:Key="CategoryToggleButtonStyle">
+            <Setter Property="Content" Value="Каталог"/>
+            <Setter Property="Height" Value="45"/>
+            <Setter Property="Width" Value="160"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="Background" Value="#2C3E50"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#34495E"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#2C3E50"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button" x:Key="NavigationButtonStyle">
+            <Setter Property="Background" Value="#2C3E50"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Width" Value="35"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="17.5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#34495E"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.1" ScaleY="1.1"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#2C3E50"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBox" x:Key="SearchBoxStyle">
+            <Setter Property="Width" Value="360"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="#7F8C8D"/>
+            <Setter Property="Text" Value="Я шукаю..."/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#BDC3C7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" 
+                             BorderBrush="{TemplateBinding BorderBrush}" 
+                             BorderThickness="{TemplateBinding BorderThickness}" 
+                             CornerRadius="5">
+                            <ScrollViewer x:Name="PART_ContentHost" Padding="10"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="Foreground" Value="Black"/>
+                                <Setter Property="BorderBrush" Value="#3498DB"/>
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#3498DB" Direction="0" ShadowDepth="0" BlurRadius="10" Opacity="0.5"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBox" x:Key="PriceFilterTextBoxStyle">
+            <Setter Property="Width" Value="90"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="BorderBrush" Value="#BDC3C7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" 
+                             BorderBrush="{TemplateBinding BorderBrush}" 
+                             BorderThickness="{TemplateBinding BorderThickness}" 
+                             CornerRadius="5">
+                            <ScrollViewer x:Name="PART_ContentHost" Padding="5"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ComboBox" x:Key="ReviewFilterComboBoxStyle">
+            <Setter Property="Width" Value="90"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="BorderBrush" Value="#BDC3C7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="5">
+                            <Grid>
+                                <ToggleButton x:Name="ToggleButton" 
+                                              BorderThickness="0" 
+                                              Background="Transparent" 
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                <ContentPresenter x:Name="ContentSite" 
+                                                  IsHitTestVisible="False" 
+                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                  Margin="5,0"
+                                                  VerticalAlignment="Center"/>
+                                <Popup x:Name="Popup" 
+                                       IsOpen="{TemplateBinding IsDropDownOpen}" 
+                                       Placement="Bottom" 
+                                       AllowsTransparency="True">
+                                    <Border Background="White" 
+                                            BorderBrush="#BDC3C7" 
+                                            BorderThickness="1" 
+                                            CornerRadius="5" 
+                                            MaxHeight="150">
+                                        <ScrollViewer>
+                                            <ItemsPresenter/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button" x:Key="ActionButtonStyle">
+            <Setter Property="Background" Value="#2C3E50"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="45"/>
+            <Setter Property="Width" Value="160"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="15,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#34495E"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#2C3E50"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button" x:Key="CloseButtonStyle">
             <Setter Property="Background" Value="#FF5722"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Width" Value="35"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Content" Value="×"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="17.5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E64A19"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.1" ScaleY="1.1"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#D84315"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="HyperlinkButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#3498DB"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock Text="{TemplateBinding Content}" 
+                                   Foreground="{TemplateBinding Foreground}"
+                                   TextDecorations="Underline"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#2980B9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280"/>
-            <!-- Расширенная боковая панель -->
+            <ColumnDefinition Width="220"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Боковая панель -->
-        <Border Grid.Column="0" Background="#2C2F33" Margin="10" Padding="5">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Margin="5">
-                    <!-- Кликабельный логотип -->
-                    <Button Click="Logo_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Center" Margin="10,15,10,20">
-                        <Image Source="https://i.postimg.cc/02SPKrX0/2025-04-17-000603.png" Height="60" Stretch="Uniform"/>
+        <!-- Шапка -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#2C3E50">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0">
+                    <Image Source="https://i.postimg.cc/NjwbfzvS/2025-05-16-154029.png" Width="100" Height="60" Cursor="Hand" MouseLeftButtonDown="Logo_Click"/>
+                    <Button x:Name="RefreshButton" Content="🔄" Click="RefreshButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
+                    <Button x:Name="BackButton" Content="←" Click="BackButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
+                    <Button x:Name="ForwardButton" Content="→" Click="ForwardButton_Click" Style="{StaticResource NavigationButtonStyle}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBox x:Name="SearchBox" Style="{StaticResource SearchBoxStyle}"
+                             GotFocus="SearchBox_GotFocus" LostFocus="SearchBox_LostFocus" KeyDown="SearchBox_KeyDown"/>
+                    <Button x:Name="SearchButton" Content="🔍" Width="45" Height="40" Margin="5,0" Click="SearchButton_Click" Background="#3498DB" Foreground="White">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
                     </Button>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0">
+                    <Button x:Name="CartButton" Content="🛒" Click="CartButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,15,0"/>
+                    <Button x:Name="ProfileButton" Content="👤" Click="ProfileButton_Click" Style="{StaticResource OrderButtonStyle}" Margin="0,0,15,0"/>
+                    <Button x:Name="OrdersButton" Content="📜" Click="OrdersButton_Click" Style="{StaticResource OrderButtonStyle}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-                    <!-- Поиск -->
-                    <Border Background="#3A3F44" BorderBrush="#555555" BorderThickness="1">
-                        <TextBox Width="250" Height="35" VerticalAlignment="Center" Margin="5,0,5,10" 
-                                 Text="Поиск..." GotFocus="SearchBox_GotFocus" FontSize="13" Foreground="#B0B0B0" 
-                                 Background="Transparent" BorderThickness="0"/>
-                    </Border>
+        <!-- Панель сповіщень -->
+        <ScrollViewer Grid.Row="1" Grid.ColumnSpan="2" VerticalScrollBarVisibility="Auto" MaxHeight="100">
+            <StackPanel x:Name="NotificationPanel" Orientation="Vertical"/>
+        </ScrollViewer>
 
-                    <!-- Каталог -->
-                    <TextBlock Text="Каталог" FontSize="16" FontWeight="SemiBold" Foreground="White" Margin="5,10,5,5"/>
-                    <StackPanel>
-                        <Button Content="Компьютеры" Click="CategoryButton_Click"/>
-                        <Button Content="Процессоры" Click="CategoryButton_Click"/>
-                        <Button Content="Материнские платы" Click="CategoryButton_Click"/>
-                        <Button Content="Видеокарты" Click="CategoryButton_Click"/>
-                        <Button Content="Оперативная память" Click="CategoryButton_Click"/>
-                        <Button Content="Оперативная память для ноутбука" Click="CategoryButton_Click"/>
-                        <Button Content="Блоки питания" Click="CategoryButton_Click"/>
-                        <Button Content="Корпусы" Click="CategoryButton_Click"/>
-                        <Button Content="Аксессуары для корпуса" Click="CategoryButton_Click"/>
-                        <Button Content="SSD накопители" Click="CategoryButton_Click"/>
-                        <Button Content="Жесткие диски" Click="CategoryButton_Click"/>
-                        <Button Content="Жесткие диски для ноутбуков" Click="CategoryButton_Click"/>
-                        <Button Content="Кишені і док-станції для HDD і SSD" Click="CategoryButton_Click"/>
-                        <Button Content="Системы охлаждения" Click="CategoryButton_Click"/>
-                        <Button Content="Мониторы" Click="CategoryButton_Click"/>
-                        <Button Content="Клавиатура" Click="CategoryButton_Click"/>
-                        <Button Content="Мышь" Click="CategoryButton_Click"/>
-                        <Button Content="Ковер для мыши" Click="CategoryButton_Click"/>
-                        <Button Content="Звуковые карты" Click="CategoryButton_Click"/>
-                        <Button Content="Наушники и гарнитура" Click="CategoryButton_Click"/>
-                        <Button Content="Микрофон" Click="CategoryButton_Click"/>
-                        <Button Content="Програмне забезпечення" Click="CategoryButton_Click"/>
-                        <Button Content="Кабели" Click="CategoryButton_Click"/>
-                        <Button Content="Внешние жесткие диски" Click="CategoryButton_Click"/>
-                        <Button Content="Внешние SSD" Click="CategoryButton_Click"/>
-                        <Button Content="Сетевое оборудование" Click="CategoryButton_Click"/>
-                        <Button Content="Web-камеры" Click="CategoryButton_Click"/>
-                        <Button Content="Дисковод" Click="CategoryButton_Click"/>
+        <!-- Бічна панель із категоріями та фільтрами -->
+        <Border Grid.Row="2" Grid.Column="0" Background="#ECF0F1" Margin="5" CornerRadius="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Button x:Name="CategoryToggleButton" Click="CategoryToggleButton_Click" Style="{StaticResource CategoryToggleButtonStyle}"/>
+                    <StackPanel x:Name="CategoryPanel" Margin="10" Visibility="Collapsed">
+                        <StackPanel x:Name="CategoryListPanel" Margin="0"/>
                     </StackPanel>
-
-                    <!-- Кнопка Заказать -->
-                    <Button Content="Заказать" Background="#00C853" Margin="5,20,5,10" Click="OrderButton_Click"/>
+                    <StackPanel x:Name="FilterPanel" Margin="10" Visibility="Collapsed">
+                        <TextBlock Text="Фільтри" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,15" Foreground="#2C3E50"/>
+                        <TextBlock Text="Бренди" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
+                        <StackPanel x:Name="BrandsPanel" Margin="0,0,0,15"/>
+                        <TextBlock Text="Ціна" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="Від:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
+                            <TextBox x:Name="PriceFromTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                            <TextBlock Text="До:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
+                            <TextBox x:Name="PriceToTextBox" Style="{StaticResource PriceFilterTextBoxStyle}"/>
+                        </StackPanel>
+                        <TextBlock Text="Кількість відгуків" FontSize="16" FontWeight="Medium" Margin="0,0,0,10" Foreground="#34495E"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                            <TextBlock Text="Мінімум:" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#34495E"/>
+                            <ComboBox x:Name="ReviewCountComboBox" Style="{StaticResource ReviewFilterComboBoxStyle}">
+                                <ComboBoxItem Content="0+" Tag="0"/>
+                                <ComboBoxItem Content="10+" Tag="10"/>
+                                <ComboBoxItem Content="50+" Tag="50"/>
+                                <ComboBoxItem Content="100+" Tag="100"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <Button x:Name="ApplyFiltersButton" Content="Застосувати фільтри" Click="ApplyFiltersButton_Click" Style="{StaticResource ActionButtonStyle}"/>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </Border>
 
-        <!-- Основной контент -->
-        <Grid Grid.Column="1" Margin="10">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="60"/>
-                <!-- Шапка -->
-                <RowDefinition Height="150"/>
-                <!-- Баннер -->
-                <RowDefinition Height="*"/>
-                <!-- Товары -->
-            </Grid.RowDefinitions>
+        <!-- Основний вміст -->
+        <ScrollViewer Grid.Row="2" Grid.Column="1" x:Name="ContentScrollViewer" Margin="5">
+            <StackPanel x:Name="ContentPanel" Margin="10"/>
+        </ScrollViewer>
 
-            <!-- Шапка -->
-            <Border Grid.Row="0" Background="White">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Товари з ElitePC" FontSize="22" FontWeight="Bold" VerticalAlignment="Center" Margin="15"/>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
-                        <Button x:Name="ProfileButton" Content="👤 Профиль" Background="#333333" Click="ProfileButton_Click"/>
-                        <Button x:Name="CartButton" Content="🛒 Корзина" Background="#333333" Margin="10,0,0,0" Click="CartButton_Click"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- Баннер -->
-            <Border Grid.Row="1" Margin="0,10,0,10" Background="#424242">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="Добро пожаловать в ElitePC Store!" FontSize="28" Foreground="White" FontWeight="Bold"/>
-                    <Image Source="https://via.placeholder.com/400x100/FF5722/FFFFFF?text=Скидки+до+50%" Stretch="Uniform" Margin="20,0"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Контент с товарами -->
-            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <!-- Профіль -->
+        <Border x:Name="ProfileBorder" Grid.RowSpan="3" Grid.ColumnSpan="2" Background="#80000000" Visibility="Collapsed">
+            <Border Background="White" CornerRadius="10" Margin="20" Padding="20" MaxWidth="400" MaxHeight="600" VerticalAlignment="Center" HorizontalAlignment="Center">
                 <StackPanel>
-                    <!-- Популярные бренды -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
-                        <Image Source="https://via.placeholder.com/120x50/333333/FFFFFF?text=Kingston" Width="120" Margin="10"/>
-                        <Image Source="https://via.placeholder.com/120x50/333333/FFFFFF?text=AMD" Width="120" Margin="10"/>
-                        <Image Source="https://via.placeholder.com/120x50/333333/FFFFFF?text=TP-Link" Width="120" Margin="10"/>
-                        <Image Source="https://via.placeholder.com/120x50/333333/FFFFFF?text=Asus" Width="120" Margin="10"/>
-                        <Image Source="https://via.placeholder.com/120x50/333333/FFFFFF?text=Samsung" Width="120" Margin="10"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="CloseProfileButton" Click="CloseProfileButton_Click" Style="{StaticResource CloseButtonStyle}"/>
                     </StackPanel>
-
-                    <!-- Вторая сетка товаров -->
-                    <TextBlock Text="Дополнительные товары" FontSize="18" FontWeight="SemiBold" Margin="10,20,10,10"/>
-                    <ItemsControl x:Name="AdditionalProductsGrid" Margin="10">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderBrush="#E0E0E0" BorderThickness="1" Margin="5" Width="200" Height="250">
-                                    <StackPanel Background="White">
-                                        <Image Source="{Binding ImageUrl}" Height="140" Stretch="Uniform" Margin="5"/>
-                                        <TextBlock Text="{Binding Name}" FontSize="15" Margin="5" TextAlignment="Center" FontWeight="Medium"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <!-- Третья сетка товаров (популярные товары) -->
-                    <TextBlock Text="Популярные товары" FontSize="18" FontWeight="SemiBold" Margin="10,20,10,10"/>
-                    <ItemsControl x:Name="PopularProductsGrid" Margin="10">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderBrush="#E0E0E0" BorderThickness="1" Margin="5" Width="200" Height="320">
-                                    <StackPanel Background="White">
-                                        <Image Source="{Binding ImageUrl}" Height="140" Stretch="Uniform" Margin="5"/>
-                                        <TextBlock Text="{Binding Name}" FontSize="15" Margin="5" TextAlignment="Center" FontWeight="Medium" TextWrapping="Wrap" Height="80"/>
-                                        <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
-                                            <TextBlock Text="★" Foreground="#FF9800" FontSize="14"/>
-                                            <TextBlock Text="{Binding Rating}" FontSize="14" Margin="2,0"/>
-                                            <TextBlock Text="(" Foreground="#757575"/>
-                                            <TextBlock Text="{Binding Reviews}" Foreground="#757575"/>
-                                            <TextBlock Text=" отз.)" Foreground="#757575"/>
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding Price}" FontSize="16" FontWeight="Bold" Margin="5" Foreground="#D32F2F" TextAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <!-- Футер -->
-                    <Border Background="#2C2F33" Margin="0,20,0,0" Padding="20">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="О КОМПАНИИ" FontSize="16" FontWeight="Bold" Foreground="White"/>
-                                <TextBlock Text="О нас" FontSize="14" Foreground="#B0B0B0" Margin="0,10,0,0"/>
-                                <TextBlock Text="Сотрудничество" FontSize="14" Foreground="#B0B0B0" Margin="0,5,0,0"/>
-                                <TextBlock Text="Вакансии" FontSize="14" Foreground="#B0B0B0" Margin="0,5,0,0"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="ПОКУПАТЕЛЯМ" FontSize="16" FontWeight="Bold" Foreground="White"/>
-                                <TextBlock Text="Доставка" FontSize="14" Foreground="#B0B0B0" Margin="0,10,0,0"/>
-                                <TextBlock Text="Оплата" FontSize="14" Foreground="#B0B0B0" Margin="0,5,0,0"/>
-                                <TextBlock Text="Гарантия" FontSize="14" Foreground="#B0B0B0" Margin="0,5,0,0"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="ПОДДЕРЖКА" FontSize="16" FontWeight="Bold" Foreground="White"/>
-                                <TextBlock Text="Контакты" FontSize="14" Foreground="#B0B0B0" Margin="0,10,0,0"/>
-                                <TextBlock Text="Чат" FontSize="14" Foreground="#B0B0B0" Margin="0,5,0,0"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="3">
-                                <TextBlock Text="СОЦСЕТИ" FontSize="16" FontWeight="Bold" Foreground="White"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                    <Image Source="https://via.placeholder.com/25x25/FF5722/FFFFFF?text=YT" Width="25" Margin="0,0,5,0"/>
-                                    <Image Source="https://via.placeholder.com/25x25/FF5722/FFFFFF?text=FB" Width="25" Margin="0,0,5,0"/>
-                                    <Image Source="https://via.placeholder.com/25x25/FF5722/FFFFFF?text=IG" Width="25"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                    <TextBlock Text="© 2025 ElitePC Store. Все права защищены" FontSize="12" Foreground="#757575" HorizontalAlignment="Center" Margin="0,10"/>
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- Боковая панель профиля -->
-            <Border x:Name="ProfilePanel" Grid.RowSpan="3" Background="#2C2F33" Width="250" HorizontalAlignment="Right" Visibility="Collapsed">
-                <StackPanel Margin="15">
-                    <!-- Заголовок панели -->
-                    <TextBlock Text="Мій акаунт" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,15"/>
-
-                    <!-- Имя -->
-                    <TextBlock Text="Ім'я" FontSize="14" Foreground="#B0B0B0" Margin="0,0,0,5"/>
-                    <TextBox x:Name="FirstNameTextBox" Text="{Binding FirstName}" FontSize="14" Foreground="White" Background="#3A3F44" BorderBrush="#555555" BorderThickness="1" Padding="5" Margin="0,0,0,10"/>
-
-                    <!-- Привязка -->
-                    <TextBlock Text="Привязка" FontSize="14" Foreground="#B0B0B0" Margin="0,0,0,5"/>
-                    <TextBlock x:Name="BindingTextBlock" Text="{Binding Binding}" FontSize="14" Foreground="White" Margin="0,0,0,10"/>
-
-                    <!-- По батькові -->
-                    <TextBlock Text="По батькові" FontSize="14" Foreground="#B0B0B0" Margin="0,0,0,5"/>
-                    <TextBox x:Name="MiddleNameTextBox" Text="{Binding MiddleName}" FontSize="14" Foreground="White" Background="#3A3F44" BorderBrush="#555555" BorderThickness="1" Padding="5" Margin="0,0,0,10"/>
-
-                    <!-- Телефон -->
-                    <TextBlock Text="Номер телефона" FontSize="14" Foreground="#B0B0B0" Margin="0,0,0,5"/>
-                    <TextBox x:Name="PhoneTextBox" Text="{Binding Phone}" FontSize="14" Foreground="White" Background="#3A3F44" BorderBrush="#555555" BorderThickness="1" Padding="5" Margin="0,0,0,10"/>
-
-                    <!-- Email -->
-                    <TextBlock Text="Електронна пошта (логін)" FontSize="14" Foreground="#B0B0B0" Margin="0,0,0,5"/>
-                    <TextBox x:Name="EmailTextBox" Text="{Binding Email}" FontSize="14" Foreground="White" Background="#3A3F44" BorderBrush="#555555" BorderThickness="1" Padding="5" Margin="0,0,0,20"/>
-
-                    <!-- Кнопка Сохранить -->
-                    <Button x:Name="SaveProfileButton" Content="Зберегти" Background="#00C853" Click="SaveProfileButton_Click" Margin="0,0,0,10"/>
-
-                    <!-- Кнопка Выход -->
-                    <Button x:Name="LogoutButton" Content="Вихід" Style="{StaticResource LogoutButtonStyle}" Click="LogoutButton_Click" Margin="0,5"/>
+                    <TextBlock Text="Редагування профілю" FontSize="20" FontWeight="Bold" Margin="0,0,0,15" HorizontalAlignment="Center"/>
+                    <TextBox x:Name="FirstNameTextBox" Margin="0,0,0,10" Height="30" Text="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox x:Name="MiddleNameTextBox" Margin="0,0,0,10" Height="30" Text="{Binding MiddleName, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox x:Name="PhoneTextBox" Margin="0,0,0,10" Height="30" Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox x:Name="EmailTextBox" Margin="0,0,0,10" Height="30" Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button x:Name="SaveProfileButton" Content="Зберегти" Click="SaveProfileButton_Click" Style="{StaticResource ActionButtonStyle}"/>
+                    <Button x:Name="LogoutButton" Content="Вийти" Click="LogoutButton_Click" Style="{StaticResource ActionButtonStyle}" Margin="0,10,0,0"/>
                 </StackPanel>
             </Border>
-        </Grid>
+        </Border>
     </Grid>
 </Window>

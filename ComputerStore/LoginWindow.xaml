@@ -1,8 +1,8 @@
 ﻿<Window x:Class="ElmirClone.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Вход" Height="820" Width="600" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
-    <!-- Градиентный фон -->
+        Title="Вхід" Height="820" Width="600" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+    <!-- Градієнтний фон -->
     <Window.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#E0F7FA" Offset="0"/>
@@ -10,7 +10,7 @@
         </LinearGradientBrush>
     </Window.Background>
     <Window.Resources>
-        <!-- Стиль для кнопки действия -->
+        <!-- Стиль для кнопки дії -->
         <Style TargetType="Button" x:Key="ActionButtonStyle">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background" Value="#0288D1"/>
@@ -37,7 +37,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Стиль для полей ввода -->
+        <!-- Стиль для полів введення -->
         <Style TargetType="TextBox">
             <Setter Property="Height" Value="45"/>
             <Setter Property="FontSize" Value="14"/>
@@ -99,7 +99,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Стиль для кнопки сброса пароля -->
+        <!-- Стиль для кнопки скидання пароля -->
         <Style TargetType="Button" x:Key="ResetPasswordButtonStyle">
             <Setter Property="Foreground" Value="#0288D1"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -129,64 +129,70 @@
     <Grid Margin="40">
         <Border Background="#FFFFFF" CornerRadius="15" Margin="0,-10,0,-25">
             <Grid>
-                <!-- Нижняя синяя полоса -->
+                <!-- Нижня синя смуга -->
                 <Border Background="#0288D1" VerticalAlignment="Bottom" Height="10" CornerRadius="0,0,15,15"/>
 
-                <!-- Основной контент -->
+                <!-- Основний контент -->
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="30">
                     <!-- Логотип -->
-                    <Image Source="https://i.postimg.cc/02SPKrX0/2025-04-17-000603.png" Height="120" Stretch="Uniform" Margin="0,0,0,40"/>
+                    <Image Source="https://i.postimg.cc/8kdp9850/2025-05-16-154029.png" Height="120" Stretch="Uniform" Margin="0,0,0,40"/>
 
-                    <!-- Переключение между Входом и Регистрацией -->
+                    <!-- Перемикання між Входом і Реєстрацією -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,30">
-                        <RadioButton x:Name="LoginRadioButton" Content="Вход" GroupName="AuthMode" Checked="LoginRadioButton_Checked"/>
-                        <RadioButton x:Name="RegisterRadioButton" Content="Регистрация" GroupName="AuthMode" Checked="RegisterRadioButton_Checked"/>
+                        <RadioButton x:Name="LoginRadioButton" Content="Вхід" GroupName="AuthMode" Checked="LoginRadioButton_Checked"/>
+                        <RadioButton x:Name="RegisterRadioButton" Content="Реєстрація" GroupName="AuthMode" Checked="RegisterRadioButton_Checked"/>
                     </StackPanel>
 
                     <!-- Заголовок -->
-                    <TextBlock x:Name="TitleTextBlock" Text="Вход" FontSize="28" FontWeight="Bold" Foreground="#37474F" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+                    <TextBlock x:Name="TitleTextBlock" Text="Вхід" FontSize="28" FontWeight="Bold" Foreground="#37474F" HorizontalAlignment="Center" Margin="0,0,0,30"/>
 
-                    <!-- Поля для входа -->
+                    <!-- Поля для входу -->
                     <StackPanel x:Name="LoginFields">
-                        <TextBlock Text="Имя пользователя" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
+                        <TextBlock Text="Ім'я користувача" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
                         <TextBox x:Name="UsernameTextBox" Width="350"/>
                         <TextBlock Text="Пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
                         <PasswordBox x:Name="PasswordBox" Width="350" Margin="0,0,0,40"/>
                     </StackPanel>
 
-                    <!-- Поля для сброса пароля -->
-                    <StackPanel x:Name="ResetPasswordFields" Visibility="Collapsed">
-                        <TextBlock Text="Введите вашу почту" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
-                        <TextBox x:Name="EmailResetTextBox" Width="350"/>
-                        <TextBlock Text="Новый пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                        <PasswordBox x:Name="NewPasswordBox" Width="350"/>
-                        <TextBlock Text="Повторите новый пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                        <PasswordBox x:Name="ConfirmNewPasswordBox" Width="350" Margin="0,0,0,40"/>
-                        <Button x:Name="ConfirmResetButton" Content="Сбросить пароль" Width="350" Style="{StaticResource ActionButtonStyle}" Background="#FF5722" Click="ConfirmResetButton_Click"/>
-                    </StackPanel>
-
-                    <!-- Поля для регистрации с прокруткой -->
-                    <ScrollViewer x:Name="RegisterFieldsScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" MaxHeight="400">
-                        <StackPanel x:Name="RegisterFields">
-                            <TextBlock Text="Имя" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
-                            <TextBox x:Name="FirstNameTextBox" Width="350"/>
-                            <TextBlock Text="Фамилия (не обязательно)" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                            <TextBox x:Name="LastNameTextBox" Width="350"/>
-                            <TextBlock Text="Почта" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                            <TextBox x:Name="EmailTextBox" Width="350"/>
-                            <TextBlock Text="Пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                            <PasswordBox x:Name="PasswordBoxRegister" Width="350"/>
-                            <TextBlock Text="Повторите пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
-                            <PasswordBox x:Name="ConfirmPasswordBox" Width="350"/>
-                            <!-- Кнопка для регистрации -->
-                            <Button x:Name="RegisterButton" Content="Зарегистрироваться" Width="350" Style="{StaticResource ActionButtonStyle}" Background="#FF5722" Margin="0,40,0,20" Click="ActionButton_Click"/>
+                    <!-- Поля для скидання пароля з прокруткою -->
+                    <ScrollViewer x:Name="ResetPasswordFields" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" MaxHeight="400">
+                        <StackPanel>
+                            <TextBlock Text="Введіть вашу пошту" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
+                            <TextBox x:Name="EmailResetTextBox" Width="350"/>
+                            <TextBlock Text="Введіть 4 цифри" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5" ToolTip="Введіть 4 цифри, які ви запам'ятаєте, ці цифри потрібні, якщо ви забудете пароль, щоб ви могли його скинути"/>
+                            <TextBox x:Name="SecurityCodeTextBox" Width="350" MaxLength="4" PreviewTextInput="NumberValidationTextBox"/>
+                            <TextBlock Text="Новий пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <PasswordBox x:Name="NewPasswordBox" Width="350"/>
+                            <TextBlock Text="Повторіть новий пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <PasswordBox x:Name="ConfirmNewPasswordBox" Width="350" Margin="0,0,0,40"/>
+                            <Button x:Name="ConfirmResetButton" Content="Скинути пароль" Width="350" Style="{StaticResource ActionButtonStyle}" Background="#FF5722" Click="ConfirmResetButton_Click"/>
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!-- Кнопка для входа -->
-                    <Button x:Name="ActionButton" Content="Войти" Width="350" Style="{StaticResource ActionButtonStyle}" Click="ActionButton_Click" Visibility="{Binding ElementName=LoginFields, Path=Visibility}"/>
-                    <!-- Кнопка сброса пароля -->
-                    <Button x:Name="ResetPasswordButton" Content="Сбросить пароль" Style="{StaticResource ResetPasswordButtonStyle}" HorizontalAlignment="Center" Margin="0,10,0,0" Click="ResetPasswordButton_Click" Visibility="{Binding ElementName=LoginFields, Path=Visibility}"/>
+                    <!-- Поля для реєстрації з прокруткою -->
+                    <ScrollViewer x:Name="RegisterFieldsScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" MaxHeight="400">
+                        <StackPanel x:Name="RegisterFields">
+                            <TextBlock Text="Ім'я" FontSize="14" Foreground="#546E7A" Margin="0,0,0,5"/>
+                            <TextBox x:Name="FirstNameTextBox" Width="350"/>
+                            <TextBlock Text="Прізвище (не обов'язково)" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <TextBox x:Name="LastNameTextBox" Width="350"/>
+                            <TextBlock Text="Пошта" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <TextBox x:Name="EmailTextBox" Width="350"/>
+                            <TextBlock Text="Пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <PasswordBox x:Name="PasswordBoxRegister" Width="350"/>
+                            <TextBlock Text="Повторіть пароль" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5"/>
+                            <PasswordBox x:Name="ConfirmPasswordBox" Width="350"/>
+                            <TextBlock Text="Введіть 4 цифри" FontSize="14" Foreground="#546E7A" Margin="0,20,0,5" ToolTip="Введіть 4 цифри, які ви запам'ятаєте, ці цифри потрібні, якщо ви забудете пароль, щоб ви могли його скинути"/>
+                            <TextBox x:Name="SecurityCodeRegisterTextBox" Width="350" MaxLength="4" PreviewTextInput="NumberValidationTextBox"/>
+                            <!-- Кнопка для реєстрації -->
+                            <Button x:Name="RegisterButton" Content="Зареєструватися" Width="350" Style="{StaticResource ActionButtonStyle}" Background="#FF5722" Margin="0,40,0,20" Click="ActionButton_Click"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Кнопка для входу -->
+                    <Button x:Name="ActionButton" Content="Увійти" Width="350" Style="{StaticResource ActionButtonStyle}" Click="ActionButton_Click" Visibility="{Binding ElementName=LoginFields, Path=Visibility}"/>
+                    <!-- Кнопка скидання пароля -->
+                    <Button x:Name="ResetPasswordButton" Content="Скинути пароль" Style="{StaticResource ResetPasswordButtonStyle}" HorizontalAlignment="Center" Margin="0,10,0,0" Click="ResetPasswordButton_Click" Visibility="{Binding ElementName=LoginFields, Path=Visibility}"/>
                 </StackPanel>
             </Grid>
         </Border>

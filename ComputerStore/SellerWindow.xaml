@@ -1,164 +1,319 @@
 ﻿<Window x:Class="ElmirClone.SellerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Панель продавца ElitePC" Height="700" Width="1200" Background="#F5F5F5">
+        xmlns:local="clr-namespace:ElmirClone"
+        Title="Панель продавця - ElitePC" Height="800" Width="1000" Background="#E8ECEF">
     <Window.Resources>
-        <Style TargetType="Button">
-            <Setter Property="Background" Value="#333333"/>
+        <!-- Исправленные ключи для конвертеров -->
+        <local:BooleanToHiddenStatusConverter x:Key="BooleanToHiddenStatusConverter"/>
+        <local:BooleanToBlockButtonConverter x:Key="BooleanToBlockButtonConverter"/>
+
+        <Style TargetType="Button" x:Key="ModernButtonStyle">
+            <Setter Property="Background" Value="#007BFF"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Height" Value="35"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Width" Value="100"/>
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" BorderThickness="1" BorderBrush="#444444">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#555555"/>
+                                <Setter Property="Background" Value="#0056b3"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#666666"/>
+                                <Setter Property="Background" Value="#003087"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="LogoutButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="#FF5722"/>
+
+        <Style TargetType="Button" x:Key="DangerButtonStyle" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#DC3545"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#c82333"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#bd2130"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="WarningButtonStyle" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#FFC107"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#e0a800"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#d39e00"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="SidebarButtonStyle">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderThickness="0,0,0,1" BorderBrush="#DDE2E5">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#DDE2E5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#CED4DA"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox" x:Key="ModernInputStyle">
+            <Setter Property="Width" Value="250"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CED4DA"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox" x:Key="SearchInputStyle" BasedOn="{StaticResource ModernInputStyle}">
+            <Setter Property="Width" Value="150"/>
+        </Style>
+
+        <Style TargetType="ComboBox" x:Key="ModernComboBoxStyle">
+            <Setter Property="Width" Value="250"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CED4DA"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="StackPanel" x:Key="CardStyle">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#CED4DA" Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3"/>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
+            <RowDefinition Height="50"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="180"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Шапка -->
-        <Border Grid.Row="0" Background="#2C2F33">
-            <TextBlock Text="Панель продавца ElitePC" FontSize="22" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" Margin="15"/>
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#343A40">
+            <DockPanel Margin="10,0">
+                <Image Source="https://i.postimg.cc/NjwbfzvS/2025-05-16-154029.png" Width="85" Height="40" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                <TextBlock Text="Панель продавця" Foreground="White" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="10,0,0,0"/>
+                <Button x:Name="LogoutButton" Content="Вийти" Click="Logout_Click" Style="{StaticResource DangerButtonStyle}" DockPanel.Dock="Top" HorizontalAlignment="Right" VerticalAlignment="Top" Width="80" Height="28" Margin="0,5,5,0"/>
+            </DockPanel>
         </Border>
 
-        <!-- Основной контент -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <StackPanel Grid.Row="1" Grid.Column="0" Background="#F8F9FA" Margin="0,10">
+            <Button Content="Керування товарами" Click="ShowProductsPanel_Click" Style="{StaticResource SidebarButtonStyle}"/>
+            <Button Content="Керування замовленнями" Click="ShowOrdersPanel_Click" Style="{StaticResource SidebarButtonStyle}"/>
+            <Button Content="Фінанси" Click="ShowFinancePanel_Click" Style="{StaticResource SidebarButtonStyle}"/>
+            <Button Content="Профіль магазину" Click="ShowProfilePanel_Click" Style="{StaticResource SidebarButtonStyle}"/>
+        </StackPanel>
 
-            <!-- Боковая панель -->
-            <StackPanel Grid.Column="0" Background="#E0E0E0" Margin="5">
-                <Button Content="Управление товарами" Click="ShowProductsPanel_Click"/>
-                <Button Content="Управление заказами" Click="ShowOrdersPanel_Click"/>
-                <Button Content="Финансы" Click="ShowFinancePanel_Click"/>
-                <Button Content="Профиль магазина" Click="ShowProfilePanel_Click"/>
-                <Button Content="Выйти" Style="{StaticResource LogoutButtonStyle}" Click="Logout_Click" Margin="5,20,5,5"/>
-            </StackPanel>
+        <ScrollViewer Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="10">
+            <StackPanel>
+                <StackPanel x:Name="ProductsPanel" Visibility="Visible" Style="{StaticResource CardStyle}">
+                    <TextBlock Text="Керування товарами" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
+                    <TextBlock Text="Додати новий товар" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
+                    <WrapPanel Margin="10,0,10,10">
+                        <TextBox x:Name="NewProductName" Style="{StaticResource ModernInputStyle}" Text="Назва товару"/>
+                        <TextBox x:Name="NewProductDescription" Style="{StaticResource ModernInputStyle}" Text="Опис"/>
+                        <TextBox x:Name="NewProductPrice" Style="{StaticResource ModernInputStyle}" Text="Ціна"/>
+                        <TextBox x:Name="NewProductStockQuantity" Style="{StaticResource ModernInputStyle}" Text="Кількість"/>
+                        <TextBox x:Name="NewProductBrand" Style="{StaticResource ModernInputStyle}" Text="Бренд"/>
+                        <ComboBox x:Name="ProductCategory" Style="{StaticResource ModernComboBoxStyle}" DisplayMemberPath="Name" SelectedValuePath="CategoryId"/>
+                        <ComboBox x:Name="ProductSubcategory" Style="{StaticResource ModernComboBoxStyle}" DisplayMemberPath="Name" SelectedValuePath="SubcategoryId"/>
+                        <TextBox x:Name="NewProductImagePath" Style="{StaticResource ModernInputStyle}" Text="Шлях до зображення" IsReadOnly="True"/>
+                        <Button Content="Вибрати зображення" Click="SelectImage_Click" Style="{StaticResource ModernButtonStyle}" Width="120"/>
+                        <Button Content="Додати" Click="AddProduct_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                    </WrapPanel>
+                    <WrapPanel Margin="10,0,10,10">
+                        <TextBlock Text="Пошук товару за ID:" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="SearchProductId" Style="{StaticResource SearchInputStyle}" Text="Введіть ID"/>
+                        <Button Content="Знайти" Click="SearchProductById_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                    </WrapPanel>
+                    <DataGrid x:Name="ProductsList" AutoGenerateColumns="False" IsReadOnly="True" Margin="10,0,10,10" MaxHeight="300" BorderThickness="1" BorderBrush="#CED4DA">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding ProductId}" Width="50"/>
+                            <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="150"/>
+                            <DataGridTextColumn Header="Опис" Binding="{Binding Description}" Width="150"/>
+                            <DataGridTextColumn Header="Ціна" Binding="{Binding Price}" Width="80"/>
+                            <DataGridTextColumn Header="Кількість" Binding="{Binding StockQuantity}" Width="80"/>
+                            <DataGridTextColumn Header="Бренд" Binding="{Binding Brand}" Width="100"/>
+                            <DataGridTextColumn Header="Категорія" Binding="{Binding CategoryName}" Width="120"/>
+                            <DataGridTextColumn Header="Підкатегорія" Binding="{Binding SubcategoryName}" Width="120"/>
+                            <DataGridTextColumn Header="Зображення" Binding="{Binding ImageUrl}" Width="150"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding IsHidden, Converter={StaticResource BooleanToHiddenStatusConverter}}" Width="80"/>
+                            <DataGridTemplateColumn Header="Дії" Width="300">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Редагувати" Click="EditProduct_Click" Tag="{Binding ProductId}" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                                            <Button Content="Видалити" Click="DeleteProduct_Click" Tag="{Binding ProductId}" Style="{StaticResource DangerButtonStyle}" Width="80"/>
+                                            <Button Content="{Binding IsHidden, Converter={StaticResource BooleanToBlockButtonConverter}}" Click="ToggleProductBlock_Click" Tag="{Binding ProductId}" Style="{StaticResource WarningButtonStyle}" Width="80"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
 
-            <!-- Панель управления -->
-            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="20">
-                    <!-- Панель управления товарами -->
-                    <StackPanel x:Name="ProductsPanel" Visibility="Visible">
-                        <TextBlock Text="Управление товарами" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBox x:Name="NewProductName" Width="200" Margin="0,0,5,0" Text="Название товара"/>
-                            <TextBox x:Name="NewProductDescription" Width="200" Margin="0,0,5,0" Text="Описание"/>
-                            <TextBox x:Name="NewProductPrice" Width="100" Margin="0,0,5,0" Text="Цена"/>
-                            <TextBox x:Name="NewProductBrand" Width="150" Margin="0,0,5,0" Text="Бренд"/>
-                            <TextBox x:Name="NewProductDiscount" Width="100" Margin="0,0,5,0" Text="Скидка (%)"/>
-                            <ComboBox x:Name="ProductCategory" Width="150" Margin="0,0,5,0"/>
-                            <Button Content="Добавить товар" Click="AddProduct_Click"/>
-                        </StackPanel>
-                        <ItemsControl x:Name="ProductsList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding Name}" Width="200"/>
-                                        <TextBlock Text="{Binding Description}" Width="200"/>
-                                        <TextBlock Text="{Binding Price}" Width="100"/>
-                                        <TextBlock Text="{Binding Brand}" Width="150"/>
-                                        <TextBlock Text="{Binding Discount}" Width="100"/>
-                                        <TextBlock Text="{Binding CategoryName}" Width="150"/>
-                                        <Button Content="Редактировать" Click="EditProduct_Click" Tag="{Binding ProductId}"/>
-                                        <Button Content="Удалить" Click="DeleteProduct_Click" Tag="{Binding ProductId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- Панель управления заказами -->
-                    <StackPanel x:Name="OrdersPanel" Visibility="Collapsed">
-                        <TextBlock Text="Управление заказами" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                        <ItemsControl x:Name="OrdersList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding OrderId}" Width="100"/>
-                                        <TextBlock Text="{Binding ProductName}" Width="200"/>
-                                        <TextBlock Text="{Binding Quantity}" Width="100"/>
-                                        <TextBlock Text="{Binding TotalPrice}" Width="100"/>
-                                        <TextBlock Text="{Binding OrderDate}" Width="150"/>
-                                        <TextBlock Text="{Binding Status}" Width="100"/>
-                                        <ComboBox x:Name="OrderStatusCombo" Width="100" Margin="5,0" SelectedItem="{Binding Status}">
+                <StackPanel x:Name="OrdersPanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
+                    <TextBlock Text="Керування замовленнями" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
+                    <WrapPanel Margin="10,0,10,10">
+                        <TextBlock Text="Пошук замовлення за ID:" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="SearchOrderId" Style="{StaticResource SearchInputStyle}" Text="Введіть ID"/>
+                        <Button Content="Знайти" Click="SearchOrderById_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                    </WrapPanel>
+                    <DataGrid x:Name="OrdersList" AutoGenerateColumns="False" IsReadOnly="True" Margin="10,0,10,10" MaxHeight="400" BorderThickness="1" BorderBrush="#CED4DA">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID замовлення" Binding="{Binding OrderId}" Width="100"/>
+                            <DataGridTextColumn Header="Товар" Binding="{Binding ProductName}" Width="200"/>
+                            <DataGridTextColumn Header="Кількість" Binding="{Binding Quantity}" Width="80"/>
+                            <DataGridTextColumn Header="Сума" Binding="{Binding TotalPrice}" Width="100"/>
+                            <DataGridTextColumn Header="Дата" Binding="{Binding OrderDate}" Width="150"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="100"/>
+                            <DataGridTemplateColumn Header="Оновити статус" Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Width="130" Margin="5,0" SelectedItem="{Binding Status, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                             <ComboBoxItem Content="Pending"/>
                                             <ComboBoxItem Content="Confirmed"/>
                                             <ComboBoxItem Content="Shipped"/>
                                             <ComboBoxItem Content="Delivered"/>
                                             <ComboBoxItem Content="Cancelled"/>
                                         </ComboBox>
-                                        <Button Content="Обновить" Click="UpdateOrderStatus_Click" Tag="{Binding OrderId}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- Панель финансов -->
-                    <StackPanel x:Name="FinancePanel" Visibility="Collapsed">
-                        <TextBlock Text="Финансы" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                        <TextBlock Text="Общий доход (после комиссии):" FontSize="16" Margin="0,0,0,5"/>
-                        <TextBlock x:Name="TotalRevenueText" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-                        <TextBlock Text="История продаж" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,5"/>
-                        <ItemsControl x:Name="SalesHistoryList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,5">
-                                        <TextBlock Text="{Binding OrderId}" Width="100"/>
-                                        <TextBlock Text="{Binding ProductName}" Width="200"/>
-                                        <TextBlock Text="{Binding TotalPrice}" Width="100"/>
-                                        <TextBlock Text="{Binding SellerRevenue}" Width="100"/>
-                                        <TextBlock Text="{Binding OrderDate}" Width="150"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-
-                    <!-- Панель профиля магазина -->
-                    <StackPanel x:Name="ProfilePanel" Visibility="Collapsed">
-                        <TextBlock Text="Профиль магазина" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="Название магазина:" Width="150"/>
-                            <TextBox x:Name="StoreNameTextBox" Width="300"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="Описание:" Width="150"/>
-                            <TextBox x:Name="StoreDescriptionTextBox" Width="300" Height="100" AcceptsReturn="True"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="Контакты:" Width="150"/>
-                            <TextBox x:Name="StoreContactInfoTextBox" Width="300"/>
-                        </StackPanel>
-                        <Button Content="Сохранить" Click="SaveProfile_Click" Width="150"/>
-                    </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Дії" Width="200">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Оновити" Click="UpdateOrderStatus_Click" Tag="{Binding OrderId}" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                                            <Button Content="Відправити" Click="SendOrder_Click" Tag="{Binding OrderId}" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Прізвище" Binding="{Binding ContactLastName}" Width="100"/>
+                            <DataGridTextColumn Header="Ім'я" Binding="{Binding ContactFirstName}" Width="100"/>
+                            <DataGridTextColumn Header="По батькові" Binding="{Binding ContactMiddleName}" Width="100"/>
+                            <DataGridTextColumn Header="Телефон" Binding="{Binding ContactPhone}" Width="150"/>
+                            <DataGridTextColumn Header="Регіон" Binding="{Binding ShippingRegion}" Width="150"/>
+                            <DataGridTextColumn Header="Адреса" Binding="{Binding PickupPointAddress}" Width="200"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </StackPanel>
-            </ScrollViewer>
-        </Grid>
+
+                <StackPanel x:Name="FinancePanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
+                    <TextBlock Text="Фінанси" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
+                    <TextBlock Text="Загальний дохід:" FontSize="14" FontWeight="Medium" Margin="10,0,10,5"/>
+                    <TextBlock x:Name="TotalRevenueText" FontSize="14" FontWeight="Bold" Margin="10,0,10,10"/>
+                    <TextBlock Text="Історія продажів" FontSize="14" FontWeight="Medium" Margin="10,10,10,5"/>
+                    <WrapPanel Margin="10,0,10,10">
+                        <TextBlock Text="Пошук проданого товару за ID:" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="SearchSoldProductId" Style="{StaticResource SearchInputStyle}" Text="Введіть ID"/>
+                        <Button Content="Знайти" Click="SearchSoldProductById_Click" Style="{StaticResource ModernButtonStyle}" Width="80"/>
+                    </WrapPanel>
+                    <DataGrid x:Name="SalesHistoryList" AutoGenerateColumns="False" IsReadOnly="True" Margin="10,0,10,10" MaxHeight="300" BorderThickness="1" BorderBrush="#CED4DA">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID замовлення" Binding="{Binding OrderId}" Width="100"/>
+                            <DataGridTextColumn Header="Товар" Binding="{Binding ProductName}" Width="200"/>
+                            <DataGridTextColumn Header="Сума" Binding="{Binding TotalPrice}" Width="100"/>
+                            <DataGridTextColumn Header="Дохід продавця" Binding="{Binding SellerRevenue}" Width="100"/>
+                            <DataGridTextColumn Header="Дата" Binding="{Binding OrderDate}" Width="150"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+
+                <StackPanel x:Name="ProfilePanel" Visibility="Collapsed" Style="{StaticResource CardStyle}">
+                    <TextBlock Text="Профіль магазину" FontSize="16" FontWeight="SemiBold" Margin="15,10,10,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="10,0,10,10">
+                        <TextBlock Text="Назва магазину:" Width="150" VerticalAlignment="Center"/>
+                        <TextBox x:Name="StoreNameTextBox" Style="{StaticResource ModernInputStyle}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="10,0,10,10">
+                        <TextBlock Text="Опис:" Width="150" VerticalAlignment="Top"/>
+                        <TextBox x:Name="StoreDescriptionTextBox" Style="{StaticResource ModernInputStyle}" Width="400" Height="100" AcceptsReturn="True"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="10,0,10,10">
+                        <TextBlock Text="Контакти:" Width="150" VerticalAlignment="Center"/>
+                        <TextBox x:Name="StoreContactInfoTextBox" Style="{StaticResource ModernInputStyle}"/>
+                    </StackPanel>
+                    <Button Content="Зберегти" Click="SaveProfile_Click" Style="{StaticResource ModernButtonStyle}" Width="80" Margin="10"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Window>
